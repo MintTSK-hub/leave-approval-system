@@ -1683,11 +1683,13 @@ async function loadEmployeesToDropdown() {
     });
 
     // 3. ตัวแปรสำหรับการนับวันทำการ
+	  
     let count = 0;
     const excludedList = [];
     const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
     const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-
+	const durationInput = document.getElementById('leaveDuration');
+	  
       while (cursor <= endOnly) {
         const dow = cursor.getDay();
         const dateStr = toYMD(cursor);
@@ -2945,7 +2947,7 @@ async function loadMyRequests() {
     }
 
     // ===== ปฏิทินการลา: ใช้ร่วมกันทั้งพื้นที่ HR และผู้จัดการ =====
-    let calState = {
+	  let calState = {
       hr: { year: new Date().getFullYear(), month: new Date().getMonth() },
       manager: { year: new Date().getFullYear(), month: new Date().getMonth() }
     };
@@ -3425,6 +3427,7 @@ async function loadMyRequests() {
       document.body.removeChild(link);
     }	
 
+	  
 	  function calculateDateDuration() {
       const startInput = document.getElementById('startDate').value;
       const endInput = document.getElementById('endDate').value;
