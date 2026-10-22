@@ -376,6 +376,7 @@
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="myrequests-tab" data-bs-toggle="tab" data-bs-target="#myrequestsContent" type="button" role="tab" onclick="loadMyRequests()">
+		
           <i class="fa-solid fa-history me-2"></i><span data-th="ประวัติการลาของฉัน" data-en="My Requests">ประวัติการลาของฉัน</span>
         </button>
       </li>
@@ -2473,41 +2474,58 @@ async function doEmployeeLogin() {
     }
 
     // โหลดประวัติของพนักงานรายบุคคล
-    function loadMyRequests() {
-      const email = document.getElementById('searchEmail').value;
-      if (!email) {
-        document.getElementById('searchEmail').value = document.getElementById('applicantEmail').value;
+  // โหลดประวัติการลาของพนักงานรายบุคคลจาก Supabase
+async function loadMyRequests() {
+  const emailInput = document.getElementById('searchEmail');
+  if (!emailInput) return;
+  
+  if (!emailInput.value && document.getElementById('applicantEmail')) {
+    emailInput.value = document.getElementById('applicantEmail').value;
+  }
+  
+  const searchEmailValue = emailInput.value.trim();
+  if (!searchEmailValue) return;
+
+  showLoading(currentLang === 'th' ? "กำลังเรียกค้นคืนประวัติของคุณ..." : "Fetching personal leave archive...");
+
+  try {
+    // ดึงข้อมูลจากตาราง leave_requests ตามอีเมลผู้ยื่น
+    const { data: requests, error } = await supabaseClient
+      .from('leave_requests')
+      .select('*')
+      .eq('applicant_email', searchEmailValue)
+      .order('timestamp', { ascending: false });
+
+    hideLoading();
+
+    if (error) {
+      console.error('Error fetching leave requests:', error);
+      showAppAlert("Error", error.message, "danger");
+      return;
+    }
+
+    allCachedRequests = requests || [];
+    renderRequestsTable(allCachedRequests, 'historyTableBody', 'self');
+
+    // อัปเดตป้ายสถานะล่าสุด (ถ้าล็อกอินอยู่)
+    if (loggedInEmployee) {
+      if (allCachedRequests.length > 0) {
+        const latest = allCachedRequests[0]; // เรียงล่าสุดขึ้นก่อนอยู่แล้ว
+        const info = getStatusInfo(latest.status);
+        document.getElementById('employeeLatestStatusText').innerHTML = `สถานะล่าสุด (${latest.id}): <span class="badge ${info.badgeClass}">${info.label}</span>`;
+      } else {
+        document.getElementById('employeeLatestStatusText').innerText = "สถานะล่าสุด: ยังไม่มีประวัติการลา";
       }
-      
-      const searchEmailValue = document.getElementById('searchEmail').value;
-      if (!searchEmailValue) return;
-
-      showLoading(currentLang === 'th' ? "กำลังเรียกค้นคืนประวัติของคุณ..." : "Fetching personal leave archive...");
-      
-      google.script.run
-        .withSuccessHandler(function (requests) {
-          hideLoading();
-          allCachedRequests = requests || [];
-          renderRequestsTable(allCachedRequests, 'historyTableBody', 'self');
-
-          // อัปเดตป้ายสถานะล่าสุด (ถ้าล็อกอินอยู่)
-          if (loggedInEmployee) {
-            if (allCachedRequests.length > 0) {
-              const latest = allCachedRequests[0]; // เรียงล่าสุดขึ้นก่อนอยู่แล้ว
-              const info = getStatusInfo(latest.Status);
-              document.getElementById('employeeLatestStatusText').innerHTML = "สถานะล่าสุด (" + latest.ID + "): <span class=\"badge " + info.badgeClass + "\">" + info.label + "</span>";
-            } else {
-              document.getElementById('employeeLatestStatusText').innerText = "สถานะล่าสุด: ยังไม่มีประวัติการลา";
-            }
-          }
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("Error", err.toString(), "danger");
-        })
+    }
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert("Error", err.toString(), "danger");
+ })
         .fetchLeaveRequests(searchEmailValue, "self", "");
     }
 
+          
     // เรนเดอร์ตารางบันทึกวันลา — viewMode: "self" | "hr" | "manager"
     function renderRequestsTable(data, elementId, viewMode) {
       const tbody = document.getElementById(elementId);
