@@ -8,15 +8,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
-      // ประกาศตัวแปร Global ไว้ด้านบนสุด
-      let cachedAllEmployeesAdmin = [];
-      let cachedHolidays = [];
-
+      
       // ตั้งค่าการเชื่อมต่อ Supabase
       const SUPABASE_URL = 'https://adlmxhzgtuwiauxpfhmd.supabase.co';
       const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
       const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    </script>
 
 // ฟังก์ชันสำหรับดึงรายชื่อพนักงานมาใส่ใน Dropdown
   async function loadEmployeesToDropdown() {
@@ -1369,6 +1365,8 @@
     let allCachedRequests = [];
     let isManagerAuthorized = false;
     let loggedInEmployee = null;
+	let cachedHolidays = [];          
+    let cachedAllEmployeesAdmin = []; 
     
     
     // Category Lists Map
