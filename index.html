@@ -11,21 +11,30 @@
   // ประกาศตัวแปรเชื่อมต่อแค่จุดเดียวพอครับ
   const SUPABASE_URL = 'https://adlmxhzgtuwiauxpfhmd.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
-  
-  // ใช้ window.supabase หรือเปลี่ยนชื่อตัวแปรไม่ให้ชนกัน
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  async function testConnection() {
-    const { data, error } = await supabaseClient.from('employees').select('*');
+    // 2. นำฟังก์ชันดึงรายชื่อพนักงานมาวางเพิ่มตรงนี้
+  async function loadEmployeesToDropdown() {
+    const selectElement = document.getElementById('employeeSelect');
+    const { data: employees, error } = await supabaseClient.from('employees').select('id, name');
+
     if (error) {
-      console.error('เชื่อมต่อไม่สำเร็จ:', error);
-    } else {
-      console.log('เชื่อมต่อสำเร็จ! รายชื่อพนักงาน:', data);
+      console.error('Error:', error);
+      return;
     }
+
+    selectElement.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
+    employees.forEach(emp => {
+      const option = document.createElement('option');
+      option.value = emp.id;
+      option.text = emp.name;
+      selectElement.appendChild(option);
+    });
   }
 
-  testConnection();
-</script>
+  // 3. เรียกใช้งานฟังก์ชันตอนเปิดหน้าเว็บ
+  loadEmployeesToDropdown();
+</script>	
 	
   <!-- CSS Framework & UI Assets -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -309,10 +318,19 @@
     </div>
   </header>
 
+
+
   <div class="container mb-5">
     <!-- Alert Notification Center -->
     <div id="alertPlaceholder"></div>
 
+<div class="mb-3">
+  <label for="employeeSelect" class="form-label"><b>เลือกพนักงานผู้ยื่นใบลา:</b></label>
+  <select id="employeeSelect" class="form-select">
+    <option value="">-- กำลังโหลดรายชื่อพนักงาน... --</option>
+  </select>
+</div>
+	  
     <!-- ===== LOGIN GATE: แสดงก่อนเข้าสู่ระบบ ใช้ร่วมกันทั้งพนักงาน/HR/ผู้จัดการ ===== -->
     <div id="loginGate" class="login-gate-wrap">
       <div class="login-gate-card">
