@@ -1783,59 +1783,99 @@
       });
     }
 
-    // ส่งข้อมูลขั้นสุดท้ายไปลงตาราง Google Sheets
-    function sendDataToGAS(fileData, signatureData) {
-      const formData = {
-        editRequestId: document.getElementById('editRequestId').value,
-        prefix: document.getElementById('prefix').value,
-        name: document.getElementById('name').value,
-        position: document.getElementById('position').value,
-        applicantEmail: document.getElementById('applicantEmail').value,
-        telephone: document.getElementById('telephone').value,
-        leaveCategory: document.getElementById('leaveCategory').value,
-        leaveType: document.getElementById('leaveType').value,
-        startDate: document.getElementById('startDate').value,
-        endDate: document.getElementById('endDate').value,
-        lastLeaveDate: document.getElementById('lastLeaveDate').value,
-        leaveDuration: document.getElementById('leaveDuration').value,
-        reason: document.getElementById('reason').value,
-        delegateName: document.getElementById('delegateName').value,
-        delegatePosition: document.getElementById('delegatePosition').value,
-        delegateEmployeeId: (function () {
-          const sel = document.getElementById('delegateName');
-          const o = sel.options[sel.selectedIndex];
-          return o ? (o.getAttribute('data-employee-id') || '') : '';
-        })(),
-        contactAddress: document.getElementById('contactAddress').value
-      };
+    // ส่งข้อมูลใบลาเข้าสู่ตาราง leave_requests ใน Supabase
+    async function sendDataToGAS(fileData, signatureData) {
+      const editRequestId = document.getElementById('editRequestId').value;
+      const prefix = document.getElementById('prefix').value;
+      const name = document.getElementById('name').value;
+      const position = document.getElementById('position').value;
+      const applicantEmail = document.getElementById('applicantEmail').value;
+      const telephone = document.getElementById('telephone').value;
+      const leaveCategory = document.getElementById('leaveCategory').value;
+      const leaveType = document.getElementById('leaveType').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const lastLeaveDate = document.getElementById('lastLeaveDate').value;
+      const leaveDuration = document.getElementById('leaveDuration').value;
+      const reason = document.getElementById('reason').value;
+      const contactAddress = document.getElementById('contactAddress').value;
 
-      google.script.run
-        .withSuccessHandler(function (response) {
-          hideLoading();
-          if (response.success) {
-            showAppAlert(
-              currentLang === 'th' ? "สำเร็จ!" : "Success!",
-              currentLang === 'th' ? `🎉 บันทึกการยื่นใบขออนุมัติวันลาแล้ว (รหัส: ${response.requestId})` + (response.pendingDelegate ? ' — ระบบส่งอีเมลแจ้งผู้รับมอบหมายงานแทนแล้ว คำขอจะส่งต่อให้ HR หลังผู้รับมอบหมายกดรับทราบและแนบลายเซ็น' : '') : `🎉 Successfully submitted your leave request. (ID: ${response.requestId})`,
-              "success"
-            );
-            resetRequestForm();
-          } else {
-            showAppAlert(
-              currentLang === 'th' ? "เกิดข้อผิดพลาด" : "Error Occurred",
-              response.message,
-              "danger"
-            );
-          }
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert(
-            currentLang === 'th' ? "เชื่อมต่อเซิร์ฟเวอร์ขัดข้อง" : "Server Connection Lost",
-            err.toString(),
-            "danger"
-          );
-        })
-        .submitLeaveRequest(formData, fileData, signatureData, loggedInEmployee ? loggedInEmployee.employeeId : null);
+      // ดึงข้อมูลผู้รับมอบหมายงานแทน (Delegate)
+      const sel = document.getElementById('delegateName');
+      const delegateName = sel ? sel.value : '';
+      const selectedOption = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+      const delegateEmployeeId = selectedOption ? (selectedOption.getAttribute('data-employee-id') || '') : '';
+
+      if (!startDate || !endDate || !reason) {
+        hideLoading();
+        showAppAlert(
+          currentLang === 'th' ? "ข้อมูลไม่ครบถ้วน" : "Incomplete Data",
+          currentLang === 'th' ? "กรุณากรอกวันที่เริ่มต้น สิ้นสุด และเหตุผลการลา" : "Please fill in start date, end date, and reason.",
+          "danger"
+        );
+        return;
+      }
+
+      showLoading(currentLang === 'th' ? "กำลังบันทึกข้อมูลใบลา..." : "Saving leave request...");
+
+      try {
+        // สร้างรหัสคำขอ (ถ้าเป็นการแก้ไขใช้รหัสเดิม ถ้าสร้างใหม่สร้างรหัสใหม่ LR-YYYYMMDD-XXXX)
+        const requestId = editRequestId || ("LR-" + new Date().toISOString().slice(0,10).replace(/-/g,"") + "-" + Math.floor(1000 + Math.random() * 9000));
+        const hasDelegate = delegateEmployeeId ? true : false;
+
+        const payload = {
+          id: requestId,
+          timestamp: new Date().toISOString(),
+          applicant_email: applicantEmail,
+          prefix: prefix,
+          name: name,
+          position: position,
+          phone: telephone,
+          leave_category: leaveCategory,
+          leave_type: leaveType,
+          start_date: startDate,
+          end_date: endDate,
+          last_leave_date: lastLeaveDate,
+          leave_duration: parseFloat(leaveDuration) || 0,
+          reason: reason,
+          contact_address: contactAddress,
+          delegate_name: delegateName,
+          delegate_employee_id: delegateEmployeeId || null,
+          status: hasDelegate ? 'PendingDelegate' : 'PendingManager',
+          file_data: fileData || null,
+          signature_data: signatureData || null,
+          employee_id: loggedInEmployee ? loggedInEmployee.employee_id : null
+        };
+
+        // ทำการ Upsert (ถ้ามี id อยู่แล้วจะเป็นการอัปเดต ถ้ายังไม่มีจะเป็นการสร้างใหม่)
+        const { data, error } = await supabaseClient
+          .from('leave_requests')
+          .upsert([payload], { onConflict: ['id'] });
+
+        hideLoading();
+
+        if (error) {
+          console.error('Error saving leave request:', error);
+          showAppAlert("Error", error.message, "danger");
+          return;
+        }
+
+        showAppAlert(
+          currentLang === 'th' ? "สำเร็จ!" : "Success!",
+          currentLang === 'th' ? `🎉 บันทึกการยื่นใบขออนุมัติวันลาแล้ว (รหัส: ${requestId})` + (hasDelegate ? ' — ระบบส่งต่อให้ผู้รับมอบหมายงานแทนรับทราบ' : '') : `Successfully submitted leave request (ID: ${requestId})`,
+          "success"
+        );
+
+        resetRequestForm();
+        if (typeof loadMyRequests === 'function') {
+          loadMyRequests();
+        }
+
+      } catch (err) {
+        hideLoading();
+        console.error(err);
+        showAppAlert("Error", err.toString(), "danger");
+      }
     }
 
     // ล้างและตั้งค่าฟอร์มกลับสู่แบบเริ่มต้น
