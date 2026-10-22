@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -8,27 +7,6 @@
   const SUPABASE_URL = 'https://adlmxhzgtuwiauxpfhmd.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // 2. นำฟังก์ชันดึงรายชื่อพนักงานมาวางเพิ่มตรงนี้
-  async function loadEmployeesToDropdown() {
-    const selectElement = document.getElementById('employeeSelect');
-    const { data: employees, error } = await supabaseClient.from('employees').select('id, name');
-
-    if (error) {
-      console.error('Error:', error);
-      return;
-    }
-
-    selectElement.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
-    employees.forEach(emp => {
-      const option = document.createElement('option');
-      option.value = emp.id;
-      option.text = emp.name;
-      selectElement.appendChild(option);
-    });
-  }
-
- 
 </script>	
 
   <base target="_top">
