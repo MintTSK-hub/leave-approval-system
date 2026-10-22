@@ -1952,9 +1952,6 @@ async function doEmployeeLogin() {
   }
 }
     // พาไปหน้าที่ถูกต้องตาม Role ของบัญชีที่ล็อกอินเข้ามา + ซ่อนแท็บที่ไม่เกี่ยวข้องออก
-    // ===== งานที่ได้รับมอบหมาย (ผู้รับมอบหมายงานแทนกดรับทราบ + แนบลายเซ็น) =====
-    let cachedDelegateTasks = [];
-
     // โหลดงานที่ได้รับมอบหมายจาก Supabase
     async function loadDelegateTasks(silent) {
       if (!loggedInEmployee) return;
