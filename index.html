@@ -1,11 +1,7 @@
+
 <!DOCTYPE html>
 <html lang="th">
-<head>		
-  <base target="_top">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบอนุมัติวันลา | สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</title>
-
+<head>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // ประกาศตัวแปรเชื่อมต่อแค่จุดเดียวพอครับ
@@ -34,7 +30,12 @@
 
  
 </script>	
-	
+
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบอนุมัติวันลา | สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</title>
+  
   <!-- CSS Framework & UI Assets -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -286,7 +287,7 @@
       border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(72, 161, 229, 0.15);
     }
-  	
+  </style>
 </head>
 <body>
 
@@ -321,13 +322,6 @@
     <!-- Alert Notification Center -->
     <div id="alertPlaceholder"></div>
 
-<div class="mb-3">
-  <label for="employeeSelect" class="form-label"><b>เลือกพนักงานผู้ยื่นใบลา:</b></label>
-  <select id="employeeSelect" class="form-select">
-    <option value="">-- กำลังโหลดรายชื่อพนักงาน... --</option>
-  </select>
-</div>
-	  
     <!-- ===== LOGIN GATE: แสดงก่อนเข้าสู่ระบบ ใช้ร่วมกันทั้งพนักงาน/HR/ผู้จัดการ ===== -->
     <div id="loginGate" class="login-gate-wrap">
       <div class="login-gate-card">
@@ -342,11 +336,11 @@
         <div class="mb-4">
           <label>รหัสผ่าน</label>
           <div class="password-toggle-wrap">
-            <input type="password" class="form-control" id="employeePasswordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doEmployeeLogin()" loadEmployeesToDropdown();>
+            <input type="password" class="form-control" id="employeePasswordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doEmployeeLogin();">
             <button type="button" class="password-toggle-btn" onclick="toggleLoginPasswordVisibility()"><i class="fa-solid fa-eye" id="loginPasswordToggleIcon"></i></button>
           </div>
         </div>
-        <button class="btn btn-login-teal w-100 py-2" onclick="doEmployeeLogin()" loadEmployeesToDropdown(); >เข้าสู่ระบบ</button>
+        <button class="btn btn-login-teal w-100 py-2" onclick="doEmployeeLogin()">เข้าสู่ระบบ</button>
         <p class="text-muted small mt-3 mb-0">กรุณาระบุชื่อผู้ใช้และรหัสผ่าน</p>
       </div>
     </div>
