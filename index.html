@@ -2529,7 +2529,7 @@ async function loadMyRequests() {
     hideLoading();
     console.error(err);
     showAppAlert("Error", err.toString(), "danger");
- })
+ }
         .fetchLeaveRequests(searchEmailValue, "self", "");
     }
 
