@@ -1897,7 +1897,7 @@
     }
 
     // เข้าสู่ระบบแบบรวมศูนย์ — ใช้บัญชีเดียวกันทั้งพนักงาน/HR/ผู้จัดการ ระบบจะพาไปหน้าที่ถูกต้องตาม Role อัตโนมัติ
-   // ฟังก์ชันเข้าสู่ระบบผ่าน Supabase (แทนที่ของเดิมทั้งหมด)
+ // ฟังก์ชันเข้าสู่ระบบผ่าน Supabase
 async function doEmployeeLogin() {
   const employeeId = document.getElementById('employeeIdInput').value.trim();
   const password = document.getElementById('employeePasswordInput').value.trim();
@@ -1910,7 +1910,7 @@ async function doEmployeeLogin() {
   showLoading("กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...");
 
   try {
-    // 1. ค้นหาพนักงานจากตาราง employees ใน Supabase
+    // 1. ค้นหาพนักงานจากตาราง employees ใน Supabase ตามรหัสผู้ใช้
     const { data: employee, error } = await supabaseClient
       .from('employees')
       .select('*')
@@ -1930,7 +1930,7 @@ async function doEmployeeLogin() {
       return;
     }
 
-    // 3. ล็อกอินผ่านเรียบร้อย
+    // 3. ล็อกอินผ่าน! บันทึกข้อมูลและสลับหน้าจอ
     loggedInEmployee = employee;
     
     document.getElementById('loginGate').style.display = 'none';
@@ -1950,7 +1950,6 @@ async function doEmployeeLogin() {
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
   }
 }
-
     // พาไปหน้าที่ถูกต้องตาม Role ของบัญชีที่ล็อกอินเข้ามา + ซ่อนแท็บที่ไม่เกี่ยวข้องออก
     // ===== งานที่ได้รับมอบหมาย (ผู้รับมอบหมายงานแทนกดรับทราบ + แนบลายเซ็น) =====
     let cachedDelegateTasks = [];
