@@ -2292,44 +2292,56 @@ async function loadHolidays(silent) {
     // ===== จัดการสิทธิวันลาพักผ่อน (ยอดยกมา/สิทธิรายปี) — สำหรับฝ่าย HR =====
 
     // เตรียมข้อมูลตอนเปิดแท็บครั้งแรก: เติมรายชื่อพนักงานในดรอปดาวน์ + ตั้งปีปัจจุบันเป็นค่าเริ่มต้น
-    function initAnnualLeaveManager() {
-      const yearInput = document.getElementById('annualLeaveYearBE');
-      if (!yearInput.value) {
-        yearInput.value = new Date().getFullYear() + 543;
-      }
+    async function initAnnualLeaveManager() {
+  try {
+    const { data: employees, error } = await supabaseClient
+      .from('employees')
+      .select('*');
 
-      const select = document.getElementById('annualLeaveEmployeeSelect');
-      if (select.options.length > 1) return; // เติมไปแล้วจากครั้งก่อน ไม่ต้องโหลดซ้ำ
-
-      // ใช้รายชื่อแบบรวมทุกสถานะ (getAllEmployeesForAdmin) เพราะ HR อาจต้องปรับยอดของพนักงานที่พ้นสภาพไปแล้วด้วย
-      google.script.run
-        .withSuccessHandler(function (employees) {
-          (employees || []).forEach(emp => {
-            const opt = document.createElement('option');
-            opt.value = emp.email;
-            const statusTag = emp.status !== 'Active' ? ' [พ้นสภาพ]' : '';
-            opt.innerText = emp.prefix + emp.name + ' (' + emp.email + ')' + statusTag;
-            select.appendChild(opt);
-          });
-        })
-        .withFailureHandler(function (err) { console.error(err); })
-        .getAllEmployeesForAdmin();
+    if (error) {
+      console.error('Error fetching employees for annual leave:', error);
+      return;
     }
+
+    // ฟังก์ชันเรนเดอร์ข้อมูลสิทธิ์วันลาพักผ่อน (ตามระบบเดิมของคุณ)
+    if (typeof renderAnnualLeaveTable === 'function') {
+      renderAnnualLeaveTable(employees || []);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
 
     // ===== จัดการพนักงาน (เพิ่มบัญชี / ระงับ-เปิดใช้งานบัญชี) =====
-    let cachedAllEmployeesAdmin = [];
+   async function loadEmployeeManager() {
+  showLoading("กำลังโหลดรายชื่อพนักงาน...");
+  try {
+    const { data: employees, error } = await supabaseClient
+      .from('employees')
+      .select('*')
+      .order('employee_id', { ascending: true });
 
-    function loadEmployeeManager() {
-      google.script.run
-        .withSuccessHandler(function (employees) {
-          cachedAllEmployeesAdmin = employees || [];
-          renderEmployeeManagerTable();
-        })
-        .withFailureHandler(function (err) {
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .getAllEmployeesForAdmin();
+    hideLoading();
+
+    if (error) {
+      console.error('Error loading employees:', error);
+      showAppAlert("ข้อผิดพลาด", error.message, "danger");
+      return;
     }
+
+    // เก็บข้อมูลลงตัวแปรแคชไว้ใช้งาน
+    window.cachedEmployeesManager = employees || [];
+
+    // เรียกฟังก์ชันเรนเดอร์ลงตารางจัดการพนักงาน
+    if (typeof renderEmployeeManagerTable === 'function') {
+      renderEmployeeManagerTable(window.cachedEmployeesManager);
+    }
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+  }
+}
 
     function renderEmployeeManagerTable() {
       const searchVal = document.getElementById('employeeManagerSearch').value.trim().toLowerCase();
