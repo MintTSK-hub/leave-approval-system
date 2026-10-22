@@ -1,12 +1,22 @@
 <!DOCTYPE html>
 <html lang="th">
-<head>
-	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  // ประกาศตัวแปรเชื่อมต่อแค่จุดเดียวพอครับ
-  const SUPABASE_URL = 'https://adlmxhzgtuwiauxpfhmd.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<<head>
+    <meta charset="UTF-8">
+    <title>ระบบขออนุมัติวันลาออนไลน์</title>
+    
+    <!-- โหลด Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+      // ประกาศตัวแปร Global ไว้ด้านบนสุด
+      let cachedAllEmployeesAdmin = [];
+      let cachedHolidays = [];
+
+      // ตั้งค่าการเชื่อมต่อ Supabase
+      const SUPABASE_URL = 'https://adlmxhzgtuwiauxpfhmd.supabase.co';
+      const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
+      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    </script>
 
 // ฟังก์ชันสำหรับดึงรายชื่อพนักงานมาใส่ใน Dropdown
   async function loadEmployeesToDropdown() {
@@ -1641,14 +1651,24 @@
       }
     }
 
-      // นับเฉพาะวันทำการ ไม่นับวันเสาร์-อาทิตย์ และวันหยุดนักขัตฤกษ์ (ตรงกับการคำนวณฝั่งเซิร์ฟเวอร์)
-      const holidayMap = {};
-      (cachedHolidays || []).forEach(h => { holidayMap[h.date] = h.description; });
+      // 1. ดึงค่าและแปลงค่าอินพุตวันที่เริ่มต้นและสิ้นสุดให้อยู่ในรูปออบเจกต์ Date
+    const startInput = document.getElementById('startDate').value;
+    const endInput = document.getElementById('endDate').value;
 
-      let count = 0;
-      const excludedList = [];
-      const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-      const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const start = new Date(startInput);
+    const end = new Date(endInput);
+
+    // 2. สร้าง Mapping ของวันหยุดนักขัตฤกษ์ครั้งเดียว
+    const holidayMap = {};
+    (cachedHolidays || []).forEach(h => { 
+      holidayMap[h.date] = h.description; 
+    });
+
+    // 3. ตัวแปรสำหรับการนับวันทำการ
+    let count = 0;
+    const excludedList = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
 
       while (cursor <= endOnly) {
         const dow = cursor.getDay();
