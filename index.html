@@ -439,6 +439,13 @@
                 </select>
               </div>
 
+			<!-- เลือกพนักงานผู้ยื่นใบลา -->
+<div class="col-md-4">
+  <label for="employeeSelect" class="form-label fw-bold">เลือกพนักงานผู้ยื่นใบลา *</label>
+  <select class="form-select text-primary fw-bold" id="employeeSelect" name="employeeSelect" required>
+    <option value="">-- กำลังโหลดรายชื่อพนักงาน --</option>
+  </select>
+</div>	
               <!-- Name -->
               <div class="col-md-4">
                 <label class="form-label" data-th="ชื่อ-นามสกุลพนักงาน *" data-en="Full Name *">ชื่อ-นามสกุลพนักงาน *</label>
@@ -1890,7 +1897,7 @@
     }
 
     // เข้าสู่ระบบแบบรวมศูนย์ — ใช้บัญชีเดียวกันทั้งพนักงาน/HR/ผู้จัดการ ระบบจะพาไปหน้าที่ถูกต้องตาม Role อัตโนมัติ
-    function doEmployeeLogin() {
+    function loadEmployeesToDropdown(); doEmployeeLogin() {
       const employeeId = document.getElementById('employeeIdInput').value.trim();
       const password = document.getElementById('employeePasswordInput').value.trim();
       if (!employeeId || !password) {
