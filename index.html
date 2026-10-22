@@ -1,19 +1,17 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-	<!-- โหลดไลบรารี Supabase จาก CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-	<script>
-  // 1. ตั้งค่าการเชื่อมต่อด้วย URL และ Publishable Key
-  const SUPABASE_URL = 'https://supabase.com/dashboard/project/adlmxhzgtuwiauxpfhmd/';
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ประกาศตัวแปรเชื่อมต่อแค่จุดเดียวพอครับ
+  const SUPABASE_URL = 'https://supabase.com/dashboard/project/adlmxhzgtuwiauxpfhmd';
   const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
   
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // ใช้ window.supabase หรือเปลี่ยนชื่อตัวแปรไม่ให้ชนกัน
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // 2. ทดสอบดึงข้อมูลพนักงานจากตาราง employees
   async function testConnection() {
-    const { data, error } = await supabase.from('employees').select('*');
+    const { data, error } = await supabaseClient.from('employees').select('*');
     if (error) {
       console.error('เชื่อมต่อไม่สำเร็จ:', error);
     } else {
@@ -21,10 +19,9 @@
     }
   }
 
-  // เรียกใช้งานฟังก์ชันทดสอบเมื่อโหลดหน้าเว็บ
   testConnection();
 </script>
-	
+			
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
