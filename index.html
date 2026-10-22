@@ -2158,8 +2158,8 @@ async function doEmployeeLogin() {
     // ===== จัดการวันหยุด (เสาร์-อาทิตย์ไม่ต้องเพิ่ม ระบบไม่นับให้อัตโนมัติอยู่แล้ว / เพิ่มเฉพาะวันหยุดนักขัตฤกษ์) =====
 
     // ดึงรายการวันหยุดจากระบบ มาเก็บไว้ใช้คำนวณจำนวนวันลา — silent=true จะไม่ render ตารางจัดการ (ใช้ตอนโหลดฟอร์มพนักงาน)
-    // โหลดวันหยุดจาก Supabase มาแสดงในระบบ
-async function loadHolidays() {
+// โหลดรายการวันหยุดจาก Supabase มาใช้งานในระบบ
+async function loadHolidays(silent) {
   try {
     const { data: holidays, error } = await supabaseClient
       .from('holidays')
@@ -2171,7 +2171,6 @@ async function loadHolidays() {
     }
 
     window.cachedHolidays = holidays || [];
-    // เรียกฟังก์ชันสำหรับเรนเดอร์วันหยุด (ถ้ามีในระบบเดิม)
     if (typeof renderHolidays === 'function') {
       renderHolidays(window.cachedHolidays);
     }
