@@ -7,6 +7,30 @@
   const SUPABASE_URL = 'https://adlmxhzgtuwiauxpfhmd.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ฟังก์ชันสำหรับดึงรายชื่อพนักงานมาใส่ใน Dropdown
+  async function loadEmployeesToDropdown() {
+    const selectElement = document.getElementById('employeeSelect');
+    if (!selectElement) return; // ถ้ายังไม่เจอช่องนี้ ให้ข้ามไปก่อนเพื่อป้องกัน Error
+
+    const { data: employees, error } = await supabaseClient
+      .from('employees')
+      .select('id, name');
+
+    if (error) {
+      console.error('เกิดข้อผิดพลาดในการโหลดพนักงาน:', error);
+      return;
+    }
+
+    selectElement.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
+    employees.forEach(emp => {
+      const option = document.createElement('option');
+      option.value = emp.id;
+      option.text = emp.name;
+      selectElement.appendChild(option);
+    });
+  }
+
 </script>	
 
   <base target="_top">
