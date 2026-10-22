@@ -2158,19 +2158,27 @@ async function doEmployeeLogin() {
     // ===== จัดการวันหยุด (เสาร์-อาทิตย์ไม่ต้องเพิ่ม ระบบไม่นับให้อัตโนมัติอยู่แล้ว / เพิ่มเฉพาะวันหยุดนักขัตฤกษ์) =====
 
     // ดึงรายการวันหยุดจากระบบ มาเก็บไว้ใช้คำนวณจำนวนวันลา — silent=true จะไม่ render ตารางจัดการ (ใช้ตอนโหลดฟอร์มพนักงาน)
-    function loadHolidays(silent) {
-      google.script.run
-        .withSuccessHandler(function (holidays) {
-          cachedHolidays = holidays || [];
-          if (!silent) renderHolidayTable();
-          calculateDateDuration(); // คำนวณวันลาใหม่ทันที เผื่อมีการเลือกวันที่ไว้อยู่แล้ว
-          // รีเฟรชปฏิทินทุกพื้นที่ที่มีอยู่ในหน้าให้ตรงกับวันหยุดล่าสุด (แค่ render จาก cache ไม่ยิง request ซ้ำ)
-          if (document.getElementById('hrCalendarContainer')) renderLeaveCalendar('hr');
-          if (document.getElementById('managerCalendarContainer')) renderLeaveCalendar('manager');
-        })
-        .withFailureHandler(function (err) { console.error(err); })
-        .getHolidays();
+    // โหลดวันหยุดจาก Supabase มาแสดงในระบบ
+async function loadHolidays() {
+  try {
+    const { data: holidays, error } = await supabaseClient
+      .from('holidays')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching holidays:', error);
+      return;
     }
+
+    window.cachedHolidays = holidays || [];
+    // เรียกฟังก์ชันสำหรับเรนเดอร์วันหยุด (ถ้ามีในระบบเดิม)
+    if (typeof renderHolidays === 'function') {
+      renderHolidays(window.cachedHolidays);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
 
     function renderHolidayTable() {
       const tbody = document.getElementById('holidayTableBody');
