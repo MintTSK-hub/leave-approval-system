@@ -1752,13 +1752,13 @@
       const endDateVal = new Date(document.getElementById('endDate').value);
 
       if (endDateVal < startDateVal) {
-        showAppAlert(
-          currentLang === 'th' ? "วันที่ไม่ถูกต้อง" : "Invalid Leave Dates",
-          currentLang === 'th' ? "❌ วันที่สิ้นสุดการลาพักต้องไม่ก่อนวันที่เริ่มต้นเสนอลาพัก!" : "❌ Error: The end date must not be before the start date!",
-          "danger"
-        );
-        return;
-      }
+      showAppAlert(
+        currentLang === 'th' ? "วันที่ไม่ถูกต้อง" : "Invalid Leave Dates",
+        currentLang === 'th' ? "❌ วันที่สิ้นสุดการลาพักต้องไม่ก่อนวันที่เริ่มต้นเสนอลาพัก!" : "❌ Error: The end date must not be before the start date.",
+        "danger"
+      );
+      return;
+    }
 
       if (dateOverlapDetected) {
         showAppAlert('วันที่ซ้ำ', OVERLAP_MESSAGE, 'danger');
