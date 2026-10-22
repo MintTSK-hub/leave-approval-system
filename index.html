@@ -1,13 +1,30 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const SUPABASE_URL = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkbG14aHpndHV3aWF1eHBmaG1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTI1NzYsImV4cCI6MjEwODEyODU3Nn0.xxxdL5liBB4qhu9AfGy8Kqsevl6cZ8VNIeoIv2f7Gdk';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-</script>
+	<!-- โหลดไลบรารี Supabase จาก CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+	<script>
+  // 1. ตั้งค่าการเชื่อมต่อด้วย URL และ Publishable Key
+  const SUPABASE_URL = 'https://supabase.com/dashboard/project/adlmxhzgtuwiauxpfhmd/';
+  const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
+  
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // 2. ทดสอบดึงข้อมูลพนักงานจากตาราง employees
+  async function testConnection() {
+    const { data, error } = await supabase.from('employees').select('*');
+    if (error) {
+      console.error('เชื่อมต่อไม่สำเร็จ:', error);
+    } else {
+      console.log('เชื่อมต่อสำเร็จ! รายชื่อพนักงาน:', data);
+    }
+  }
+
+  // เรียกใช้งานฟังก์ชันทดสอบเมื่อโหลดหน้าเว็บ
+  testConnection();
+</script>
+	
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
