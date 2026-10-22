@@ -1558,8 +1558,8 @@
       return parseInt(p[2], 10) + ' ' + thaiMonthNames[parseInt(p[1], 10) - 1] + ' ' + (parseInt(p[0], 10) + 543);
     }
 
-    // เรียกทุกครั้งที่ช่วงวันที่เปลี่ยน — ถ้าซ้ำจะแจ้งเตือนทันทีและไม่ให้กดส่งคำขอ
-    function checkDateOverlapNow() {
+    // เรียกทุกครั้งที่ช่วงวันที่เปลี่ยน — ตรวจสอบวันลาซ้ำจาก Supabase
+    async function checkDateOverlapNow() {
       const startVal = document.getElementById('startDate').value;
       const endVal = document.getElementById('endDate').value;
       const email = document.getElementById('applicantEmail').value;
@@ -1571,60 +1571,75 @@
       }
 
       const token = ++overlapCheckToken;
-      google.script.run
-        .withSuccessHandler(function (res) {
-          if (token !== overlapCheckToken) return; // มีการเปลี่ยนวันที่ใหม่ไปแล้ว ผลนี้เก่าเกินไป
-          if (res && res.overlap) {
-            dateOverlapDetected = true;
-            ['startDate', 'endDate'].forEach(id => document.getElementById(id).classList.add('is-invalid'));
 
-            const detail = res.conflicts.slice(0, 5)
-              .map(c => formatConflictDate(c.date) + ' (' + c.requestId + ')')
-              .join(', ');
-            document.getElementById('dateOverlapNote').innerHTML =
-              '<i class="fa-solid fa-triangle-exclamation me-1"></i><b>' + OVERLAP_MESSAGE + '</b><br>วันที่ซ้ำ: ' + detail;
-            document.getElementById('dateOverlapNoteWrap').style.display = 'block';
+      try {
+        // ดึงข้อมูลคำขอลาทั้งหมดของอีเมลนี้จาก Supabase เพื่อมาตรวจสอบช่วงวันที่ทับซ้อน
+        const { data: requests, error } = await supabaseClient
+          .from('leave_requests')
+          .select('id, start_date, end_date, status')
+          .eq('applicant_email', email)
+          .neq('status', 'Rejected'); // ไม่นับรายการที่ถูกปฏิเสธ
 
-            const key = startVal + '|' + endVal;
-            if (lastOverlapAlertKey !== key) {
-              lastOverlapAlertKey = key;
-              showAppAlert('วันที่ซ้ำ', OVERLAP_MESSAGE, 'danger');
+        if (token !== overlapCheckToken) return; // มีการเปลี่ยนวันที่ใหม่ไปแล้ว ผลนี้เก่าเกินไป
+
+        if (error) {
+          console.error('Error checking overlap:', error);
+          return;
+        }
+
+        let hasOverlap = false;
+        let conflicts = [];
+
+        const newStart = new Date(startVal);
+        const newEnd = new Date(endVal);
+
+        if (requests && requests.length > 0) {
+          requests.forEach(req => {
+            // ถ้าเป็นการแก้ไข ให้ข้ามรายการของตัวเอง
+            if (editId && req.id === editId) return;
+
+            const existingStart = new Date(req.start_date);
+            const existingEnd = new Date(req.end_date);
+
+            // ตรวจสอบช่วงวันที่ทับซ้อนกัน (Overlap condition)
+            if (newStart <= existingEnd && newEnd >= existingStart) {
+              hasOverlap = true;
+              conflicts.push({
+                date: req.start_date + (req.start_date !== req.end_date ? ' ถึง ' + req.end_date : ''),
+                requestId: req.id
+              });
             }
-          } else {
-            dateOverlapDetected = false;
-            lastOverlapAlertKey = '';
-            ['startDate', 'endDate'].forEach(id => document.getElementById(id).classList.remove('is-invalid'));
-            document.getElementById('dateOverlapNoteWrap').style.display = 'none';
+          });
+        }
+
+        if (hasOverlap) {
+          dateOverlapDetected = true;
+          ['startDate', 'endDate'].forEach(id => document.getElementById(id).classList.add('is-invalid'));
+
+          const detail = conflicts.slice(0, 5)
+            .map(c => c.date + ' (' + c.requestId + ')')
+            .join(', ');
+          
+          document.getElementById('dateOverlapNote').innerHTML =
+            '<i class="fa-solid fa-triangle-exclamation me-1"></i><b>' + (typeof OVERLAP_MESSAGE !== 'undefined' ? OVERLAP_MESSAGE : 'ช่วงวันที่เลือกมีการลาซ้ำซ้อนกับรายการอื่น') + '</b><br>วันที่ซ้ำ: ' + detail;
+          document.getElementById('dateOverlapNoteWrap').style.display = 'block';
+
+          const key = startVal + '|' + endVal;
+          if (typeof lastOverlapAlertKey !== 'undefined' && lastOverlapAlertKey !== key) {
+            lastOverlapAlertKey = key;
+            showAppAlert('วันที่ซ้ำ', (typeof OVERLAP_MESSAGE !== 'undefined' ? OVERLAP_MESSAGE : 'ช่วงวันที่เลือกมีการลาซ้ำซ้อน'), 'danger');
           }
-        })
-        .withFailureHandler(function (err) { console.error(err); })
-        .checkLeaveDateOverlap(email, startVal, endVal, editId);
+        } else {
+          dateOverlapDetected = false;
+          if (typeof lastOverlapAlertKey !== 'undefined') lastOverlapAlertKey = '';
+          ['startDate', 'endDate'].forEach(id => document.getElementById(id).classList.remove('is-invalid'));
+          document.getElementById('dateOverlapNoteWrap').style.display = 'none';
+        }
+
+      } catch (err) {
+        console.error(err);
+      }
     }
-
-    function calculateDateDuration() {
-      const startInput = document.getElementById('startDate').value;
-      const endInput = document.getElementById('endDate').value;
-      const durationInput = document.getElementById('leaveDuration');
-      const excludedNote = document.getElementById('excludedDaysNote');
-      
-      if (!startInput || !endInput) {
-        durationInput.value = 0;
-        clearOverlapState();
-        if (excludedNote) excludedNote.innerHTML = '';
-        updateDelegateRequirement();
-        return;
-      }
-
-      const start = new Date(startInput);
-      const end = new Date(endInput);
-      
-      if (end < start) {
-        durationInput.value = 0;
-        clearOverlapState();
-        if (excludedNote) excludedNote.innerHTML = '';
-        updateDelegateRequirement();
-        return;
-      }
 
       // นับเฉพาะวันทำการ ไม่นับวันเสาร์-อาทิตย์ และวันหยุดนักขัตฤกษ์ (ตรงกับการคำนวณฝั่งเซิร์ฟเวอร์)
       const holidayMap = {};
@@ -2967,8 +2982,8 @@ async function loadMyRequests() {
       document.getElementById(area + 'CalendarContainer').innerHTML = html;
     }
 
-    // ลงชื่อเข้าใช้งานพื้นที่ผู้บริหาร (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=Manager)
-    // ลงชื่อเข้าใช้งานพื้นที่ผู้บริหาร (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=Manager)
+
+   // ลงชื่อเข้าใช้งานพื้นที่ผู้บริหาร (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=Manager)
     async function loginAsManager() {
       if (!loggedInEmployee) return;
       showLoading("กำลังโหลดข้อมูลคำขอทั้งหมดสำหรับผู้บริหาร...");
@@ -3004,8 +3019,7 @@ async function loadMyRequests() {
         showAppAlert("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", err.toString(), "danger");
       }
     }
-        
-
+	  
     function updateManagerMetrics(data) {
       if (!data) data = [];
       document.getElementById('metricAll').innerText = data.length;
@@ -3014,7 +3028,6 @@ async function loadMyRequests() {
       document.getElementById('metricRejected').innerText = data.filter(r => r.Status === "RejectedByManager").length;
     }
 
-    // ลงชื่อเข้าใช้งานพื้นที่ HR (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=HR)
     // ลงชื่อเข้าใช้งานพื้นที่ HR (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=HR)
     async function loginAsHR() {
       if (!loggedInEmployee) return;
