@@ -32,10 +32,7 @@
     });
   }
 
-  // 3. รอให้หน้าเว็บและแท็ก HTML ทั้งหมดโหลดเสร็จก่อนค่อยเรียกใช้งานฟังก์ชัน
-document.addEventListener("DOMContentLoaded", function() {
-  loadEmployeesToDropdown();
-});
+ 
 </script>	
 	
   <!-- CSS Framework & UI Assets -->
@@ -345,11 +342,11 @@ document.addEventListener("DOMContentLoaded", function() {
         <div class="mb-4">
           <label>รหัสผ่าน</label>
           <div class="password-toggle-wrap">
-            <input type="password" class="form-control" id="employeePasswordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doEmployeeLogin();">
+            <input type="password" class="form-control" id="employeePasswordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doEmployeeLogin();" loadEmployeesToDropdown();>
             <button type="button" class="password-toggle-btn" onclick="toggleLoginPasswordVisibility()"><i class="fa-solid fa-eye" id="loginPasswordToggleIcon"></i></button>
           </div>
         </div>
-        <button class="btn btn-login-teal w-100 py-2" onclick="doEmployeeLogin()">เข้าสู่ระบบ</button>
+        <button class="btn btn-login-teal w-100 py-2" onclick="doEmployeeLogin() " loadEmployeesToDropdown(); >เข้าสู่ระบบ</button>
         <p class="text-muted small mt-3 mb-0">กรุณาระบุชื่อผู้ใช้และรหัสผ่าน</p>
       </div>
     </div>
