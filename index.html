@@ -1955,22 +1955,33 @@ async function doEmployeeLogin() {
     // ===== งานที่ได้รับมอบหมาย (ผู้รับมอบหมายงานแทนกดรับทราบ + แนบลายเซ็น) =====
     let cachedDelegateTasks = [];
 
-    function loadDelegateTasks(silent) {
+    // โหลดงานที่ได้รับมอบหมายจาก Supabase
+    async function loadDelegateTasks(silent) {
       if (!loggedInEmployee) return;
       if (!silent) showLoading("กำลังโหลดงานที่ได้รับมอบหมาย...");
 
-      google.script.run
-        .withSuccessHandler(function (tasks) {
-          if (!silent) hideLoading();
-          cachedDelegateTasks = tasks || [];
-          renderDelegateTasks();
-        })
-        .withFailureHandler(function (err) {
-          if (!silent) hideLoading();
-          console.error(err);
-          if (!silent) showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .fetchLeaveRequests(loggedInEmployee.email, "delegate", loggedInEmployee.employeeId, loggedInEmployee.password);
+      try {
+        const { data: tasks, error } = await supabaseClient
+          .from('leave_requests')
+          .select('*')
+          .eq('delegate_employee_id', loggedInEmployee.employee_id)
+          .order('timestamp', { ascending: false });
+
+        if (!silent) hideLoading();
+
+        if (error) {
+          console.error('Error fetching delegate tasks:', error);
+          if (!silent) showAppAlert("ข้อผิดพลาดระบบ", error.message, "danger");
+          return;
+        }
+
+        cachedDelegateTasks = tasks || [];
+        renderDelegateTasks();
+      } catch (err) {
+        if (!silent) hideLoading();
+        console.error(err);
+        if (!silent) showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+      }
     }
 
     function renderDelegateTasks() {
