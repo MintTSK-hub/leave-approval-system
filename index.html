@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
-<<head>
+<head>
     <meta charset="UTF-8">
     <title>ระบบขออนุมัติวันลาออนไลน์</title>
     
@@ -486,15 +486,16 @@
               </div>
 
               <!-- Start Date & End Date (ปรับปรุงให้รองรับ DATE อย่างเดียว ไม่มีเวลา) -->
-              <div class="col-md-4">
-                <label class="form-label fw-bold" data-th="ตั้งแต่วันที่ *" data-en="From Date *">ตั้งแต่วันที่ *</label>
-                <input type="date" class="form-control" id="startDate" name="startDate" required onchange="calculateDateDuration()">
-              </div>
+			<div class="col-md-4">
+  			  	<label class="form-label fw-bold" data-th="ตั้งแต่วันที่ *" data-en="From Date *">ตั้งแต่วันที่ *</label>
+   				<input type="date" class="form-control" id="startDate" name="startDate" required onchange="calculateDateDuration()">
+			</div>
 
-              <div class="col-md-4">
-                <label class="form-label fw-bold" data-th="ถึงวันที่ *" data-en="To Date *">ถึงวันที่ *</label>
-                <input type="date" class="form-control" id="endDate" name="endDate" required onchange="calculateDateDuration()">
-              </div>
+			<div class="col-md-4">
+   				 <label class="form-label fw-bold" data-th="ถึงวันที่ *" data-en="To Date *">ถึงวันที่ *</label>
+   				 <input type="date" class="form-control" id="endDate" name="endDate" required onchange="calculateDateDuration()">
+			</div>
+              
 
               <!-- Last leave date -->
               <div class="col-md-4">
@@ -1362,6 +1363,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script>
+	  
     // Global States
     let currentLang = 'th';
     let allCachedRequests = [];
@@ -3405,6 +3407,65 @@ async function loadMyRequests() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }	
+
+	  function calculateDateDuration() {
+      const startInput = document.getElementById('startDate').value;
+      const endInput = document.getElementById('endDate').value;
+      const durationInput = document.getElementById('leaveDuration');
+      const excludedNote = document.getElementById('excludedDaysNote');
+      
+      if (!startInput || !endInput) {
+        if (durationInput) durationInput.value = 0;
+        if (typeof clearOverlapState === 'function') clearOverlapState();
+        if (excludedNote) excludedNote.innerHTML = '';
+        if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
+        return;
+      }
+
+      const start = new Date(startInput);
+      const end = new Date(endInput);
+      
+      if (end < start) {
+        if (durationInput) durationInput.value = 0;
+        if (typeof clearOverlapState === 'function') clearOverlapState();
+        if (excludedNote) excludedNote.innerHTML = '';
+        if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
+        return;
+      }
+
+      const holidayMap = {};
+      (cachedHolidays || []).forEach(h => { 
+        holidayMap[h.date] = h.description; 
+      });
+
+      let count = 0;
+      const excludedList = [];
+      const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+      while (cursor <= endOnly) {
+        const dow = cursor.getDay();
+        const dateStr = toYMD(cursor);
+        if (dow === 0 || dow === 6) {
+          excludedList.push(formatStringToDateTimeInput(dateStr) + ' (วันหยุดสุดสัปดาห์)');
+        } else if (holidayMap[dateStr]) {
+          excludedList.push(formatStringToDateTimeInput(dateStr) + ' (' + holidayMap[dateStr] + ')');
+        } else {
+          count++;
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      
+      if (durationInput) durationInput.value = count;
+      if (excludedNote) {
+        excludedNote.innerHTML = excludedList.length
+          ? '<i class="fa-solid fa-circle-info me-1"></i>ไม่นับวันหยุดต่อไปนี้: ' + excludedList.join(', ')
+          : '';
+      }
+      if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
+      if (typeof updateAnnualLeaveBalanceDisplay === 'function') updateAnnualLeaveBalanceDisplay();
+      if (typeof checkDateOverlapNow === 'function') checkDateOverlapNow();
     }
   </script>
 </body>
