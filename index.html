@@ -1765,18 +1765,19 @@
         return;
       }
 
-      const durationVal = parseFloat(document.getElementById('leaveDuration').value) || 0;
-      const categoryVal = document.getElementById('leaveCategory').value;
-      const delegateNameVal = document.getElementById('delegateName').value;
-      const delegateNeeded = (categoryVal === 'ลากิจ' || categoryVal === 'ลาพักผ่อน') && durationVal > 2;
-      if (delegateNeeded && !delegateNameVal) {
-        showAppAlert(
-          currentLang === 'th' ? "ข้อมูลไม่ครบถ้วน" : "Missing Information",
-          currentLang === 'th' ? "❌ กรณีลากิจหรือลาพักผ่อนมากกว่า 2 วัน (3 วันขึ้นไป) กรุณาระบุผู้รับมอบหมายงานแทน" : "❌ Please specify a delegate for personal or annual leave longer than 2 days.",
-          "danger"
-        return;
-		);  
-	  }
+    const durationVal = parseFloat(document.getElementById('leaveDuration').value) || 0;
+    const categoryVal = document.getElementById('leaveCategory').value;
+    const delegateNameVal = document.getElementById('delegateName').value;
+    const delegateNeeded = (categoryVal === 'ลากิจ' || categoryVal === 'ลาพักผ่อน') && durationVal > 2;
+    
+    if (delegateNeeded && !delegateNameVal) {
+      showAppAlert(
+        currentLang === 'th' ? "ข้อมูลไม่ครบถ้วน" : "Missing Information",
+        currentLang === 'th' ? "❌ กรณีลากิจหรือลาพักผ่อนมากกว่า 2 วัน กรุณาระบุผู้รับมอบหมายงานแทน" : "❌ Please specify a delegate for personal or annual leave longer than 2 days.",
+        "danger"
+      );
+      return;
+    }
 
       if (categoryVal === 'ลาพักผ่อน' && lastAnnualBalanceCache && durationVal > lastAnnualBalanceCache.remaining) {
         showAppAlert(
