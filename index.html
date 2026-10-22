@@ -2117,35 +2117,29 @@ async function doEmployeeLogin() {
     }
 
     // ดึงรายชื่อพนักงานทั้งหมดจากชีทจริง มาเติมตัวเลือก "ผู้รับมอบหมายงานแทน"
-    let cachedEmployeeList = [];
-    function loadEmployeeListForDelegate() {
-      google.script.run
-        .withSuccessHandler(function (employees) {
-          cachedEmployeeList = employees || [];
-          const select = document.getElementById('delegateName');
-          const currentVal = select.value;
-          select.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
-          cachedEmployeeList.forEach(emp => {
-            if (loggedInEmployee && emp.employeeId === loggedInEmployee.employeeId) return; // ไม่ให้เลือกตัวเองเป็นผู้รับมอบหมายงานแทน
-            const opt = document.createElement('option');
-            opt.value = emp.prefix + emp.name;
-            opt.setAttribute('data-position', emp.position);
-            opt.setAttribute('data-employee-id', emp.employeeId);
-            opt.innerText = emp.prefix + emp.name + ' (' + emp.position + ')';
-            select.appendChild(opt);
-          });
-          if (currentVal) { select.value = currentVal; syncDelegatePosition(); }
+    // โหลดรายชื่อพนักงานสำหรับเลือกผู้รับมอบหมายงานแทนจาก Supabase
+async function loadEmployeeListForDelegate() {
+  try {
+    const { data: employees, error } = await supabaseClient
+      .from('employees')
+      .select('*');
 
-          if (select.options.length <= 1) {
-            console.warn('รายชื่อผู้รับมอบหมายงานแทนว่างเปล่า — ตรวจสอบชีท "พนักงาน" ว่ามีบัญชีอื่นที่ Status เป็น Active หรือไม่');
-          }
-        })
-        .withFailureHandler(function (err) {
-          console.error(err);
-          showAppAlert("ไม่สามารถโหลดรายชื่อพนักงานได้", err.toString(), "danger");
-        })
-        .getAllEmployees();
+    if (error) {
+      console.error('Error fetching employees for delegate:', error);
+      return;
     }
+
+    // นำไปใส่ใน dropdown หรือตัวแปรจัดการรายชื่อผู้รับมอบหมายตามระบบเดิม
+    window.cachedEmployees = employees || [];
+    
+    // เรียกฟังก์ชันเรนเดอร์รายชื่อ (ถ้ามีในระบบเดิม)
+    if (typeof renderEmployeeDropdownForDelegate === 'function') {
+      renderEmployeeDropdownForDelegate(window.cachedEmployees);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
 
     // เติมตำแหน่งผู้รับมอบหมายงานแทนอัตโนมัติ ตามชื่อที่เลือกจากข้อมูลพนักงานจริง
     function syncDelegatePosition() {
