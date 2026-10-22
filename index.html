@@ -1367,6 +1367,11 @@
     let loggedInEmployee = null;
 	let cachedHolidays = [];          
     let cachedAllEmployeesAdmin = []; 
+
+	let calState = {
+  hr: { year: new Date().getFullYear(), month: new Date().getMonth() },
+  manager: { year: new Date().getFullYear(), month: new Date().getMonth() }
+};
 	  
 async function loadEmployeesToDropdown() {
   const selectElement = document.getElementById('employeeSelect');
@@ -1685,10 +1690,11 @@ async function loadEmployeesToDropdown() {
     // 3. ตัวแปรสำหรับการนับวันทำการ
 	  
     let count = 0;
-    const excludedList = [];
+    const durationInput = document.getElementById('leaveDuration');
+	const excludedList = [];
     const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
     const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-	const durationInput = document.getElementById('leaveDuration');
+	
 	  
       while (cursor <= endOnly) {
         const dow = cursor.getDay();
@@ -2947,10 +2953,7 @@ async function loadMyRequests() {
     }
 
     // ===== ปฏิทินการลา: ใช้ร่วมกันทั้งพื้นที่ HR และผู้จัดการ =====
-	  let calState = {
-      hr: { year: new Date().getFullYear(), month: new Date().getMonth() },
-      manager: { year: new Date().getFullYear(), month: new Date().getMonth() }
-    };
+	  
     const thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
     const thaiWeekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
@@ -3429,63 +3432,69 @@ async function loadMyRequests() {
 
 	  
 	  function calculateDateDuration() {
-      const startInput = document.getElementById('startDate').value;
-      const endInput = document.getElementById('endDate').value;
-      const durationInput = document.getElementById('leaveDuration');
-      const excludedNote = document.getElementById('excludedDaysNote');
-      
-      if (!startInput || !endInput) {
-        if (durationInput) durationInput.value = 0;
-        if (typeof clearOverlapState === 'function') clearOverlapState();
-        if (excludedNote) excludedNote.innerHTML = '';
-        if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
-        return;
-      }
+  // 1. ดึง Element มาประกาศไว้บนสุดของฟังก์ชันเสมอ
+  const startInput = document.getElementById('startDate').value;
+  const endInput = document.getElementById('endDate').value;
+  const durationInput = document.getElementById('leaveDuration');
+  const excludedNote = document.getElementById('excludedDaysNote');
 
-      const start = new Date(startInput);
-      const end = new Date(endInput);
-      
-      if (end < start) {
-        if (durationInput) durationInput.value = 0;
-        if (typeof clearOverlapState === 'function') clearOverlapState();
-        if (excludedNote) excludedNote.innerHTML = '';
-        if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
-        return;
-      }
+  // 2. เช็คการกรอกข้อมูล
+  if (!startInput || !endInput) {
+    if (durationInput) durationInput.value = 0;
+    if (typeof clearOverlapState === 'function') clearOverlapState();
+    if (excludedNote) excludedNote.innerHTML = '';
+    if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
+    return;
+  }
 
-      const holidayMap = {};
-      (cachedHolidays || []).forEach(h => { 
-        holidayMap[h.date] = h.description; 
-      });
+  const start = new Date(startInput);
+  const end = new Date(endInput);
 
-      let count = 0;
-      const excludedList = [];
-      const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-      const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  if (end < start) {
+    if (durationInput) durationInput.value = 0;
+    if (typeof clearOverlapState === 'function') clearOverlapState();
+    if (excludedNote) excludedNote.innerHTML = '';
+    if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
+    return;
+  }
 
-      while (cursor <= endOnly) {
-        const dow = cursor.getDay();
-        const dateStr = toYMD(cursor);
-        if (dow === 0 || dow === 6) {
-          excludedList.push(formatStringToDateTimeInput(dateStr) + ' (วันหยุดสุดสัปดาห์)');
-        } else if (holidayMap[dateStr]) {
-          excludedList.push(formatStringToDateTimeInput(dateStr) + ' (' + holidayMap[dateStr] + ')');
-        } else {
-          count++;
-        }
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      
-      if (durationInput) durationInput.value = count;
-      if (excludedNote) {
-        excludedNote.innerHTML = excludedList.length
-          ? '<i class="fa-solid fa-circle-info me-1"></i>ไม่นับวันหยุดต่อไปนี้: ' + excludedList.join(', ')
-          : '';
-      }
-      if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
-      if (typeof updateAnnualLeaveBalanceDisplay === 'function') updateAnnualLeaveBalanceDisplay();
-      if (typeof checkDateOverlapNow === 'function') checkDateOverlapNow();
+  // 3. Mapping วันหยุด
+  const holidayMap = {};
+  (cachedHolidays || []).forEach(h => { 
+    holidayMap[h.date] = h.description; 
+  });
+
+  // 4. ลูปคำนวณวันทำการ
+  let count = 0;
+  const excludedList = [];
+  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+  while (cursor <= endOnly) {
+    const dow = cursor.getDay();
+    const dateStr = toYMD(cursor);
+    if (dow === 0 || dow === 6) {
+      excludedList.push(formatStringToDateTimeInput(dateStr) + ' (วันหยุดสุดสัปดาห์)');
+    } else if (holidayMap[dateStr]) {
+      excludedList.push(formatStringToDateTimeInput(dateStr) + ' (' + holidayMap[dateStr] + ')');
+    } else {
+      count++;
     }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  // 5. แสดงผลลัพธ์
+  if (durationInput) durationInput.value = count;
+  if (excludedNote) {
+    excludedNote.innerHTML = excludedList.length
+      ? '<i class="fa-solid fa-circle-info me-1"></i>ไม่นับวันหยุดต่อไปนี้: ' + excludedList.join(', ')
+      : '';
+  }
+
+  if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
+  if (typeof updateAnnualLeaveBalanceDisplay === 'function') updateAnnualLeaveBalanceDisplay();
+  if (typeof checkDateOverlapNow === 'function') checkDateOverlapNow();
+}
   </script>
 </body>
 </html>
