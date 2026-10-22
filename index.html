@@ -2968,28 +2968,43 @@ async function loadMyRequests() {
     }
 
     // ลงชื่อเข้าใช้งานพื้นที่ผู้บริหาร (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=Manager)
-    function loginAsManager() {
+    // ลงชื่อเข้าใช้งานพื้นที่ผู้บริหาร (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=Manager)
+    async function loginAsManager() {
       if (!loggedInEmployee) return;
-      showLoading("กำลังโหลดข้อมูลคำขอทั้งหมด...");
+      showLoading("กำลังโหลดข้อมูลคำขอทั้งหมดสำหรับผู้บริหาร...");
       
-      google.script.run
-        .withSuccessHandler(function (requests) {
-          hideLoading();
-          isManagerAuthorized = true;
-          allCachedRequests = requests || [];
-          
-          updateManagerMetrics(allCachedRequests);
-          renderRequestsTable(allCachedRequests, 'managerTableBody', 'manager');
-          renderHistoryTable('manager');
-          renderLeaveCalendar('manager');
-          loadHolidays(true);
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", err.toString(), "danger");
-        })
-        .fetchLeaveRequests("", "manager", loggedInEmployee.employeeId, loggedInEmployee.password);
+      try {
+        // ดึงข้อมูลคำขอลาทั้งหมดจาก Supabase (เรียงตามเวลาล่าสุด)
+        const { data: requests, error } = await supabaseClient
+          .from('leave_requests')
+          .select('*')
+          .order('timestamp', { ascending: false });
+
+        hideLoading();
+
+        if (error) {
+          console.error('Error fetching manager requests:', error);
+          showAppAlert("เกิดข้อผิดพลาดในการโหลดข้อมูล", error.message, "danger");
+          return;
+        }
+
+        isManagerAuthorized = true;
+        allCachedRequests = requests || [];
+        
+        // อัปเดตหน้าจอแดชบอร์ดผู้บริหาร
+        updateManagerMetrics(allCachedRequests);
+        renderRequestsTable(allCachedRequests, 'managerTableBody', 'manager');
+        renderHistoryTable('manager');
+        renderLeaveCalendar('manager');
+        loadHolidays(true);
+
+      } catch (err) {
+        hideLoading();
+        console.error(err);
+        showAppAlert("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", err.toString(), "danger");
+      }
     }
+        
 
     function updateManagerMetrics(data) {
       if (!data) data = [];
@@ -3000,26 +3015,40 @@ async function loadMyRequests() {
     }
 
     // ลงชื่อเข้าใช้งานพื้นที่ HR (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=HR)
-    function loginAsHR() {
+    // ลงชื่อเข้าใช้งานพื้นที่ HR (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=HR)
+    async function loginAsHR() {
       if (!loggedInEmployee) return;
-      showLoading("กำลังโหลดข้อมูลคำขอทั้งหมด...");
+      showLoading("กำลังโหลดข้อมูลคำขอทั้งหมดสำหรับ HR...");
 
-      google.script.run
-        .withSuccessHandler(function (requests) {
-          hideLoading();
-          allCachedRequests = requests || [];
+      try {
+        // ดึงข้อมูลคำขอลาทั้งหมดจาก Supabase
+        const { data: requests, error } = await supabaseClient
+          .from('leave_requests')
+          .select('*')
+          .order('timestamp', { ascending: false });
 
-          updateHRMetrics(allCachedRequests);
-          renderRequestsTable(allCachedRequests, 'hrTableBody', 'hr');
-          renderHistoryTable('hr');
-          renderLeaveCalendar('hr');
-          loadHolidays();
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", err.toString(), "danger");
-        })
-        .fetchLeaveRequests("", "hr", loggedInEmployee.employeeId, loggedInEmployee.password);
+        hideLoading();
+
+        if (error) {
+          console.error('Error fetching HR requests:', error);
+          showAppAlert("เกิดข้อผิดพลาดในการโหลดข้อมูล", error.message, "danger");
+          return;
+        }
+
+        allCachedRequests = requests || [];
+
+        // อัปเดตหน้าจอแดชบอร์ด HR
+        updateHRMetrics(allCachedRequests);
+        renderRequestsTable(allCachedRequests, 'hrTableBody', 'hr');
+        renderHistoryTable('hr');
+        renderLeaveCalendar('hr');
+        loadHolidays();
+
+      } catch (err) {
+        hideLoading();
+        console.error(err);
+        showAppAlert("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", err.toString(), "danger");
+      }
     }
 
     function updateHRMetrics(data) {
