@@ -91,20 +91,21 @@
     <h4 class="fw-bold mb-1">ระบบการลาของเจ้าหน้าที่</h4>
     <p class="text-muted small mb-4">สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</p>
 
-    <div class="mb-3">
-      <label>ชื่อผู้ใช้</label>
-      <input type="text" class="form-control" id="employeeIdInput" placeholder="รหัสผู้ใช้งาน">
-    </div>
-    <div class="mb-4">
-      <label>รหัสผ่าน</label>
-      <div class="password-toggle-wrap">
-        <input type="password" class="form-control" id="employeePasswordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doEmployeeLogin();">
-        <button type="button" class="password-toggle-btn" onclick="toggleLoginPasswordVisibility()"><i class="fa-solid fa-eye" id="loginPasswordToggleIcon"></i></button>
-      </div>
-    </div>
-    <button class="btn btn-login-teal w-100 py-2" onclick="doEmployeeLogin()">เข้าสู่ระบบ</button>
-    <p class="text-muted small mt-3 mb-0">กรุณาระบุชื่อผู้ใช้และรหัสผ่าน</p>
+   <div class="mb-3 text-start">
+    <label class="form-label fw-semibold">ชื่อผู้ใช้ (รหัสพนักงาน)</label>
+    <input type="text" class="form-control" id="employeeIdInput" placeholder="กรอกชื่อผู้ใช้/รหัสพนักงาน">
   </div>
+  <div class="mb-4 text-start">
+    <label class="form-label fw-semibold">รหัสผ่าน</label>
+    <div class="password-toggle-wrap">
+      <input type="password" class="form-control" id="employeePasswordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doEmployeeLogin();">
+      <button type="button" class="password-toggle-btn" onclick="toggleLoginPasswordVisibility()">
+        <i class="fa-solid fa-eye" id="loginPasswordToggleIcon"></i>
+      </button>
+    </div>
+  </div>
+  <button class="btn btn-login-teal w-100 py-2 mb-2" onclick="doEmployeeLogin()">เข้าสู่ระบบ</button>
+  <p class="text-muted small mt-3 mb-0">กรุณาระบุชื่อผู้ใช้และรหัสผ่านเพื่อดำเนินการต่อ</p>
 </div>
 
 <!-- ===== TOP BAR ===== -->
@@ -124,322 +125,243 @@
   </div>
 </div>
 
-<!-- ===== MAIN APP SHELL ===== -->
-<div id="appShell" style="display:none;">
-
-<!-- MAIN NAV TABS -->
-<ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="apply-tab" data-bs-toggle="tab" data-bs-target="#applyContent" type="button" role="tab">
-      <i class="fa-solid fa-file-pen me-2"></i><span data-th="ยื่นใบขอลา" data-en="Submit Request">ยื่นใบขอลา</span>
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="myrequests-tab" data-bs-toggle="tab" data-bs-target="#myrequestsContent" type="button" role="tab" onclick="loadMyRequests()">
-      <i class="fa-solid fa-history me-2"></i><span data-th="ประวัติการลาของฉัน" data-en="My Requests">ประวัติการลาของฉัน</span>
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="delegate-tab" data-bs-toggle="tab" data-bs-target="#delegateContent" type="button" role="tab" onclick="loadDelegateTasks()">
-      <i class="fa-solid fa-handshake me-2"></i><span>งานที่ได้รับมอบหมาย</span>
-      <span class="badge bg-danger ms-1" id="delegateTaskBadge" style="display:none;">0</span>
-    </button>
-  </li>
-  <li class="nav-item" role="presentation" id="hrTabItem" style="display:none;">
-    <button class="nav-link" id="hr-tab" data-bs-toggle="tab" data-bs-target="#hrContent" type="button" role="tab" onclick="loadHRQueue()">
-      <i class="fa-solid fa-user-tie me-2"></i><span data-th="พื้นที่ HR" data-en="HR Panel">พื้นที่ HR</span>
-    </button>
-  </li>
-  <li class="nav-item" role="presentation" id="managerTabItem" style="display:none;">
-    <button class="nav-link" id="manager-tab" data-bs-toggle="tab" data-bs-target="#managerContent" type="button" role="tab" onclick="loadManagerQueue()">
-      <i class="fa-solid fa-user-shield me-2"></i><span data-th="พื้นที่ผู้จัดการ" data-en="Manager Panel">พื้นที่ผู้จัดการ</span>
-    </button>
-  </li>
-</ul>
-
-<!-- TAB CONTENTS -->
-<div class="tab-content" id="mainTabsContent">
-  
-  <!-- TAB 1: APPLY LEAVE FORM -->
-  <div class="tab-pane fade show active" id="applyContent" role="tabpanel">
-    <div class="card p-4">
-      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
-        <h4 class="text-primary mb-0 fw-bold"><i class="fa-solid fa-file-signature me-2"></i><span data-th="กรอกข้อมูลใบลาพักงาน" data-en="New Leave Request">กรอกข้อมูลใบลาพักงาน</span></h4>
-        <span class="badge bg-secondary-subtle text-secondary" id="editLabel" style="display: none;"><span data-th="โหมดแก้ไขคำขอ" data-en="Editing Mode">โหมดแก้ไขคำขอ</span></span>
+<!-- TOP BAR -->
+<div id="userTopBar" class="card p-3 mb-4 shadow-sm">
+  <div class="d-flex flex-column flex-md-row align-items-md-center gap-2 justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fa-solid fa-circle-user text-success fs-3"></i>
+      <div>
+        <div class="fw-bold" id="employeeWelcomeText">-</div>
+        <div class="small text-muted" id="employeeRoleBadge"></div>
       </div>
-      
-      <form id="leaveForm" onsubmit="handleFormSubmission(event)">
-        <input type="hidden" id="editRequestId" name="editRequestId" value="">
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm px-3" onclick="doEmployeeLogout()">
+        <i class="fa-solid fa-power-off me-1"></i>ออกจากระบบ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP SHELL -->
+<div id="appShell">
+  <!-- MAIN NAV TABS -->
+  <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="apply-tab" data-bs-toggle="tab" data-bs-target="#applyContent" type="button" role="tab">
+        <i class="fa-solid fa-file-pen me-2"></i>ยื่นใบขอลา
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="myrequests-tab" data-bs-toggle="tab" data-bs-target="#myrequestsContent" type="button" role="tab" onclick="loadMyRequests()">
+        <i class="fa-solid fa-history me-2"></i>ประวัติการลาของฉัน
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="delegate-tab" data-bs-toggle="tab" data-bs-target="#delegateContent" type="button" role="tab" onclick="loadDelegateTasks()">
+        <i class="fa-solid fa-handshake me-2"></i>งานที่ได้รับมอบหมาย
+        <span class="badge bg-danger ms-1" id="delegateTaskBadge" style="display:none;">0</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation" id="hrTabItem" style="display:none;">
+      <button class="nav-link" id="hr-tab" data-bs-toggle="tab" data-bs-target="#hrContent" type="button" role="tab" onclick="loadHRQueue()">
+        <i class="fa-solid fa-user-tie me-2"></i>พื้นที่ HR
+      </button>
+    </li>
+    <li class="nav-item" role="presentation" id="managerTabItem" style="display:none;">
+      <button class="nav-link" id="manager-tab" data-bs-toggle="tab" data-bs-target="#managerContent" type="button" role="tab" onclick="loadManagerQueue()">
+        <i class="fa-solid fa-user-shield me-2"></i>พื้นที่ผู้จัดการ
+      </button>
+    </li>
+  </ul>
+
+  <!-- TAB CONTENTS -->
+  <div class="tab-content" id="mainTabsContent">
+    
+    <!-- TAB 1: APPLY LEAVE FORM -->
+    <div class="tab-pane fade show active" id="applyContent" role="tabpanel">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
+          <h4 class="text-primary mb-0 fw-bold"><i class="fa-solid fa-file-signature me-2"></i>กรอกข้อมูลใบลาพักงาน</h4>
+          <span class="badge bg-secondary-subtle text-secondary" id="editLabel" style="display: none;">โหมดแก้ไขคำขอ</span>
+        </div>
         
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label fw-bold" data-th="ประเภทการลาหลัก *" data-en="Leave Category *">ประเภทการลาหลัก *</label>
-            <select class="form-select text-primary fw-bold" id="leaveCategory" name="leaveCategory" onchange="syncCategoryDropdown(this.value)" required>
-              <option value="ลากิจ">ลากิจ (Personal Leave)</option>
-              <option value="ลาป่วย">ลาป่วย (Sick Leave)</option>
-              <option value="ลาพักผ่อน">ลาพักผ่อน (Annual Leave)</option>
-            </select>
-          </div>
+        <form id="leaveForm" onsubmit="handleFormSubmission(event)">
+          <input type="hidden" id="editRequestId" name="editRequestId" value="">
+          
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">ประเภทการลาหลัก *</label>
+              <select class="form-select text-primary fw-bold" id="leaveCategory" name="leaveCategory" onchange="syncCategoryDropdown(this.value)" required>
+                <option value="ลากิจ">ลากิจ (Personal Leave)</option>
+                <option value="ลาป่วย">ลาป่วย (Sick Leave)</option>
+                <option value="ลาพักผ่อน">ลาพักผ่อน (Annual Leave)</option>
+              </select>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label" data-th="ประเภทการยื่นลาพักงาน *" data-en="Leave Type *">ประเภทการยื่นลาพักงาน *</label>
-            <select class="form-select fw-bold text-primary" id="leaveType" name="leaveType" required>
-            </select>
-          </div>
+            <div class="col-md-4">
+              <label class="form-label">ประเภทการยื่นลาพักงาน *</label>
+              <select class="form-select fw-bold text-primary" id="leaveType" name="leaveType" required>
+              </select>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label" data-th="คำนำหน้าชื่อ *" data-en="Prefix *">คำนำหน้าชื่อ *</label>
-            <select class="form-select bg-light" id="prefix" name="prefix" required disabled>
-              <option value="นาย">นาย (Mr.)</option>
-              <option value="นาง">นาง (Mrs.)</option>
-              <option value="นางสาว">นางสาว (Ms.)</option>
-            </select>
-          </div>
+            <div class="col-md-4">
+              <label class="form-label">คำนำหน้าชื่อ *</label>
+              <select class="form-select bg-light" id="prefix" name="prefix" required disabled>
+                <option value="นาย">นาย (Mr.)</option>
+                <option value="นาง">นาง (Mrs.)</option>
+                <option value="นางสาว">นางสาว (Ms.)</option>
+              </select>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label" data-th="ชื่อ-นามสกุลพนักงาน *" data-en="Full Name *">ชื่อ-นามสกุลพนักงาน *</label>
-            <input type="text" class="form-control bg-light" id="name" name="name" required readonly>
-          </div>
+            <div class="col-md-4">
+              <label class="form-label">ชื่อ-นามสกุลพนักงาน *</label>
+              <input type="text" class="form-control bg-light" id="name" name="name" required readonly>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label" data-th="ตำแหน่งหน้าที่การทำงาน *" data-en="Position *">ตำแหน่งหน้าที่การทำงาน *</label>
-            <input type="text" class="form-control bg-light" id="position" name="position" required readonly>
-          </div>
+            <div class="col-md-4">
+              <label class="form-label">ตำแหน่งหน้าที่การทำงาน *</label>
+              <input type="text" class="form-control bg-light" id="position" name="position" required readonly>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label" data-th="อีเมลติดต่อประสานงาน *" data-en="Applicant Email *">อีเมลติดต่อประสานงาน *</label>
-            <input type="email" class="form-control bg-light" id="applicantEmail" name="applicantEmail" required readonly>
-          </div>
+            <div class="col-md-4">
+              <label class="form-label">อีเมลติดต่อประสานงาน *</label>
+              <input type="email" class="form-control bg-light" id="applicantEmail" name="applicantEmail" required readonly>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label" data-th="เบอร์โทรศัพท์ที่ติดต่อได้ *" data-en="Telephone *">เบอร์โทรศัพท์ที่ติดต่อได้ *</label>
-            <input type="tel" class="form-control" id="telephone" name="telephone" required placeholder="08XXXXXXXX">
-          </div>
+            <div class="col-md-4">
+              <label class="form-label">เบอร์โทรศัพท์ที่ติดต่อได้ *</label>
+              <input type="tel" class="form-control" id="telephone" name="telephone" required placeholder="08XXXXXXXX">
+            </div>
 
-          <div class="col-12">
-            <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>ชื่อ ตำแหน่ง และอีเมล ดึงมาจากบัญชีผู้ใช้งานของคุณโดยอัตโนมัติ</small>
-          </div>
+            <div class="col-12">
+              <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>ชื่อ ตำแหน่ง และอีเมล ดึงมาจากบัญชีผู้ใช้งานของคุณโดยอัตโนมัติ</small>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label fw-bold" data-th="ตั้งแต่วันที่ *" data-en="From Date *">ตั้งแต่วันที่ *</label>
-            <input type="date" class="form-control" id="startDate" name="startDate" required onchange="calculateDateDuration()">
-          </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">ตั้งแต่วันที่ *</label>
+              <input type="date" class="form-control" id="startDate" name="startDate" required onchange="calculateDateDuration()">
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label fw-bold" data-th="ถึงวันที่ *" data-en="To Date *">ถึงวันที่ *</label>
-            <input type="date" class="form-control" id="endDate" name="endDate" required onchange="calculateDateDuration()">
-          </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">ถึงวันที่ *</label>
+              <input type="date" class="form-control" id="endDate" name="endDate" required onchange="calculateDateDuration()">
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label" data-th="ลาพักครั้งล่าสุดเมื่อวันที่" data-en="Last Leave Date">ลาพักครั้งล่าสุดเมื่อวันที่</label>
-            <input type="date" class="form-control" id="lastLeaveDate" name="lastLeaveDate">
-          </div>
+            <div class="col-md-4">
+              <label class="form-label">ลาพักครั้งล่าสุดเมื่อวันที่</label>
+              <input type="date" class="form-control" id="lastLeaveDate" name="lastLeaveDate">
+            </div>
 
-          <div class="col-12" id="dateOverlapNoteWrap" style="display:none;">
-            <div class="alert alert-danger py-2 mb-0 small" id="dateOverlapNote"></div>
-          </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold text-primary">รวมครั้งนี้เป็นเวลา (วัน) *</label>
+              <input type="number" step="0.5" class="form-control fw-bold border-primary" id="leaveDuration" name="leaveDuration" readonly required value="0">
+              <small class="text-muted d-block mt-1" id="excludedDaysNote"></small>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label fw-bold text-primary" data-th="รวมครั้งนี้เป็นเวลา (วัน) *" data-en="Leave Duration (Days) *">รวมครั้งนี้เป็นเวลา (วัน) *</label>
-            <input type="number" step="0.5" class="form-control fw-bold border-primary" id="leaveDuration" name="leaveDuration" readonly required value="0">
-            <small class="text-muted d-block mt-1" id="excludedDaysNote"></small>
-          </div>
+            <div class="col-md-4">
+              <label class="form-label text-success fw-bold">จำนวนวันสะสมรวมปีปัจจุบัน</label>
+              <div class="input-group">
+                <span class="input-group-text bg-success-subtle text-success"><i class="fa-solid fa-chart-line"></i></span>
+                <input type="text" class="form-control bg-light fw-bold text-success" id="cumulativePreview" readonly value="0 วัน">
+              </div>
+            </div>
 
-          <div class="col-md-4">
-            <label class="form-label text-success fw-bold" data-th="จำนวนวันสะสมรวมปีปัจจุบัน" data-en="Annual Cumulative Days">จำนวนวันสะสมรวมปีปัจจุบัน</label>
-            <div class="input-group">
-              <span class="input-group-text bg-success-subtle text-success"><i class="fa-solid fa-chart-line"></i></span>
-              <input type="text" class="form-control bg-light fw-bold text-success" id="cumulativePreview" readonly value="0 วัน">
+            <div class="col-12">
+              <label class="form-label">เหตุผลความจำเป็นในการลา *</label>
+              <textarea class="form-control" id="reason" name="reason" rows="3" required placeholder="ระบุสาเหตุประกอบการพิจารณา..."></textarea>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="delegateName">
+                ผู้รับมอบหมายงานแทน
+                <span id="delegateRequiredMark" class="text-danger fw-bold" style="display:none;"> *</span>
+              </label>
+              <select class="form-select" id="delegateName" name="delegateName" onchange="syncDelegatePosition()">
+                <option value="">-- ไม่ระบุ --</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">ตำแหน่งผู้รับมอบหมายงาน</label>
+              <input type="text" class="form-control bg-light" id="delegatePosition" name="delegatePosition" readonly placeholder="เลือกชื่อผู้รับมอบหมายงานแทนก่อน">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">กรณีติดต่อฉุกเฉิน/สถานที่พัก *</label>
+              <input type="text" class="form-control" id="contactAddress" name="contactAddress" required placeholder="ระบุสถานที่พักและข้อมูลติดต่อด่วน...">
             </div>
           </div>
 
-          <div class="col-12" id="annualLeaveBalanceBox" style="display:none;">
-            <div class="alert alert-info d-flex align-items-center gap-2 mb-0">
-              <i class="fa-solid fa-umbrella-beach fs-4"></i>
-              <div id="annualLeaveBalanceText" class="small">กำลังตรวจสอบสิทธิวันลาพักผ่อน...</div>
-            </div>
+          <div class="mt-4 pt-3 border-top d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-secondary px-4" id="cancelEditBtn" style="display: none;" onclick="resetRequestForm()">
+              <i class="fa-solid fa-times me-2"></i>ยกเลิกแก้ไข
+            </button>
+            <button type="submit" class="btn btn-primary-custom px-5 py-2 fw-bold">
+              <i class="fa-solid fa-paper-plane me-2"></i>ส่งขออนุมัติวันลา
+            </button>
           </div>
-
-          <div class="col-12">
-            <label class="form-label" data-th="เหตุผลความจำเป็นในการลา *" data-en="Reason for Leave *">เหตุผลความจำเป็นในการลา *</label>
-            <textarea class="form-control" id="reason" name="reason" rows="3" required placeholder="ระบุสาเหตุประกอบการพิจารณา..."></textarea>
-          </div>
-
-          <div class="col-md-6">
-            <label class="form-label" for="delegateName">
-              <span data-th="ผู้รับมอบหมายงานแทน" data-en="Delegate Name">ผู้รับมอบหมายงานแทน</span>
-              <span id="delegateRequiredMark" class="text-danger fw-bold" style="display:none;"> *</span>
-            </label>
-            <select class="form-select" id="delegateName" name="delegateName" onchange="syncDelegatePosition()">
-              <option value="">-- ไม่ระบุ --</option>
-            </select>
-            <small class="text-danger" id="delegateRequiredHint" style="display:none;">บังคับกรอกเมื่อเป็นลากิจหรือลาพักผ่อน และลามากกว่า 2 วัน (3 วันขึ้นไป)</small>
-          </div>
-
-          <div class="col-md-6">
-            <label class="form-label" data-th="ตำแหน่งผู้รับมอบหมายงาน" data-en="Delegate Position">ตำแหน่งผู้รับมอบหมายงาน</label>
-            <input type="text" class="form-control bg-light" id="delegatePosition" name="delegatePosition" readonly placeholder="เลือกชื่อผู้รับมอบหมายงานแทนก่อน">
-          </div>
-
-          <div class="col-12">
-            <label class="form-label" data-th="กรณีติดต่อฉุกเฉิน/สถานที่พัก *" data-en="Contact Address *">กรณีติดต่อฉุกเฉิน/สถานที่พัก *</label>
-            <input type="text" class="form-control" id="contactAddress" name="contactAddress" required placeholder="ระบุสถานที่พักและข้อมูลติดต่อด่วน...">
-          </div>
-
-          <div class="col-12">
-            <label class="form-label fw-bold" data-th="เอกสารแนบประกอบการพิจารณา" data-en="Upload Attachment">เอกสารแนบประกอบการพิจารณา (ไม่บังคับ)</label>
-            <input type="file" class="form-control" id="attachmentFile" accept="image/*,application/pdf">
-          </div>
-
-          <div class="col-12">
-            <label class="form-label fw-bold" data-th="แนบไฟล์ลายเซ็นผู้ขอลา" data-en="Upload Signature">แนบไฟล์ลายเซ็นผู้ขอลา (ไม่บังคับ)</label>
-            <input type="file" class="form-control" id="signatureFile" accept="image/*">
-          </div>
-        </div>
-
-        <div class="mt-4 pt-3 border-top d-flex gap-2 justify-content-end">
-          <button type="button" class="btn btn-secondary px-4" id="cancelEditBtn" style="display: none;" onclick="resetRequestForm()">
-            <i class="fa-solid fa-times me-2"></i><span data-th="ยกเลิกแก้ไข" data-en="Cancel Edit">ยกเลิกแก้ไข</span>
-          </button>
-          <button type="submit" class="btn btn-primary-custom px-5 py-2 fw-bold">
-            <i class="fa-solid fa-paper-plane me-2"></i><span data-th="ส่งขออนุมัติวันลา" data-en="Submit Request">ส่งขออนุมัติวันลา</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- TAB 2: MY LEAVE REQUEST HISTORY -->
-  <div class="tab-pane fade" id="myrequestsContent" role="tabpanel">
-    <div class="card p-4">
-      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 border-bottom pb-3">
-        <h4 class="text-primary mb-0 fw-bold"><i class="fa-solid fa-table-list me-2"></i><span data-th="รายการข้อมูลขอลาพักงานของฉัน" data-en="My Leave Request History">รายการข้อมูลขอลาพักงานของฉัน</span></h4>
-        <button class="btn btn-primary-custom btn-sm fw-bold px-3" onclick="loadMyRequests()"><i class="fa-solid fa-rotate-right me-1"></i> รีเฟรช</button>
-      </div>
-
-      <div class="row g-2 mb-3">
-        <div class="col-md-4">
-          <input type="text" class="form-control" id="historySearch" placeholder="ค้นหาตามสาเหตุ..." onkeyup="filterMyRequestsTable()">
-        </div>
-        <div class="col-md-3">
-          <select class="form-select" id="historyStatusFilter" onchange="filterMyRequestsTable()">
-            <option value="">-- ทุกสถานะ --</option>
-            <option value="PendingDelegate">รอผู้รับมอบหมายงานแทนรับทราบ</option>
-            <option value="RejectedByDelegate">ผู้รับมอบหมายงานแทนไม่รับ</option>
-            <option value="PendingHR">รอ HR ตรวจสอบ</option>
-            <option value="PendingManager">รอผู้จัดการอนุมัติ</option>
-            <option value="Approved">อนุมัติแล้ว</option>
-            <option value="RejectedByHR">ไม่อนุมัติ (โดย HR)</option>
-            <option value="RejectedByManager">ไม่อนุมัติ (โดยผู้จัดการ)</option>
-            <option value="SendBack">ส่งกลับแก้ไข</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="table-responsive">
-        <table class="table table-hover table-striped align-middle" id="historyTable">
-          <thead class="table-light">
-            <tr>
-              <th>รหัสอ้างอิง</th>
-              <th>ผู้ยื่นลา</th>
-              <th>ประเภทการลา</th>
-              <th>เริ่มต้น</th>
-              <th>สิ้นสุด</th>
-              <th>รวมวัน</th>
-              <th>สถานะ</th>
-              <th class="text-center">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="historyTableBody">
-            <tr><td colspan="8" class="text-center py-4 text-muted">กำลังโหลดข้อมูล...</td></tr>
-          </tbody>
-        </table>
+        </form>
       </div>
     </div>
-  </div>
 
-  <!-- TAB: DELEGATE TASKS -->
-  <div class="tab-pane fade" id="delegateContent" role="tabpanel">
-    <div class="card p-4">
-      <div class="border-bottom pb-2 mb-4">
-        <h4 class="text-primary mb-0 fw-bold"><i class="fa-solid fa-handshake me-2"></i>งานที่ได้รับมอบหมาย</h4>
-      </div>
-      <div class="alert alert-info small">
-        <i class="fa-solid fa-circle-info me-1"></i>
-        เมื่อมีเพื่อนร่วมงานระบุชื่อคุณเป็นผู้รับมอบหมายงานแทน คุณต้องกด "รับทราบ" ก่อนที่คำขอลาจะถูกส่งต่อให้ HR
-      </div>
-      <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-          <thead class="table-dark">
-            <tr>
-              <th>รหัสคำขอ</th><th>ผู้ขอลา</th><th>ประเภท / ช่วงวันที่</th><th>จำนวนวัน</th><th>สถานะ</th><th class="text-center">ดำเนินการ</th>
-            </tr>
-          </thead>
-          <tbody id="delegateTableBody">
-            <tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีงานที่ได้รับมอบหมาย</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB 3: HR PANEL -->
-  <div class="tab-pane fade" id="hrContent" role="tabpanel">
-    <div class="card p-4">
-      <div class="border-bottom pb-2 mb-4">
-        <h4 class="text-success mb-0 fw-bold"><i class="fa-solid fa-user-tie me-2"></i>แดชบอร์ดฝ่าย HR</h4>
-      </div>
-
-      <div id="hrDashboardSection">
-        <div class="row g-3 mb-4">
-          <div class="col-md-3">
-            <div class="p-3 bg-primary text-white rounded d-flex align-items-center justify-content-between">
-              <div>
-                <h2 class="mb-0 fw-bold" id="hrMetricAll">0</h2>
-                <span class="small opacity-75">ทั้งหมด</span>
-              </div>
-              <i class="fa-solid fa-folder-open fs-2 opacity-50"></i>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="p-3 bg-warning text-white rounded d-flex align-items-center justify-content-between">
-              <div>
-                <h2 class="mb-0 fw-bold" id="hrMetricPending">0</h2>
-                <span class="small opacity-75">รอ HR ตรวจสอบ</span>
-              </div>
-              <i class="fa-solid fa-hourglass-half fs-2 opacity-50"></i>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="p-3 bg-success text-white rounded d-flex align-items-center justify-content-between">
-              <div>
-                <h2 class="mb-0 fw-bold" id="hrMetricPassed">0</h2>
-                <span class="small opacity-75">ผ่าน HR แล้ว</span>
-              </div>
-              <i class="fa-solid fa-circle-check fs-2 opacity-50"></i>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="p-3 bg-danger text-white rounded d-flex align-items-center justify-content-between">
-              <div>
-                <h2 class="mb-0 fw-bold" id="hrMetricRejected">0</h2>
-                <span class="small opacity-75">ไม่ผ่าน HR</span>
-              </div>
-              <i class="fa-solid fa-circle-xmark fs-2 opacity-50"></i>
-            </div>
-          </div>
+    <!-- TAB 2: MY LEAVE REQUEST HISTORY -->
+    <div class="tab-pane fade" id="myrequestsContent" role="tabpanel">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+          <h4 class="text-primary mb-0 fw-bold"><i class="fa-solid fa-table-list me-2"></i>รายการข้อมูลขอลาพักงานของฉัน</h4>
+          <button class="btn btn-outline-primary btn-sm fw-bold px-3" onclick="loadMyRequests()"><i class="fa-solid fa-rotate-right me-1"></i> รีเฟรช</button>
         </div>
 
+        <div class="table-responsive">
+          <table class="table table-hover table-striped align-middle" id="historyTable">
+            <thead class="table-light">
+              <tr>
+                <th>รหัสอ้างอิง</th>
+                <th>ประเภทการลา</th>
+                <th>เริ่มต้น</th>
+                <th>สิ้นสุด</th>
+                <th>รวมวัน</th>
+                <th>สถานะ</th>
+                <th class="text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลดข้อมูล...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: DELEGATE TASKS -->
+    <div class="tab-pane fade" id="delegateContent" role="tabpanel">
+      <div class="card p-4">
+        <h4 class="text-primary mb-3 fw-bold"><i class="fa-solid fa-handshake me-2"></i>งานที่ได้รับมอบหมาย</h4>
         <div class="table-responsive">
           <table class="table table-hover table-bordered align-middle">
             <thead class="table-dark">
               <tr>
-                <th>รหัสคำขอ</th>
-                <th>ชื่อผู้เสนอลา</th>
-                <th>ประเภทลา</th>
-                <th>ระยะเวลาพัก</th>
-                <th>สถานะปัจจุบัน</th>
-                <th class="text-center">คำตัดสินใจ</th>
+                <th>รหัสคำขอ</th><th>ผู้ขอลา</th><th>ประเภท / ช่วงวันที่</th><th>จำนวนวัน</th><th>สถานะ</th><th class="text-center">ดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody id="delegateTableBody">
+              <tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีงานที่ได้รับมอบหมาย</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: HR PANEL -->
+    <div class="tab-pane fade" id="hrContent" role="tabpanel">
+      <div class="card p-4">
+        <h4 class="text-success mb-3 fw-bold"><i class="fa-solid fa-user-tie me-2"></i>แดชบอร์ดฝ่าย HR</h4>
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>รหัสคำขอ</th><th>ชื่อผู้เสนอลา</th><th>ประเภทลา</th><th>ระยะเวลาพัก</th><th>สถานะปัจจุบัน</th><th class="text-center">คำตัดสินใจ</th>
               </tr>
             </thead>
             <tbody id="hrTableBody">
@@ -449,65 +371,16 @@
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- TAB 4: MANAGER PANEL -->
-  <div class="tab-pane fade" id="managerContent" role="tabpanel">
-    <div class="card p-4">
-      <div class="border-bottom pb-2 mb-4">
-        <h4 class="text-danger mb-0 fw-bold"><i class="fa-solid fa-user-shield me-2"></i>แดชบอร์ดฝ่ายผู้บริหาร</h4>
-      </div>
-
-      <div id="managerDashboardSection">
-        <div class="row g-3 mb-4">
-          <div class="col-md-3">
-            <div class="p-3 bg-primary text-white rounded d-flex align-items-center justify-content-between">
-              <div>
-                <h2 class="mb-0 fw-bold" id="metricAll">0</h2>
-                <span class="small opacity-75">ทั้งหมด</span>
-              </div>
-              <i class="fa-solid fa-folder-open fs-2 opacity-50"></i>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="p-3 bg-warning text-white rounded d-flex align-items-center justify-content-between">
-              <div>
-                <h2 class="mb-0 fw-bold" id="metricPending">0</h2>
-                <span class="small opacity-75">รออนุมัติ</span>
-              </div>
-              <i class="fa-solid fa-hourglass-half fs-2 opacity-50"></i>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="p-3 bg-success text-white rounded d-flex align-items-center justify-content-between">
-              <div>
-                <h2 class="mb-0 fw-bold" id="metricApproved">0</h2>
-                <span class="small opacity-75">อนุมัติแล้ว</span>
-              </div>
-              <i class="fa-solid fa-circle-check fs-2 opacity-50"></i>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="p-3 bg-danger text-white rounded d-flex align-items-center justify-content-between">
-              <div>
-                <h2 class="mb-0 fw-bold" id="metricRejected">0</h2>
-                <span class="small opacity-75">ปฏิเสธ</span>
-              </div>
-              <i class="fa-solid fa-circle-xmark fs-2 opacity-50"></i>
-            </div>
-          </div>
-        </div>
-
+    <!-- TAB 5: MANAGER PANEL -->
+    <div class="tab-pane fade" id="managerContent" role="tabpanel">
+      <div class="card p-4">
+        <h4 class="text-danger mb-3 fw-bold"><i class="fa-solid fa-user-shield me-2"></i>แดชบอร์ดฝ่ายผู้บริหาร</h4>
         <div class="table-responsive">
           <table class="table table-hover table-bordered align-middle">
             <thead class="table-dark">
               <tr>
-                <th>รหัสคำขอ</th>
-                <th>ชื่อผู้เสนอลา</th>
-                <th>ประเภทลา</th>
-                <th>ระยะเวลาพัก</th>
-                <th>สถานะปัจจุบัน</th>
-                <th class="text-center">คำตัดสินใจ</th>
+                <th>รหัสคำขอ</th><th>ชื่อผู้เสนอลา</th><th>ประเภทลา</th><th>ระยะเวลาพัก</th><th>สถานะปัจจุบัน</th><th class="text-center">คำตัดสินใจ</th>
               </tr>
             </thead>
             <tbody id="managerTableBody">
@@ -517,57 +390,7 @@
         </div>
       </div>
     </div>
-  </div>
 
-</div>
-</div>
-
-
-      <div class="mb-3">
-        <label class="form-label fw-bold">ความเห็นเพิ่มเติม / เหตุผล</label>
-        <textarea class="form-control" id="actionComment" rows="3" placeholder="พิมพ์ข้อความ..."></textarea>
-      </div>
-      
-      <div class="d-flex justify-content-between">
-        <button class="btn btn-warning fw-bold" onclick="submitDecision('SendBack')"><i class="fa-solid fa-rotate-left me-1"></i>ส่งคืนแก้ไข</button>
-        <div>
-          <button class="btn btn-danger fw-bold me-1" onclick="submitDecision('RejectedByManager')"><i class="fa-solid fa-times me-1"></i>ปฏิเสธ</button>
-          <button class="btn btn-success fw-bold" onclick="submitDecision('Approved')"><i class="fa-solid fa-check me-1"></i>อนุมัติ</button>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
-
-      <div class="mb-3">
-        <label class="form-label fw-bold">ความเห็นเพิ่มเติม / เหตุผล</label>
-        <textarea class="form-control" id="hrActionComment" rows="3" placeholder="พิมพ์ข้อความ..."></textarea>
-      </div>
-
-      <div class="d-flex justify-content-between">
-        <button class="btn btn-warning fw-bold" onclick="submitHRDecision('SendBack')"><i class="fa-solid fa-rotate-left me-1"></i>ส่งคืนแก้ไข</button>
-        <div>
-          <button class="btn btn-danger fw-bold me-1" onclick="submitHRDecision('RejectedByHR')"><i class="fa-solid fa-times me-1"></i>ไม่ผ่าน</button>
-          <button class="btn btn-success fw-bold" onclick="submitHRDecision('PendingManager')"><i class="fa-solid fa-check me-1"></i>ผ่าน ส่งต่อผู้จัดการ</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-      <div class="mb-3">
-        <label class="form-label fw-bold">ความเห็น/เหตุผล</label>
-        <textarea class="form-control" id="delegateActionComment" rows="3" placeholder="เช่น รับทราบ จะดูแลงานแทนตามที่ระบุ"></textarea>
-      </div>
-
-      <div class="d-flex justify-content-between">
-        <button class="btn btn-danger fw-bold" onclick="submitDelegateDecision('RejectedByDelegate')"><i class="fa-solid fa-times me-1"></i>ไม่รับมอบหมาย</button>
-        <button class="btn btn-success fw-bold" onclick="submitDelegateDecision('PendingHR')"><i class="fa-solid fa-check me-1"></i>รับทราบ</button>
-      </div>
-    </div>
-  </div>
-</div>
-</body>
-</html>
