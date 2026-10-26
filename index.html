@@ -1677,47 +1677,6 @@ async function loadEmployeesToDropdown() {
       }
     }
 
-      // 1. ดึงค่าและแปลงค่าอินพุตวันที่เริ่มต้นและสิ้นสุดให้อยู่ในรูปออบเจกต์ Date
-    const startInput = document.getElementById('startDate').value;
-    const endInput = document.getElementById('endDate').value;
-
-    const start = new Date(startInput);
-    const end = new Date(endInput);
-
-    // 2. สร้าง Mapping ของวันหยุดนักขัตฤกษ์ครั้งเดียว
-    const holidayMap = {};
-    (cachedHolidays || []).forEach(h => { 
-      holidayMap[h.date] = h.description; 
-    });
-
-    // 3. ตัวแปรสำหรับการนับวันทำการ
-	  
-    let count = 0;
-    const durationInput = document.getElementById('leaveDuration');
-	const excludedList = [];
-    const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-    const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-	
-	  
-      while (cursor <= endOnly) {
-        const dow = cursor.getDay();
-        const dateStr = toYMD(cursor);
-        if (dow === 0 || dow === 6) {
-          excludedList.push(formatStringToDateTimeInput(dateStr) + ' (วันหยุดสุดสัปดาห์)');
-        } else if (holidayMap[dateStr]) {
-          excludedList.push(formatStringToDateTimeInput(dateStr) + ' (' + holidayMap[dateStr] + ')');
-        } else {
-          count++;
-        }
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      
-      durationInput.value = count;
-      if (excludedNote) {
-        excludedNote.innerHTML = excludedList.length
-          ? '<i class="fa-solid fa-circle-info me-1"></i>ไม่นับวันหยุดต่อไปนี้: ' + excludedList.join(', ')
-          : '';
-      }
       updateDelegateRequirement();
       updateAnnualLeaveBalanceDisplay();
       checkDateOverlapNow();
