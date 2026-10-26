@@ -2325,10 +2325,9 @@ async function loadHolidays(silent) {
    
 	async function loadEmployeeManager() {
   showLoading("กำลังโหลดรายชื่อพนักงาน...");
-	let employees = [];
-		
+  
   try {
-    const { data: employees, error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from('employees')
       .select('*')
       .order('employee_id', { ascending: true });
@@ -2341,15 +2340,20 @@ async function loadHolidays(silent) {
       return;
     }
 
-    cachedAllEmployeesAdmin = employees || [];
-	renderEmployeeManagerTable(cachedAllEmployeesAdmin);
-   
+    const empData = data || [];
+    cachedAllEmployeesAdmin = empData;
+    
+    if (typeof renderEmployeeManagerTable === 'function') {
+      renderEmployeeManagerTable(cachedAllEmployeesAdmin);
+    }
+
   } catch (err) {
     hideLoading();
     console.error(err);
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
   }
 }
+	  
 try {
     // เก็บข้อมูลลงตัวแปรแคชไว้ใช้งาน
     window.cachedEmployeesManager = employees || [];
