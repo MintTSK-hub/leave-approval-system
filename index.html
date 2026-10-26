@@ -2362,7 +2362,8 @@ async function loadHolidays(silent) {
 }
 
     // ===== จัดการพนักงาน (เพิ่มบัญชี / ระงับ-เปิดใช้งานบัญชี) =====
-   async function loadEmployeeManager() {
+   
+	async function loadEmployeeManager() {
   showLoading("กำลังโหลดรายชื่อพนักงาน...");
   try {
     const { data: employees, error } = await supabaseClient
@@ -2391,48 +2392,47 @@ async function loadHolidays(silent) {
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
   }
 }
+function renderEmployeeManagerTable() {
+  const searchVal = document.getElementById('employeeManagerSearch').value.trim().toLowerCase();
+  const tbody = document.getElementById('employeeManagerTableBody');
 
-    function renderEmployeeManagerTable() {
-      const searchVal = document.getElementById('employeeManagerSearch').value.trim().toLowerCase();
-      const tbody = document.getElementById('employeeManagerTableBody');
+  const filtered = (cachedAllEmployeesAdmin || []).filter(emp => {
+    if (!searchVal) return true;
+    return (emp.employee_id || '').toLowerCase().includes(searchVal) ||
+           (emp.prefix + emp.name).toLowerCase().includes(searchVal) ||
+           (emp.email || '').toLowerCase().includes(searchVal);
+  });
 
-      const filtered = cachedAllEmployeesAdmin.filter(emp => {
-        if (!searchVal) return true;
-        return emp.employeeId.toLowerCase().includes(searchVal) ||
-               (emp.prefix + emp.name).toLowerCase().includes(searchVal) ||
-               emp.email.toLowerCase().includes(searchVal);
-      });
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูลพนักงาน</td></tr>';
+    return;
+  }
 
-      if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';
-        return;
-      }
+  const roleLabelMap = { Employee: 'พนักงาน', HR: 'HR', Manager: 'ผู้จัดการ' };
 
-      const roleLabelMap = { Employee: 'พนักงาน', HR: 'HR', Manager: 'ผู้จัดการ' };
+  tbody.innerHTML = filtered.map(emp => {
+    const isActive = emp.status === 'Active' || !emp.status; // ถ้ายังไม่เซ็ตให้มองเป็น Active
+    const statusBadge = isActive
+      ? '<span class="badge bg-success">ใช้งานได้</span>'
+      : '<span class="badge bg-secondary">ระงับการใช้งาน</span>';
+    const toggleBtn = isActive
+      ? `<button class="btn btn-sm btn-outline-danger" onclick="toggleEmployeeStatus('${emp.employee_id}', 'Inactive')"><i class="fa-solid fa-user-slash me-1"></i>ระงับ</button>`
+      : `<button class="btn btn-sm btn-outline-success" onclick="toggleEmployeeStatus('${emp.employee_id}', 'Active')"><i class="fa-solid fa-user-check me-1"></i>เปิด</button>`;
 
-      tbody.innerHTML = filtered.map(emp => {
-        const isActive = emp.status === 'Active';
-        const statusBadge = isActive
-          ? '<span class="badge bg-success">ใช้งานได้</span>'
-          : '<span class="badge bg-secondary">ระงับการใช้งาน</span>';
-        const toggleBtn = isActive
-          ? `<button class="btn btn-sm btn-outline-danger" onclick="toggleEmployeeStatus('${emp.employeeId}', 'Inactive')"><i class="fa-solid fa-user-slash me-1"></i>ระงับการใช้งาน</button>`
-          : `<button class="btn btn-sm btn-outline-success" onclick="toggleEmployeeStatus('${emp.employeeId}', 'Active')"><i class="fa-solid fa-user-check me-1"></i>เปิดใช้งาน</button>`;
-
-        return `
-          <tr>
-            <td><b>${emp.employeeId}</b></td>
-            <td>${emp.prefix}${emp.name}</td>
-            <td>${emp.position || '-'}</td>
-            <td>${emp.email}</td>
-            <td>${roleLabelMap[emp.role] || emp.role}</td>
-            <td>${statusBadge}</td>
-            <td class="text-center">${toggleBtn}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
+    return `
+      <tr>
+        <td><b>${emp.employee_id || '-'}</b></td>
+        <td>${emp.prefix || ''}${emp.name || ''}</td>
+        <td>${emp.position || '-'}</td>
+        <td>${emp.email || '-'}</td>
+        <td>${roleLabelMap[emp.role] || emp.role || 'Employee'}</td>
+        <td>${statusBadge}</td>
+        <td class="text-center">${toggleBtn}</td>
+      </tr>
+    `;
+  }).join('');
+}
+	  
     function toggleEmployeeStatus(employeeId, newStatus) {
       const actionLabel = newStatus === 'Active' ? 'เปิดใช้งาน' : 'ระงับการใช้งาน (พ้นสภาพ)';
       if (!confirm(`ยืนยัน${actionLabel}บัญชี ${employeeId} ใช่หรือไม่?`)) return;
