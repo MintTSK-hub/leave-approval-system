@@ -3037,7 +3037,53 @@ function renderLeaveCharts(report) {
     chartInstances.vacation = new Chart(ctxVacation.getContext('2d'), chartConfig(rows.map(r => r.vacationDays), '#2E7D32', 'ลาพักผ่อน'));
   }
 }
-     
+
+// ==========================================
+async function loadLeaveReport() {
+  showLoading("กำลังโหลดข้อมูลรายงาน...");
+  try {
+    const { data: requests, error } = await supabaseClient
+      .from('leave_requests')
+      .select('*')
+      .eq('status', 'ผ่าน HR แล้ว'); // ปรับสถานะให้ตรงกับฐานข้อมูลของคุณ
+
+    hideLoading();
+
+    if (error) {
+      console.error('Error loading report:', error);
+      showAppAlert("ข้อผิดพลาด", error.message, "danger");
+      return;
+    }
+
+    const reportMap = {};
+    
+    (requests || []).forEach(req => {
+      const empId = req.employee_id;
+      if (!reportMap[empId]) {
+        reportMap[empId] = {
+          name: req.employee_name || empId,
+          kitDays: 0,
+          puayDays: 0,
+          vacationDays: 0
+        };
+      }
+      
+      const days = parseFloat(req.total_days || req.number_of_days || 0);
+      if (req.leave_type === 'ลากิจ') reportMap[empId].kitDays += days;
+      if (req.leave_type === 'ลาป่วย') reportMap[empId].puayDays += days;
+      if (req.leave_type === 'ลาพักผ่อน') reportMap[empId].vacationDays += days;
+    });
+
+    const reportRows = Object.values(reportMap);
+    renderLeaveCharts({ rows: reportRows });
+
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+  }
+}
+	  
 	  
     // ===== ปฏิทินการลา: ใช้ร่วมกันทั้งพื้นที่ HR และผู้จัดการ =====
 
