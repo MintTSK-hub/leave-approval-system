@@ -2325,6 +2325,8 @@ async function loadHolidays(silent) {
    
 	async function loadEmployeeManager() {
   showLoading("กำลังโหลดรายชื่อพนักงาน...");
+	let employees = [];
+		
   try {
     const { data: employees, error } = await supabaseClient
       .from('employees')
@@ -2969,9 +2971,9 @@ async function loadLeaveCharts() {
 
 // 2. ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)	  
 function renderLeaveCharts(report) {
-  const rows = (report && report.rows) ? report.rows : [];
-  const labels = rows.map(r => r.name || '-'); // ประกาศในสโคปที่ถูกต้องและปลอดภัย
-
+  	const labels = rows.map(r => r.name || '-'); 
+	const rows = (report && report.rows) ? report.rows : [];
+	
   const chartHeight = Math.max(320, labels.length * 28);
   ['chartKit', 'chartPuay', 'chartVacation'].forEach(id => {
     const el = document.getElementById(id);
