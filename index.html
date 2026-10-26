@@ -1368,6 +1368,9 @@
 	let cachedHolidays = [];          
     let cachedAllEmployeesAdmin = []; 
 
+	const thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    const thaiWeekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
 	let calState = {
   hr: { year: new Date().getFullYear(), month: new Date().getMonth() },
   manager: { year: new Date().getFullYear(), month: new Date().getMonth() }
@@ -2953,9 +2956,6 @@ async function loadMyRequests() {
     }
 
     // ===== ปฏิทินการลา: ใช้ร่วมกันทั้งพื้นที่ HR และผู้จัดการ =====
-	  
-    const thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-    const thaiWeekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
     function shiftCalendarMonth(area, delta) {
       const st = calState[area];
@@ -3430,14 +3430,14 @@ async function loadMyRequests() {
       document.body.removeChild(link);
     }	
 
-	  
+ 
 	  function calculateDateDuration() {
-  // 1. ดึง Element มาประกาศไว้บนสุดของฟังก์ชันเสมอ
+	// ประกาศดึง Element ไว้ที่บรรทัดแรกสุดของฟังก์ชันเสมอ	 
   const startInput = document.getElementById('startDate').value;
   const endInput = document.getElementById('endDate').value;
   const durationInput = document.getElementById('leaveDuration');
-  const excludedNote = document.getElementById('excludedDaysNote');
-
+  const excludedNote = document.getElementById('excludedDaysNote'); 
+		  
   // 2. เช็คการกรอกข้อมูล
   if (!startInput || !endInput) {
     if (durationInput) durationInput.value = 0;
