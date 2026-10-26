@@ -3037,52 +3037,7 @@ function renderLeaveCharts(report) {
     chartInstances.vacation = new Chart(ctxVacation.getContext('2d'), chartConfig(rows.map(r => r.vacationDays), '#2E7D32', 'ลาพักผ่อน'));
   }
 }
-      // ขยายความสูงกราฟตามจำนวนพนักงาน กันไม่ให้ Chart.js auto-skip ชื่อบางคนออกตอนพื้นที่ไม่พอ
-	  const chartHeight = Math.max(320, labels.length * 28);
-	  
-      ['chartKit', 'chartPuay', 'chartVacation'].forEach(id => {
-        document.getElementById(id).parentElement.style.height = chartHeight + 'px';
-      });
-
-      const chartConfig = (data, color, label) => ({
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: label,
-            data: data,
-            backgroundColor: color,
-            borderRadius: 4
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { beginAtZero: true, title: { display: true, text: 'จำนวนวัน' } },
-            y: { ticks: { autoSkip: false } } // แสดงชื่อพนักงานครบทุกคน ไม่ให้ Chart.js ซ่อนบางรายชื่อ
-          }
-        }
-      });
-
-      ['kit', 'puay', 'vacation'].forEach(key => {
-        if (chartInstances[key]) chartInstances[key].destroy();
-      });
-
-      chartInstances.kit = new Chart(
-        document.getElementById('chartKit').getContext('2d'),
-        chartConfig(rows.map(r => r.kitDays), '#48A1E5', 'ลากิจ')
-      );
-      chartInstances.puay = new Chart(
-        document.getElementById('chartPuay').getContext('2d'),
-        chartConfig(rows.map(r => r.puayDays), '#E5484D', 'ลาป่วย')
-      );
-      chartInstances.vacation = new Chart(
-        document.getElementById('chartVacation').getContext('2d'),
-        chartConfig(rows.map(r => r.vacationDays), '#2E7D32', 'ลาพักผ่อน')
-      );
+     
 	  
     // ===== ปฏิทินการลา: ใช้ร่วมกันทั้งพื้นที่ HR และผู้จัดการ =====
 
