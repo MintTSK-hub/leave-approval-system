@@ -2355,11 +2355,12 @@ async function loadHolidays(silent) {
     if (typeof renderEmployeeManagerTable === 'function') {
       renderEmployeeManagerTable(window.cachedEmployeesManager);
     }
-     catch (err) {
+    } catch (err) {
     hideLoading();
     console.error(err);
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
   }
+}
 	  
 
 function renderEmployeeManagerTable() {
