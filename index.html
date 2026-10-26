@@ -2878,30 +2878,82 @@ async function loadMyRequests() {
 }
 	  
     // ===== กราฟสถิติการลา แยกตามประเภท =====
-    let chartInstances = { kit: null, puay: null, vacation: null };
+    async function loadLeaveCharts() {
+  const yearInput = document.getElementById('chartsYearBE');
+  if (!yearInput.value) yearInput.value = new Date().getFullYear() + 543;
+  const yearBE = parseInt(yearInput.value, 10);
+  const calendarYear = yearBE - 543;
 
-    function loadLeaveCharts() {
-      const yearInput = document.getElementById('chartsYearBE');
-      if (!yearInput.value) yearInput.value = new Date().getFullYear() + 543;
-      const yearBE = parseInt(yearInput.value, 10);
-      const calendarYear = yearBE - 543;
+  showLoading("กำลังสร้างกราฟสถิติการลา...");
 
-      showLoading("กำลังสร้างกราฟสถิติการลา...");
-      google.script.run
-        .withSuccessHandler(function (report) {
-          hideLoading();
-          renderLeaveCharts(report);
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .getAnnualLeaveSummaryReport(calendarYear);
-    }
+  try {
+    // 1. ดึงข้อมูลพนักงานทั้งหมด และข้อมูลคำขอลาทั้งหมดจาก Supabase พร้อมกัน
+    const [empRes, reqRes] = await Promise.all([
+      supabaseClient.from('employees').select('*'),
+      supabaseClient.from('leave_requests').select('*')
+    ]);
 
-    function renderLeaveCharts(report) {
-      const rows = (report && report.rows) ? report.rows : [];
-      const labels = rows.map(r => r.name);
+    hideLoading();
+
+    if (empRes.error) throw empRes.error;
+    if (reqRes.error) throw reqRes.error;
+
+    const employees = empRes.data || [];
+    const requests = reqRes.data || [];
+
+    // 2. คำนวณวันลาแยกตามพนักงานและประเภทการลาในปีที่เลือก
+    const rows = employees.map(emp => {
+      const empReqs = requests.filter(r => {
+        const matchesUser = (r.applicant_email === emp.email) || (r.name === emp.name);
+        const matchesStatus = r.status === 'Approved'; // นับเฉพาะรายการที่อนุมัติแล้ว
+        
+        let matchesYear = false;
+        if (r.start_date) {
+          const reqYear = new Date(r.start_date).getFullYear();
+          matchesYear = (reqYear === calendarYear);
+        }
+        return matchesUser && matchesStatus && matchesYear;
+      });
+
+      let kitDays = 0;
+      let puayDays = 0;
+      let vacationDays = 0;
+
+      empReqs.forEach(r => {
+        const dur = parseFloat(r.leave_duration || r.leaveDuration) || 0;
+        const cat = r.leave_category || r.leaveCategory || '';
+        
+        if (cat.includes('ลากิจ')) {
+          kitDays += dur;
+        } else if (cat.includes('ลาป่วย')) {
+          puayDays += dur;
+        } else if (cat.includes('ลาพักผ่อน')) {
+          vacationDays += dur;
+        }
+      });
+
+      return {
+        name: (emp.prefix || '') + (emp.name || ''),
+        position: emp.position || '-',
+        kitDays: kitDays,
+        puayDays: puayDays,
+        vacationDays: vacationDays
+      };
+    });
+
+    const report = {
+      yearBE: yearBE,
+      rows: rows
+    };
+
+    renderLeaveCharts(report);
+
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+  }
+}
 
       // ขยายความสูงกราฟตามจำนวนพนักงาน กันไม่ให้ Chart.js auto-skip ชื่อบางคนออกตอนพื้นที่ไม่พอ
       const chartHeight = Math.max(320, labels.length * 28);
