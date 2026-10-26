@@ -2340,7 +2340,8 @@ async function loadHolidays(silent) {
     }
 
     cachedAllEmployeesAdmin = employees || [];
-    renderEmployeeManagerTable();
+	renderEmployeeManagerTable(cachedAllEmployeesAdmin);
+   
   } catch (err) {
     hideLoading();
     console.error(err);
