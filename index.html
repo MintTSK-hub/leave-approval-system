@@ -2976,9 +2976,11 @@ async function loadLeaveCharts() {
 
 // 2. ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)	  
 function renderLeaveCharts(report) {
-	const rows = (report && report.rows) ? report.rows : [];
- 	const labels = rows.map(r => r.name || '-');
-	
+  // 1. ประกาศตัวแปร labels ไว้บรรทัดแรกสุดเสมอก่อนใช้งาน
+  const rows = (report && report.rows) ? report.rows : [];
+  const labels = rows.map(r => r.name || '-');
+
+  // 2. ตามด้วยคำสั่งคำนวณความสูงของกราฟ (ที่เคยอยู่ผิดที่)
   const chartHeight = Math.max(320, labels.length * 28);
   ['chartKit', 'chartPuay', 'chartVacation'].forEach(id => {
     const el = document.getElementById(id);
@@ -2987,10 +2989,11 @@ function renderLeaveCharts(report) {
     }
   });
 
+  // 3. กำหนดค่าคอนฟิกกราฟ
   const chartConfig = (data, color, labelText) => ({
     type: 'bar',
     data: {
-      labels: labels,
+      labels: labels, // เรียกใช้งาน labels ตรงนี้ได้อย่างปลอดภัย
       datasets: [{
         label: labelText,
         data: data,
