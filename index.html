@@ -2352,9 +2352,11 @@ try {
     window.cachedEmployeesManager = employees || [];
 
     // เรียกฟังก์ชันเรนเดอร์ลงตารางจัดการพนักงาน
-    if (typeof renderEmployeeManagerTable === 'function') {
+	  if (typeof renderEmployeeManagerTable === 'function') {
       renderEmployeeManagerTable(window.cachedEmployeesManager);
-    } catch (err) {
+    } 
+
+  } catch (err) {
     hideLoading();
     console.error(err);
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
