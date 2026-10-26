@@ -2958,7 +2958,7 @@ async function loadLeaveCharts() {
 // 2. ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)
 function renderLeaveCharts(report) {
   const rows = (report && report.rows) ? report.rows : [];
-  const labels = rows.map(r => r.name);
+  const labels = rows.map(r => r.name); // ประกาศตัวแปร labels ตรงนี้ให้ชัดเจน
 
   const chartHeight = Math.max(320, labels.length * 28);
   ['chartKit', 'chartPuay', 'chartVacation'].forEach(id => {
@@ -2968,12 +2968,12 @@ function renderLeaveCharts(report) {
     }
   });
 
-  const chartConfig = (data, color, label) => ({
+  const chartConfig = (data, color, labelText) => ({
     type: 'bar',
     data: {
-      labels: labels,
+      labels: labels, // เรียกใช้งาน labels ที่ประกาศไว้ด้านบน
       datasets: [{
-        label: label,
+        label: labelText,
         data: data,
         backgroundColor: color,
         borderRadius: 4
