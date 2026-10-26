@@ -1960,8 +1960,8 @@ async function loadEmployeesToDropdown() {
       }
     }
 
-    // เข้าสู่ระบบแบบรวมศูนย์ — ใช้บัญชีเดียวกันทั้งพนักงาน/HR/ผู้จัดการ ระบบจะพาไปหน้าที่ถูกต้องตาม Role อัตโนมัติ
- // ฟังก์ชันเข้าสู่ระบบผ่าน Supabase
+// เข้าสู่ระบบแบบรวมศูนย์ — ใช้บัญชีเดียวกันทั้งพนักงาน/HR/ผู้จัดการ ระบบจะพาไปหน้าที่ถูกต้องตาม Role อัตโนมัติ
+ // ฟังก์ชันเข้าสู่ระบบผ่าน Supabase	  
 async function doEmployeeLogin() {
   const employeeId = document.getElementById('employeeIdInput').value.trim();
   const password = document.getElementById('employeePasswordInput').value.trim();
@@ -3000,8 +3000,7 @@ async function loadMyRequests() {
         document.getElementById('chartVacation').getContext('2d'),
         chartConfig(rows.map(r => r.vacationDays), '#2E7D32', 'ลาพักผ่อน')
       );
-    }
-
+    
     // ===== ปฏิทินการลา: ใช้ร่วมกันทั้งพื้นที่ HR และผู้จัดการ =====
 
     function shiftCalendarMonth(area, delta) {
