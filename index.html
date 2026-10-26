@@ -2347,7 +2347,7 @@ async function loadHolidays(silent) {
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
   }
 }
-
+try {
     // เก็บข้อมูลลงตัวแปรแคชไว้ใช้งาน
     window.cachedEmployeesManager = employees || [];
 
