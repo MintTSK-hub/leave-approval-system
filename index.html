@@ -2354,7 +2354,6 @@ try {
     // เรียกฟังก์ชันเรนเดอร์ลงตารางจัดการพนักงาน
     if (typeof renderEmployeeManagerTable === 'function') {
       renderEmployeeManagerTable(window.cachedEmployeesManager);
-    }
     } catch (err) {
     hideLoading();
     console.error(err);
@@ -2362,7 +2361,6 @@ try {
   }
 }
 	  
-
 function renderEmployeeManagerTable() {
   const searchVal = document.getElementById('employeeManagerSearch').value.trim().toLowerCase();
   const tbody = document.getElementById('employeeManagerTableBody');
