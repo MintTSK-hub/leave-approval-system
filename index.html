@@ -2798,89 +2798,86 @@ async function loadMyRequests() {
     }
 
     // ===== รายงานสรุปประจำปี (พนักงานทุกคน แยกตามประเภทการลา) =====
-    let cachedSummaryReport = null;
+   async function loadAnnualSummaryReport() {
+  const yearInput = document.getElementById('summaryReportYearBE');
+  if (!yearInput.value) yearInput.value = new Date().getFullYear() + 543;
+  const yearBE = parseInt(yearInput.value, 10);
+  const calendarYear = yearBE - 543;
 
-    function loadAnnualSummaryReport() {
-      const yearInput = document.getElementById('summaryReportYearBE');
-      if (!yearInput.value) yearInput.value = new Date().getFullYear() + 543;
-      const yearBE = parseInt(yearInput.value, 10);
-      const calendarYear = yearBE - 543;
+  showLoading("กำลังสร้างรายงานสรุปประจำปี...");
 
-      showLoading("กำลังสร้างรายงานสรุปประจำปี...");
-      google.script.run
-        .withSuccessHandler(function (report) {
-          hideLoading();
-          cachedSummaryReport = report;
-          renderAnnualSummaryTable(report);
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .getAnnualLeaveSummaryReport(calendarYear);
-    }
+  try {
+    // 1. ดึงข้อมูลพนักงานทั้งหมด และข้อมูลคำขอลาทั้งหมดจาก Supabase พร้อมกัน
+    const [empRes, reqRes] = await Promise.all([
+      supabaseClient.from('employees').select('*'),
+      supabaseClient.from('leave_requests').select('*')
+    ]);
 
-    function renderAnnualSummaryTable(report) {
-      const tbody = document.getElementById('summaryReportTableBody');
-      const tfoot = document.getElementById('summaryReportTableFoot');
+    hideLoading();
 
-      if (!report || !report.rows || !report.rows.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลพนักงานในระบบ</td></tr>';
-        tfoot.innerHTML = '';
-        return;
-      }
+    if (empRes.error) throw empRes.error;
+    if (reqRes.error) throw reqRes.error;
 
-      tbody.innerHTML = report.rows.map(r => `
-        <tr>
-          <td><b>${r.name}</b>${r.status !== 'Active' ? ' <span class="badge bg-secondary">พ้นสภาพ</span>' : ''}</td>
-          <td>${r.position || '-'}</td>
-          <td class="text-center">${r.kitDays}</td>
-          <td class="text-center">${r.puayDays}</td>
-          <td class="text-center">${r.vacationDays}</td>
-          <td class="text-center fw-bold">${r.totalDays}</td>
-        </tr>
-      `).join('');
+    const employees = empRes.data || [];
+    const requests = reqRes.data || [];
 
-      const sumKit = report.rows.reduce((s, r) => s + r.kitDays, 0);
-      const sumPuay = report.rows.reduce((s, r) => s + r.puayDays, 0);
-      const sumVacation = report.rows.reduce((s, r) => s + r.vacationDays, 0);
-      const sumTotal = report.rows.reduce((s, r) => s + r.totalDays, 0);
+    // 2. คำนวณวันลาแยกตามพนักงานและประเภทการลาในปีที่เลือก
+    const rows = employees.map(emp => {
+      // กรองเฉพาะคำขอของพนักงานคนนี้ (เทียบด้วยอีเมลหรือชื่อ) และในปี พ.ศ. / ค.ศ. นั้นๆ ที่สถานะอนุมัติแล้ว
+      const empReqs = requests.filter(r => {
+        const matchesUser = (r.applicant_email === emp.email) || (r.name === emp.name);
+        const matchesStatus = r.status === 'Approved'; // นับเฉพาะที่อนุมัติแล้ว
+        
+        let matchesYear = false;
+        if (r.start_date) {
+          const reqYear = new Date(r.start_date).getFullYear();
+          matchesYear = (reqYear === calendarYear);
+        }
+        return matchesUser && matchesStatus && matchesYear;
+      });
 
-      tfoot.innerHTML = `
-        <tr class="table-light fw-bold">
-          <td colspan="2">รวมทั้งหมด (ปี ${report.yearBE})</td>
-          <td class="text-center">${sumKit}</td>
-          <td class="text-center">${sumPuay}</td>
-          <td class="text-center">${sumVacation}</td>
-          <td class="text-center">${sumTotal}</td>
-        </tr>
-      `;
-    }
+      let kitDays = 0;
+      let puayDays = 0;
+      let vacationDays = 0;
 
-    function exportAnnualSummaryToExcel() {
-      if (!cachedSummaryReport || !cachedSummaryReport.rows.length) {
-        showAppAlert("ไม่มีข้อมูล", "กรุณาโหลดรายงานก่อนกด Export", "danger");
-        return;
-      }
+      empReqs.forEach(r => {
+        const dur = parseFloat(r.leave_duration || r.leaveDuration) || 0;
+        const cat = r.leave_category || r.leaveCategory || '';
+        
+        if (cat.includes('ลากิจ')) {
+          kitDays += dur;
+        } else if (cat.includes('ลาป่วย')) {
+          puayDays += dur;
+        } else if (cat.includes('ลาพักผ่อน')) {
+          vacationDays += dur;
+        }
+      });
 
-      const rows = cachedSummaryReport.rows.map(r => ({
-        "ชื่อ-นามสกุล": r.name,
-        "ตำแหน่ง": r.position || "-",
-        "สถานะพนักงาน": r.status === 'Active' ? 'ทำงานอยู่' : 'พ้นสภาพ',
-        "ลากิจ (วัน)": r.kitDays,
-        "ลาป่วย (วัน)": r.puayDays,
-        "ลาพักผ่อน (วัน)": r.vacationDays,
-        "รวมทั้งหมด (วัน)": r.totalDays
-      }));
+      return {
+        name: (emp.prefix || '') + (emp.name || ''),
+        position: emp.position || '-',
+        status: emp.status || 'Active',
+        kitDays: kitDays,
+        puayDays: puayDays,
+        vacationDays: vacationDays,
+        totalDays: kitDays + puayDays + vacationDays
+      };
+    });
 
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      worksheet['!cols'] = [{ wch: 24 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }];
+    const report = {
+      yearBE: yearBE,
+      rows: rows
+    };
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, `สรุปปี ${cachedSummaryReport.yearBE}`);
+    cachedSummaryReport = report;
+    renderAnnualSummaryTable(report);
 
-      XLSX.writeFile(workbook, `รายงานสรุปวันลาประจำปี_${cachedSummaryReport.yearBE}.xlsx`);
-    }
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+  }
+}
 
     // ===== กราฟสถิติการลา แยกตามประเภท =====
     let chartInstances = { kit: null, puay: null, vacation: null };
