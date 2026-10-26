@@ -2878,7 +2878,8 @@ async function loadMyRequests() {
 }
 	  
     // ===== กราฟสถิติการลา แยกตามประเภท =====
-    async function loadLeaveCharts() {
+   // 1. ฟังก์ชันโหลดข้อมูลกราฟ
+async function loadLeaveCharts() {
   const yearInput = document.getElementById('chartsYearBE');
   if (!yearInput.value) yearInput.value = new Date().getFullYear() + 543;
   const yearBE = parseInt(yearInput.value, 10);
@@ -2887,7 +2888,6 @@ async function loadMyRequests() {
   showLoading("กำลังสร้างกราฟสถิติการลา...");
 
   try {
-    // 1. ดึงข้อมูลพนักงานทั้งหมด และข้อมูลคำขอลาทั้งหมดจาก Supabase พร้อมกัน
     const [empRes, reqRes] = await Promise.all([
       supabaseClient.from('employees').select('*'),
       supabaseClient.from('leave_requests').select('*')
@@ -2901,11 +2901,10 @@ async function loadMyRequests() {
     const employees = empRes.data || [];
     const requests = reqRes.data || [];
 
-    // 2. คำนวณวันลาแยกตามพนักงานและประเภทการลาในปีที่เลือก
     const rows = employees.map(emp => {
       const empReqs = requests.filter(r => {
         const matchesUser = (r.applicant_email === emp.email) || (r.name === emp.name);
-        const matchesStatus = r.status === 'Approved'; // นับเฉพาะรายการที่อนุมัติแล้ว
+        const matchesStatus = r.status === 'Approved';
         
         let matchesYear = false;
         if (r.start_date) {
@@ -2954,8 +2953,8 @@ async function loadMyRequests() {
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
   }
 }
-	  
-// 2. ฟังก์ชันวาดกราฟ 
+
+// 2. ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)
 function renderLeaveCharts(report) {
   const rows = (report && report.rows) ? report.rows : [];
   const labels = rows.map(r => r.name);
