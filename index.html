@@ -2339,6 +2339,15 @@ async function loadHolidays(silent) {
       return;
     }
 
+    cachedAllEmployeesAdmin = employees || [];
+    renderEmployeeManagerTable();
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+  }
+}
+
     // เก็บข้อมูลลงตัวแปรแคชไว้ใช้งาน
     window.cachedEmployeesManager = employees || [];
 
@@ -2958,7 +2967,8 @@ async function loadLeaveCharts() {
 // 2. ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)	  
 function renderLeaveCharts(report) {
   const rows = (report && report.rows) ? report.rows : [];
-  const labels = rows.map(r => r.name || '-');
+  const labels = rows.map(r => r.name || '-'); // ประกาศในสโคปที่ถูกต้องและปลอดภัย
+
   const chartHeight = Math.max(320, labels.length * 28);
   ['chartKit', 'chartPuay', 'chartVacation'].forEach(id => {
     const el = document.getElementById(id);
@@ -2970,7 +2980,7 @@ function renderLeaveCharts(report) {
   const chartConfig = (data, color, labelText) => ({
     type: 'bar',
     data: {
-      labels: labels, // เรียกใช้งาน labels ที่ประกาศไว้ด้านบน
+      labels: labels,
       datasets: [{
         label: labelText,
         data: data,
@@ -2991,8 +3001,14 @@ function renderLeaveCharts(report) {
   });
 
   ['kit', 'puay', 'vacation'].forEach(key => {
-    if (chartInstances[key]) chartInstances[key].destroy();
+    if (typeof chartInstances !== 'undefined' && chartInstances[key]) {
+      chartInstances[key].destroy();
+    }
   });
+
+  if (typeof chartInstances === 'undefined') {
+    window.chartInstances = { kit: null, puay: null, vacation: null };
+  }
 
   const ctxKit = document.getElementById('chartKit');
   const ctxPuay = document.getElementById('chartPuay');
