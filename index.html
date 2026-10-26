@@ -1367,6 +1367,7 @@
     let loggedInEmployee = null;
 	let cachedHolidays = [];          
     let cachedAllEmployeesAdmin = []; 
+	let employees = [];
 	let chartInstances = { kit: null, puay: null, vacation: null };
 
 	var thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -2975,8 +2976,8 @@ async function loadLeaveCharts() {
 
 // 2. ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)	  
 function renderLeaveCharts(report) {
-  	const labels = rows.map(r => r.name || '-'); 
 	const rows = (report && report.rows) ? report.rows : [];
+	const labels = rows.map(r => r.name || '-');
 	
   const chartHeight = Math.max(320, labels.length * 28);
   ['chartKit', 'chartPuay', 'chartVacation'].forEach(id => {
