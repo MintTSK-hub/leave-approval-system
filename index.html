@@ -1368,8 +1368,8 @@
 	let cachedHolidays = [];          
     let cachedAllEmployeesAdmin = []; 
 
-	const thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-    const thaiWeekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+	var thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+	var thaiWeekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
 	let calState = {
   hr: { year: new Date().getFullYear(), month: new Date().getMonth() },
@@ -3429,10 +3429,8 @@ async function loadMyRequests() {
       link.click();
       document.body.removeChild(link);
     }	
-
- 
-	  function calculateDateDuration() {
-	// ประกาศดึง Element ไว้ที่บรรทัดแรกสุดของฟังก์ชันเสมอ	 
+	  
+	  function calculateDateDuration() { 
   const startInput = document.getElementById('startDate').value;
   const endInput = document.getElementById('endDate').value;
   const durationInput = document.getElementById('leaveDuration');
