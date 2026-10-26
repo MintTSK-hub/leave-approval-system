@@ -2879,6 +2879,45 @@ async function loadMyRequests() {
   }
 }
 
+	  function renderAnnualSummaryTable(report) {
+  const tbody = document.getElementById('summaryReportTableBody');
+  const tfoot = document.getElementById('summaryReportTableFoot');
+
+  if (!report || !report.rows || !report.rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลพนักงานในระบบ</td></tr>';
+    if (tfoot) tfoot.innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = report.rows.map(r => `
+    <tr>
+      <td><b>${r.name}</b>${r.status !== 'Active' ? ' <span class="badge bg-secondary">พ้นสภาพ</span>' : ''}</td>
+      <td>${r.position || '-'}</td>
+      <td class="text-center">${r.kitDays}</td>
+      <td class="text-center">${r.puayDays}</td>
+      <td class="text-center">${r.vacationDays}</td>
+      <td class="text-center fw-bold">${r.totalDays}</td>
+    </tr>
+  `).join('');
+
+  const sumKit = report.rows.reduce((s, r) => s + r.kitDays, 0);
+  const sumPuay = report.rows.reduce((s, r) => s + r.puayDays, 0);
+  const sumVacation = report.rows.reduce((s, r) => s + r.vacationDays, 0);
+  const sumTotal = report.rows.reduce((s, r) => s + r.totalDays, 0);
+
+  if (tfoot) {
+    tfoot.innerHTML = `
+      <tr class="table-light fw-bold">
+        <td colspan="2">รวมทั้งหมด (ปี ${report.yearBE})</td>
+        <td class="text-center">${sumKit}</td>
+        <td class="text-center">${sumPuay}</td>
+        <td class="text-center">${sumVacation}</td>
+        <td class="text-center">${sumTotal}</td>
+      </tr>
+    `;
+  }
+}
+	  
     // ===== กราฟสถิติการลา แยกตามประเภท =====
     let chartInstances = { kit: null, puay: null, vacation: null };
 
