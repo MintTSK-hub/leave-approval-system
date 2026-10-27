@@ -1561,12 +1561,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ดึงวันที่ลาครั้งล่าสุด (ตามประเภทการลาหลัก + อีเมล) มาเติมในฟอร์มอัตโนมัติ
-    async function fetchLastLeaveDate(employeeId) {
+   async function fetchLastLeaveDate(employeeId) {
   try {
-    // ดึงประวัติการลาล่าสุดของพนักงานคนนี้จาก Supabase
     const { data, error } = await supabaseClient
       .from('leave_requests')
-      .select('end_date') // หรือฟิลด์วันที่สิ้นสุดการลาของคุณ
+      .select('*') // ลองดึงทุกคอลัมน์มาก่อนเพื่อป้องกัน Error เรื่องชื่อฟิลด์
       .eq('employee_id', employeeId)
       .order('created_at', { ascending: false })
       .limit(1);
@@ -1577,13 +1576,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (data && data.length > 0) {
-      // นำวันที่ล่าสุดไปแสดงในช่อง "ลาพักครั้งล่าสุดเมื่อวันที่"
-      const lastDate = data[0].end_date || data[0].date_to;
-      const inputEl = document.getElementById('lastLeaveDateInput'); // ปรับ ID ตามฟอร์มของคุณ
+		
+      // ตรวจสอบชื่อคอลัมน์วันที่ในตารางของคุณ แล้วนำมาใส่ตรงนี้
+      const lastDate = data[0].end_date || data[0].date_to || data[0].to_date || '';
+      const inputEl = document.getElementById('lastLeaveDateInput'); // ปรับ ID ตามฟอร์มจริงของคุณ
       if (inputEl) inputEl.value = lastDate;
     }
   } catch (err) {
-    console.error('System error fetching last leave date:', err);
+    console.error('System error:', err);
   }
 }
 
