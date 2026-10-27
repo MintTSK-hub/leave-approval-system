@@ -2263,6 +2263,9 @@ async function loadEmployeeListForDelegate() {
         console.error(err);
     }
 }
+    document.addEventListener('DOMContentLoaded', () => {
+        loadEmployeeListForDelegate();
+    });
 
     // เติมตำแหน่งผู้รับมอบหมายงานแทนอัตโนมัติ ตามชื่อที่เลือกจากข้อมูลพนักงานจริง
     function syncDelegatePosition() {
