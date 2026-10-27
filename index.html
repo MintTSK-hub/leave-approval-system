@@ -2431,41 +2431,54 @@ function renderEmployeeManagerTable() {
         .setEmployeeStatus(employeeId, newStatus);
     }
 
-    function addEmployeeEntry() {
-      const employeeData = {
-        employeeId: document.getElementById('newEmpId').value.trim(),
-        password: document.getElementById('newEmpPassword').value.trim(),
-        prefix: document.getElementById('newEmpPrefix').value,
-        name: document.getElementById('newEmpName').value.trim(),
-        position: document.getElementById('newEmpPosition').value.trim(),
-        email: document.getElementById('newEmpEmail').value.trim(),
-        telephone: document.getElementById('newEmpTelephone').value.trim(),
-        role: document.getElementById('newEmpRole').value
-      };
+   async function addEmployeeEntry() {
+  const employeeData = {
+    employee_id: document.getElementById('newEmpId').value.trim(),
+    password: document.getElementById('newEmpPassword').value.trim(),
+    prefix: document.getElementById('newEmpPrefix').value,
+    name: document.getElementById('newEmpName').value.trim(),
+    position: document.getElementById('newEmpPosition').value.trim(),
+    email: document.getElementById('newEmpEmail').value.trim(),
+    phone: document.getElementById('newEmpTelephone').value.trim(),
+    role: document.getElementById('newEmpRole').value,
+    status: 'ใช้งานได้'
+  };
 
-      if (!employeeData.employeeId || !employeeData.password || !employeeData.name || !employeeData.email) {
-        showAppAlert("ข้อมูลไม่ครบ", "กรุณากรอกรหัสผู้ใช้ รหัสผ่าน ชื่อ และอีเมล ให้ครบถ้วน", "danger");
-        return;
-      }
+  if (!employeeData.employee_id || !employeeData.password || !employeeData.name || !employeeData.email) {
+    showAppAlert("ข้อมูลไม่ครบ", "กรุณากรอกรหัสผู้ใช้ รหัสผ่าน ชื่อ และอีเมล ให้ครบถ้วน", "danger");
+    return;
+  }
 
-      showLoading("กำลังเพิ่มพนักงานใหม่...");
-      google.script.run
-        .withSuccessHandler(function (res) {
-          hideLoading();
-          showAppAlert(res.success ? "สำเร็จ" : "ผิดพลาด", res.message, res.success ? "success" : "danger");
-          if (res.success) {
-            ['newEmpId', 'newEmpPassword', 'newEmpName', 'newEmpPosition', 'newEmpEmail', 'newEmpTelephone'].forEach(id => {
-              document.getElementById(id).value = '';
-            });
-            loadEmployeeManager();
-          }
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .addEmployee(employeeData);
+  showLoading("กำลังเพิ่มพนักงานใหม่...");
+  try {
+    const { data, error } = await supabaseClient
+      .from('employees')
+      .insert([employeeData]);
+
+    hideLoading();
+
+    if (error) {
+      console.error('Error adding employee:', error);
+      showAppAlert("ผิดพลาด", error.message, "danger");
+      return;
     }
+
+    showAppAlert("สำเร็จ", "เพิ่มพนักงานใหม่เรียบร้อยแล้ว", "success");
+    
+    // เคลียร์ฟอร์ม
+    ['newEmpId', 'newEmpPassword', 'newEmpName', 'newEmpPosition', 'newEmpEmail', 'newEmpTelephone'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    
+    // โหลดรายชื่อพนักงานใหม่แสดงในตาราง
+    loadEmployeeManager();
+
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+  }
+}
 
     // โหลดยอดวันลาพักผ่อนของพนักงาน+ปีที่เลือก มาแสดงในฟอร์มแก้ไข
     function loadAnnualLeaveLedger() {
