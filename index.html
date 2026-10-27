@@ -2069,12 +2069,12 @@ async function doEmployeeLogin() {
       if (!loggedInEmployee) return;
       if (!silent) showLoading("กำลังโหลดงานที่ได้รับมอบหมาย...");
 
-      try {
-        const { data: tasks, error } = await supabaseClient
-          .from('leave_requests')
-          .select('*')
-          .eq('delegate_employee_id', loggedInEmployee.employee_id)
-          .order('timestamp', { ascending: false });
+    try {
+    	const { data: tasks, error } = await supabaseClient
+    	.from('leave_requests')
+   	 	.select('*')
+   	 	.eq('delegate_name', loggedInEmployee.name) // เปลี่ยนมาเทียบจากชื่อผู้รับมอบหมาย (ปรับ delegate_name ให้ตรงกับชื่อคอลัมน์จริงในตาราง เช่น delegate_name หรือชื่อที่เก็บผู้รับมอบหมาย)
+    	.order('timestamp', { ascending: false });
 
         if (!silent) hideLoading();
 
