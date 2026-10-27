@@ -2413,23 +2413,34 @@ function renderEmployeeManagerTable() {
   }).join('');
 }
 	  
-    function toggleEmployeeStatus(employeeId, newStatus) {
-      const actionLabel = newStatus === 'Active' ? 'เปิดใช้งาน' : 'ระงับการใช้งาน (พ้นสภาพ)';
-      if (!confirm(`ยืนยัน${actionLabel}บัญชี ${employeeId} ใช่หรือไม่?`)) return;
+   async function toggleEmployeeStatus(employeeId, newStatus) {
+  showLoading("กำลังเปลี่ยนสถานะบัญชี...");
+  try {
+    // อัปเดตสถานะในตาราง employees ของ Supabase
+    const { data, error } = await supabaseClient
+      .from('employees')
+      .update({ status: newStatus })
+      .eq('employee_id', employeeId);
 
-      showLoading(`กำลัง${actionLabel}บัญชี...`);
-      google.script.run
-        .withSuccessHandler(function (res) {
-          hideLoading();
-          showAppAlert(res.success ? "สำเร็จ" : "ผิดพลาด", res.message, res.success ? "success" : "danger");
-          loadEmployeeManager();
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .setEmployeeStatus(employeeId, newStatus);
+    hideLoading();
+
+    if (error) {
+      console.error('Error updating employee status:', error);
+      showAppAlert("ผิดพลาด", error.message, "danger");
+      return;
     }
+
+    showAppAlert("สำเร็จ", "เปลี่ยนสถานะพนักงานเรียบร้อยแล้ว", "success");
+    
+    // โหลดรายชื่อพนักงานใหม่เพื่ออัปเดตปุ่มบนหน้าจอ
+    loadEmployeeManager();
+
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+  }
+}
 
    async function addEmployeeEntry() {
   const employeeData = {
