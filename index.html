@@ -2244,7 +2244,7 @@ async function loadEmployeeListForDelegate() {
         window.cachedEmployees = employees || [];
 
         // เติมข้อมูลลงใน Dropdown ผู้รับมอบหมายโดยตรงเพื่อความชัวร์
-        const delegateSelect = document.getElementById('delegateEmployeeSelect'); // ตรวจสอบ ID ใน HTML ของคุณ
+        const delegateSelect = document.getElementById('delegateName'); // ตรวจสอบ ID ใน HTML ของคุณ
         if (delegateSelect) {
             delegateSelect.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
             window.cachedEmployees.forEach(emp => {
