@@ -1561,11 +1561,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ดึงวันที่ลาครั้งล่าสุด (ตามประเภทการลาหลัก + อีเมล) มาเติมในฟอร์มอัตโนมัติ
-   async function fetchLastLeaveDate(employeeId) {
+  async function fetchLastLeaveDate(employeeId) {
+  // หากไม่มีรหัสพนักงาน หรือค่าเป็น undefined ให้หยุดทำงานทันทีเพื่อป้องกัน Error
+  if (!employeeId || employeeId === 'undefined') {
+    return;
+  }
+
   try {
     const { data, error } = await supabaseClient
       .from('leave_requests')
-      .select('*') // ลองดึงทุกคอลัมน์มาก่อนเพื่อป้องกัน Error เรื่องชื่อฟิลด์
+      .select('*')
       .eq('employee_id', employeeId)
       .order('created_at', { ascending: false })
       .limit(1);
@@ -1576,10 +1581,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (data && data.length > 0) {
-		
-      // ตรวจสอบชื่อคอลัมน์วันที่ในตารางของคุณ แล้วนำมาใส่ตรงนี้
       const lastDate = data[0].end_date || data[0].date_to || data[0].to_date || '';
-      const inputEl = document.getElementById('lastLeaveDateInput'); // ปรับ ID ตามฟอร์มจริงของคุณ
+      const inputEl = document.getElementById('lastLeaveDateInput'); // ปรับ ID ตามฟอร์มจริง
       if (inputEl) inputEl.value = lastDate;
     }
   } catch (err) {
