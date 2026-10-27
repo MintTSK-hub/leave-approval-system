@@ -1569,11 +1569,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   try {
     const { data, error } = await supabaseClient
-      .from('leave_requests')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    .from('leave_requests')
+    .select('*')
+    .eq('applicant_email', userEmail) // เปลี่ยนมาเทียบกับอีเมลผู้ยื่น (ปรับตัวแปรอีเมลให้ตรงกับระบบของคุณ เช่น email หรือ applicantEmail)
+    .order('created_at', { ascending: false })
+    .limit(1);
 
     if (error) {
       console.error('Error fetching last leave date:', error);
