@@ -2249,11 +2249,35 @@ async function loadEmployeeListForDelegate() {
             delegateSelect.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
             window.cachedEmployees.forEach(emp => {
                 const opt = document.createElement('option');
-                opt.value = emp.name; // หรือ emp.employee_id
+				opt.value = emp.name; // ใช้ชื่อพนักงานเป็นค่า value
+       			opt.dataset.position = emp.position || 'ไม่มีตำแหน่ง'; // เก็บตำแหน่งไว้ใน dataset 
                 opt.textContent = `${emp.name} (${emp.position || 'ไม่มีตำแหน่ง'})`;
                 delegateSelect.appendChild(opt);
             });
         }
+		// ฟังก์ชันอัปเดตตำแหน่งอัตโนมัติเมื่อเลือกชื่อผู้รับมอบหมาย
+function updateDelegatePosition() {
+    const delegateSelect = document.getElementById('delegateName');
+	
+    // ตรวจสอบ ID ของช่องแสดงตำแหน่ง (จากภาพคาดว่าน่าจะเป็น delegatePosition หรือช่อง input ตำแหน่ง)
+    const positionInput = document.getElementById('delegatePosition') || document.getElementById('delegatePositionInput'); 
+    
+    if (!delegateSelect || !positionInput) return;
+
+    const selectedOption = delegateSelect.options[delegateSelect.selectedIndex];
+    const position = selectedOption.dataset.position || '';
+
+    // ถ้าระบุชื่อ ให้ใส่ตำแหน่งอัตโนมัติ ถ้าไม่เลือกให้ล้างค่าว่าง
+    positionInput.value = delegateSelect.value ? position : '';
+}
+
+// ผูก Event ให้ทำงานเมื่อมีการเปลี่ยนชื่อผู้รับมอบหมาย
+document.addEventListener('DOMContentLoaded', () => {
+    const delegateSelect = document.getElementById('delegateName');
+    if (delegateSelect) {
+        delegateSelect.addEventListener('change', updateDelegatePosition);
+    }
+});
 
         // เรียกฟังก์ชันเรนเดอร์เดิม (ถ้ามี)
         if (typeof renderEmployeeDropdownForDelegate === 'function') {
