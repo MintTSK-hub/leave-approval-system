@@ -445,7 +445,7 @@
                   <option value="นางสาว">นางสาว (Ms.)</option>
                 </select>
               </div>
-
+				
 			<!-- เลือกพนักงานผู้ยื่นใบลา -->
 <div class="col-md-4">
   <label for="employeeSelect" class="form-label fw-bold">เลือกพนักงานผู้ยื่นใบลา *</label>
@@ -1415,6 +1415,41 @@ async function loadEmployeesToDropdown() {
       ]
     };
 
+ // ==========================================
+function updateLeaveSubTypes() {
+  const mainTypeSelect = document.getElementById('leaveType'); // ตรวจสอบ ID ของช่องประเภทหลักใน HTML ของคุณ
+  const subTypeSelect = document.getElementById('leaveSubType');   // ตรวจสอบ ID ของช่องประเภทย่อยใน HTML
+  
+  if (!mainTypeSelect || !subTypeSelect) return;
+
+  const selectedValue = mainTypeSelect.value;
+  
+  // ล้างค่าตัวเลือกเดิมออก
+  subTypeSelect.innerHTML = '<option value="">-- กรุณาเลือกประเภทการยื่นลา --</option>';
+
+  // ดึงข้อมูลประเภทย่อยจากตัวแปร leaveCategoryTypes ด้านบน
+  const subTypes = leaveCategoryTypes[selectedValue] || [];
+
+  // เติมตัวเลือกย่อยลงใน Dropdown
+  subTypes.forEach(opt => {
+    const optionElement = document.createElement('option');
+    optionElement.value = opt;
+    optionElement.textContent = opt;
+    subTypeSelect.appendChild(optionElement);
+  });
+}
+
+// ผูก Event ให้ทำงานเมื่อมีการเปลี่ยนประเภทการลาหลัก
+document.addEventListener('DOMContentLoaded', () => {
+  const mainTypeSelect = document.getElementById('leaveType');
+  if (mainTypeSelect) {
+    mainTypeSelect.addEventListener('change', updateLeaveSubTypes);
+  }
+});
+
+
+
+	  
     window.onload = function () {
       // ซิงค์ดร็อปดาวน์เริ่มต้น
       syncCategoryDropdown("ลากิจ");
