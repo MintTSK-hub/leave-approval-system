@@ -1561,23 +1561,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ดึงวันที่ลาครั้งล่าสุด (ตามประเภทการลาหลัก + อีเมล) มาเติมในฟอร์มอัตโนมัติ
-    function fetchLastLeaveDate() {
-      const email = document.getElementById('applicantEmail').value;
-      const cat = document.getElementById('leaveCategory').value;
+    async function fetchLastLeaveDate(employeeId) {
+  try {
+    // ดึงประวัติการลาล่าสุดของพนักงานคนนี้จาก Supabase
+    const { data, error } = await supabaseClient
+      .from('leave_requests')
+      .select('end_date') // หรือฟิลด์วันที่สิ้นสุดการลาของคุณ
+      .eq('employee_id', employeeId)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-      if (!email || !cat) return;
-
-      google.script.run
-        .withSuccessHandler(function (result) {
-          if (result && result.lastLeaveDate) {
-            document.getElementById('lastLeaveDate').value = result.lastLeaveDate;
-          }
-        })
-        .withFailureHandler(function (err) {
-          console.error(err);
-        })
-        .getLastLeaveDate(email, cat);
+    if (error) {
+      console.error('Error fetching last leave date:', error);
+      return;
     }
+
+    if (data && data.length > 0) {
+      // นำวันที่ล่าสุดไปแสดงในช่อง "ลาพักครั้งล่าสุดเมื่อวันที่"
+      const lastDate = data[0].end_date || data[0].date_to;
+      const inputEl = document.getElementById('lastLeaveDateInput'); // ปรับ ID ตามฟอร์มของคุณ
+      if (inputEl) inputEl.value = lastDate;
+    }
+  } catch (err) {
+    console.error('System error fetching last leave date:', err);
+  }
+}
 
     // สลับสถานะบังคับกรอก "ผู้รับมอบหมายงานแทน": ลากิจ/ลาพักผ่อน มากกว่า 2 วัน (3 วันขึ้นไป)
     function updateDelegateRequirement() {
@@ -2217,7 +2225,6 @@ async function doEmployeeLogin() {
       }
     }
 
-    // ดึงรายชื่อพนักงานทั้งหมดจากชีทจริง มาเติมตัวเลือก "ผู้รับมอบหมายงานแทน"
     // โหลดรายชื่อพนักงานสำหรับเลือกผู้รับมอบหมายงานแทนจาก Supabase
 async function loadEmployeeListForDelegate() {
   try {
@@ -3407,7 +3414,7 @@ async function loadLeaveReport() {
       document.getElementById('name').value = req.Name;
       document.getElementById('position').value = req.Position;
       document.getElementById('applicantEmail').value = req.ApplicantEmail;
-      document.getElementById('telephone').value = req.Telephone;
+      document.getElementById('phone').value = req.phone;
       
       document.getElementById('leaveCategory').value = req.LeaveCategory;
       syncCategoryDropdown(req.LeaveCategory, true);
