@@ -2228,28 +2228,40 @@ async function doEmployeeLogin() {
       }
     }
 
-    // โหลดรายชื่อพนักงานสำหรับเลือกผู้รับมอบหมายงานแทนจาก Supabase
+// โหลดรายชื่อพนักงานสำหรับเลือกผู้รับมอบหมายงานแทนจาก Supabase
 async function loadEmployeeListForDelegate() {
-  try {
-    const { data: employees, error } = await supabaseClient
-      .from('employees')
-      .select('*');
+    try {
+        const { data: employees, error } = await supabaseClient
+            .from('employees')
+            .select('*');
 
-    if (error) {
-      console.error('Error fetching employees for delegate:', error);
-      return;
-    }
+        if (error) {
+            console.error('Error fetching employees for delegate:', error);
+            return;
+        }
 
-    // นำไปใส่ใน dropdown หรือตัวแปรจัดการรายชื่อผู้รับมอบหมายตามระบบเดิม
-    window.cachedEmployees = employees || [];
-    
-    // เรียกฟังก์ชันเรนเดอร์รายชื่อ (ถ้ามีในระบบเดิม)
-    if (typeof renderEmployeeDropdownForDelegate === 'function') {
-      renderEmployeeDropdownForDelegate(window.cachedEmployees);
+        // เก็บข้อมูลใส่ตัวแปรกลางไว้ตามเดิม
+        window.cachedEmployees = employees || [];
+
+        // เติมข้อมูลลงใน Dropdown ผู้รับมอบหมายโดยตรงเพื่อความชัวร์
+        const delegateSelect = document.getElementById('delegateEmployeeSelect'); // ตรวจสอบ ID ใน HTML ของคุณ
+        if (delegateSelect) {
+            delegateSelect.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
+            window.cachedEmployees.forEach(emp => {
+                const opt = document.createElement('option');
+                opt.value = emp.name; // หรือ emp.employee_id
+                opt.textContent = `${emp.name} (${emp.position || 'ไม่มีตำแหน่ง'})`;
+                delegateSelect.appendChild(opt);
+            });
+        }
+
+        // เรียกฟังก์ชันเรนเดอร์เดิม (ถ้ามี)
+        if (typeof renderEmployeeDropdownForDelegate === 'function') {
+            renderEmployeeDropdownForDelegate(window.cachedEmployees);
+        }
+    } catch (err) {
+        console.error(err);
     }
-  } catch (err) {
-    console.error(err);
-  }
 }
 
     // เติมตำแหน่งผู้รับมอบหมายงานแทนอัตโนมัติ ตามชื่อที่เลือกจากข้อมูลพนักงานจริง
