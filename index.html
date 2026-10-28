@@ -2116,7 +2116,15 @@ function routeToRolePage(userRole) {
 	// ฟังก์ชันสำหรับเปิดหน้าต่างดูรายละเอียดคำขอ
 function openDetailsModal(requestId, type) {
     console.log("Opening details modal for:", requestId, type);
-    // ใส่โค้ดสำหรับเปิด Modal แสดงรายละเอียดใบลาที่นี่
+    // เรียกใช้งาน Bootstrap Modal เพื่อแสดงหน้าต่าง Timeline ที่มี id="timelineModal"
+    const modalElement = document.getElementById('timelineModal');
+    if (modalElement) {
+        const myModal = new bootstrap.Modal(modalElement);
+        myModal.show();
+        
+        // หากมีฟังก์ชันดึงข้อมูลรายละเอียดใบลาและ Timeline เดิมของระบบ สามารถใส่เรียกตรงนี้ได้ เช่น:
+        // loadLeaveDetailsAndTimeline(requestId);
+    }
 }
 
 	  
@@ -2124,15 +2132,18 @@ function openDetailsModal(requestId, type) {
 function openDelegateDecisionDialog(requestId, actionType) {
     console.log("Opening delegate decision for:", requestId, actionType);
     
-    // ตรวจสอบว่าในระบบมีฟังก์ชันเปิด Modal หรือตัวแปรจัดการ Modal ตัวไหนอยู่แล้ว
-    // เช่น ถ้ามีฟังก์ชันเปิด Modal เดิมชื่อ openModal หรือ showDelegateModal ให้เรียกใช้งานตรงนี้
-    if (typeof openModal === 'function') {
-        openModal(requestId, actionType);
-    } else {
-        // หากยังไม่มีฟังก์ชันเปิด Modal สำเร็จรูป ให้ใส่โค้ดเปิดหน้าต่าง หรือ alert ชั่วคราวตรงนี้ก่อนได้ครับ
-        alert(`กำลังดำเนินการคำขอ ${requestId} ด้วยสถานะ: ${actionType}`);
+    // บันทึกรหัสคำขอเก็บไว้ใน input hidden ตามโครงสร้าง Modal ที่เตรียมไว้
+    const reqIdInput = document.getElementById('delegateActionRequestId');
+    if (reqIdInput) {
+        reqIdInput.value = requestId;
     }
-} 
+        // เรียกใช้งาน Bootstrap Modal เพื่อแสดงหน้าต่างที่มี id="delegateDecisionModal"
+    const modalElement = document.getElementById('delegateDecisionModal');
+    if (modalElement) {
+        const myModal = new bootstrap.Modal(modalElement);
+        myModal.show();
+    }
+}
 	    
 	  // 1. ฟังก์ชันรองรับชื่อที่ระบบเรียกใช้งาน
 	 function formatStringToDateTimeInput(dateString) {
