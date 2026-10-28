@@ -2122,17 +2122,28 @@ function routeToRolePage(userRole) {
   }
 }
 
-	// ฟังก์ชันสำหรับเปิดหน้าต่างดูรายละเอียดคำขอ
-function openDetailsModal(requestId, type) {
+	function openDetailsModal(requestId, type) {
     console.log("Opening details modal for:", requestId, type);
-    // เรียกใช้งาน Bootstrap Modal เพื่อแสดงหน้าต่าง Timeline ที่มี id="timelineModal"
+    
+    // 1. ค้นหาข้อมูลใบลาจากตัวแปรแคช (รองรับทั้งฝั่ง Delegate และฝั่งทั่วไป)
+    const req = (typeof cachedDelegateTasks !== 'undefined' ? cachedDelegateTasks.find(t => t.id === requestId) : null) 
+             || (typeof leaveRequests !== 'undefined' ? leaveRequests.find(t => t.id === requestId) : null);
+
+    if (req) {
+        // 2. เรียกฟังก์ชันเติมข้อมูลลงใน Modal (เช่น รายละเอียดใบลา และ Timeline)
+        // หากในระบบของคุณมีฟังก์ชันสำหรับแสดงข้อมูลและ Timeline อยู่แล้ว ให้เรียกใช้งานที่นี่ เช่น:
+        if (typeof renderLeaveDetails === 'function') renderLeaveDetails(req);
+        if (typeof renderTimeline === 'function') renderTimeline(req);
+    } else {
+        // หรือถ้ามีฟังก์ชันโหลดข้อมูลจากระบบเดิม ให้เรียกใช้:
+        // loadLeaveDetailsAndTimeline(requestId);
+    }
+
+    // 3. เปิดใช้งาน Bootstrap Modal เพื่อแสดงหน้าต่าง
     const modalElement = document.getElementById('timelineModal');
     if (modalElement) {
         const myModal = new bootstrap.Modal(modalElement);
         myModal.show();
-        
-        // หากมีฟังก์ชันดึงข้อมูลรายละเอียดใบลาและ Timeline เดิมของระบบ สามารถใส่เรียกตรงนี้ได้ เช่น:
-        // loadLeaveDetailsAndTimeline(requestId);
     }
 }
 
