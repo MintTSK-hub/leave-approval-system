@@ -2114,7 +2114,7 @@ function routeToRolePage(userRole) {
 }
     
 	 // 1. ฟังก์ชันรองรับชื่อที่ระบบเรียกใช้งาน
-	  function formatStringDateToDateTimeInput(dateString) {
+	 function formatStringDateToDateTimeInput(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
