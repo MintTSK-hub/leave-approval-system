@@ -1360,6 +1360,19 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script>
+
+	  //ฟังก์ชันหลักสำหรับแปลงรูปแบบวันที่
+function formatStringToDateTimeInput(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear() + 543;
+    
+    return `${day}/${month}/${year}`;
+}
 	  
     // Global States
     let currentLang = 'th';
@@ -2117,21 +2130,7 @@ function routeToRolePage(userRole) {
 function formatStringDateToDateTimeInput(dateString) {
     return formatStringToDateTimeInput(dateString);
 }
-
-// 2. ฟังก์ชันหลักสำหรับแปลงรูปแบบวันที่
-function formatStringToDateTimeInput(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear() + 543;
-    
-    return `${day}/${month}/${year}`;
-}
-
-	 
+ 
 // 2. ตามด้วยฟังก์ชันโหลดงาน (ที่เรียกใช้งานฟังก์ชันด้านบน)
 async function loadDelegateTasks(silent) {
     if (!loggedInEmployee) return;
@@ -3137,7 +3136,7 @@ async function loadLeaveCharts() {
       rows: rows
     };
 
-    renderLeaveCharts(report);
+    (report);
 
   } catch (err) {
     hideLoading();
@@ -3147,7 +3146,7 @@ async function loadLeaveCharts() {
 }
 
 // 2. ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)	  
-function renderLeaveCharts(report) {
+function (report) {
   // 1. ประกาศตัวแปร labels ไว้บรรทัดแรกสุดเสมอก่อนใช้งาน
   const rows = (report && report.rows) ? report.rows : [];
   const labels = rows.map(r => r.name || '-');
@@ -3247,7 +3246,7 @@ async function loadLeaveReport() {
     });
 
     const reportRows = Object.values(reportMap);
-    renderLeaveCharts({ rows: reportRows });
+    ({ rows: reportRows });
 
   } catch (err) {
     hideLoading();
