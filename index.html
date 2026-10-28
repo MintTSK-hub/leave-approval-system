@@ -2063,6 +2063,34 @@ async function doEmployeeLogin() {
 	  // กำหนดสิทธิ์และซ่อน/แสดงแท็บตาม Role ของผู้ใช้งาน
         const userRole = employee.role || 'Employee';
         routeToRolePage(userRole);
+	  
+
+// ฟังก์ชันจัดการสิทธิ์และการซ่อน/แสดงแท็บตาม Role
+function routeToRolePage(userRole) {
+    const navItems = document.querySelectorAll('.nav-link, .nav-item, button, a');
+    
+    navItems.forEach(el => {
+        const text = el.textContent || '';
+        if (text.includes('พื้นที่ HR') || text.includes('พื้นที่ผู้จัดการ') || text.includes('แดชบอร์ดฝ่าย HR')) {
+            if (userRole === 'HR' || userRole === 'hr') {
+                if (text.includes('พื้นที่ผู้จัดการ')) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = '';
+                }
+            } else if (userRole === 'Manager' || userRole === 'manager' || userRole === 'ผู้อำนวยการ' || userRole === 'ผู้จัดการ') {
+                if (text.includes('พื้นที่ HR')) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = '';
+                }
+            } else {
+                // พนักงานทั่วไป -> ซ่อนทั้งแท็บ HR และ ผู้จัดการ
+                el.style.display = 'none';
+            }
+        }
+    });
+}
 
 	  
 
@@ -3750,41 +3778,9 @@ async function loadLeaveReport() {
   if (typeof updateAnnualLeaveBalanceDisplay === 'function') updateAnnualLeaveBalanceDisplay();
   if (typeof checkDateOverlapNow === 'function') checkDateOverlapNow();
 }
+	  
 
-		
-
-	  // ==========================================
-// 1. ฟังก์ชันจัดการสิทธิ์และการซ่อน/แสดงแท็บตาม Role
-// ==========================================
-function routeToRolePage(userRole) {
-    const navItems = document.querySelectorAll('.nav-link, .nav-item, button, a');
-    
-    navItems.forEach(el => {
-        const text = el.textContent || '';
-        if (text.includes('พื้นที่ HR') || text.includes('พื้นที่ผู้จัดการ') || text.includes('แดชบอร์ดฝ่าย HR')) {
-            if (userRole === 'HR' || userRole === 'hr') {
-                if (text.includes('พื้นที่ผู้จัดการ')) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.display = '';
-                }
-            } else if (userRole === 'Manager' || userRole === 'manager' || userRole === 'ผู้อำนวยการ' || userRole === 'ผู้จัดการ') {
-                if (text.includes('พื้นที่ HR')) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.display = '';
-                }
-            } else {
-                // พนักงานทั่วไป -> ซ่อนทั้งแท็บ HR และ ผู้จัดการ
-                el.style.display = 'none';
-            }
-        }
-    });
-}
-
-// ==========================================
 // 2. ฟังก์ชันเปิด Modal รับทราบ / ปฏิเสธ (ผู้รับมอบหมาย)
-// ==========================================
 function openDelegateDecisionDialog(id, decisionType) {
     const task = cachedDelegateTasks.find(t => t.id === id);
     if (!task) return;
