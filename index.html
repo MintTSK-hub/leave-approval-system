@@ -3505,17 +3505,6 @@ async function loadLeaveReport() {
       fetchAccumulatedOnEmailChange(true);
     }
 
-    function formatStringToDateTimeInput(str) {
-      try {
-        if (!str) return '';
-        const parts = str.split(' ');
-        const datePart = parts[0].split('T')[0];
-        return datePart;
-      } catch (e) { 
-        return ''; 
-      }
-    }
-
     // เปิดหน้าต่าง Modal แสดงรายละเอียดและ Timeline
     function openDetailsModal(id) {
       const req = allCachedRequests.find(r => r.ID === id) || cachedDelegateTasks.find(r => r.ID === id);
