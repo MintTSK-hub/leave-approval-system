@@ -1,55 +1,15 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <title>ระบบขออนุมัติวันลาออนไลน์</title>
-    
-    <!-- โหลด Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <script>
-      
-      // ตั้งค่าการเชื่อมต่อ Supabase
-      const SUPABASE_URL = 'https://adlmxhzgtuwiauxpfhmd.supabase.co';
-      const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
-      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ฟังก์ชันสำหรับดึงรายชื่อพนักงานมาใส่ใน Dropdown
-  async function loadEmployeesToDropdown() {
-    const selectElement = document.getElementById('employeeSelect');
-    if (!selectElement) return; // ถ้ายังไม่เจอช่องนี้ ให้ข้ามไปก่อนเพื่อป้องกัน Error
-
-    const { data: employees, error } = await supabaseClient
-      .from('employees')
-      .select('id, name');
-
-    if (error) {
-      console.error('เกิดข้อผิดพลาดในการโหลดพนักงาน:', error);
-      return;
-    }
-
-    selectElement.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
-    employees.forEach(emp => {
-      const option = document.createElement('option');
-      option.value = emp.id;
-      option.text = emp.name;
-      selectElement.appendChild(option);
-    });
-  }
-
-</script>	
-
-  <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบอนุมัติวันลา | สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</title>
-  
+
   <!-- CSS Framework & UI Assets -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Custom Styling to Match Theme -->
+
   <style>
     :root {
       --primary-color: #48A1E5;
@@ -449,14 +409,7 @@
                   <option value="นางสาว">นางสาว (Ms.)</option>
                 </select>
               </div>
-				
-			<!-- เลือกพนักงานผู้ยื่นใบลา -->
-<div class="col-md-4">
-  <label for="employeeSelect" class="form-label fw-bold">เลือกพนักงานผู้ยื่นใบลา *</label>
-  <select class="form-select text-primary fw-bold" id="employeeSelect" name="employeeSelect" required>
-    <option value="">-- กำลังโหลดรายชื่อพนักงาน --</option>
-  </select>
-</div>	
+	
               <!-- Name -->
               <div class="col-md-4">
                 <label class="form-label" data-th="ชื่อ-นามสกุลพนักงาน *" data-en="Full Name *">ชื่อ-นามสกุลพนักงาน *</label>
@@ -1360,2586 +1313,2017 @@
   </div>
 	
 
-  <!-- JavaScript Logical Scripts -->
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script>
-	  
-    // Global States
-    let currentLang = 'th';
-    let allCachedRequests = [];
-    let isManagerAuthorized = false;
-    let loggedInEmployee = null;
-	let cachedHolidays = [];          
-    let cachedAllEmployeesAdmin = []; 
-	let employees = [];
-	let chartInstances = { kit: null, puay: null, vacation: null };
+/* =====================================================================
+ * ระบบขออนุมัติวันลาออนไลน์ — สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด
+ * เวอร์ชัน Cloudflare Pages + Supabase (ไม่พึ่ง Google Apps Script)
+ * ===================================================================== */
 
-	var thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-	var thaiWeekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+// ---------- Supabase ----------
+const SUPABASE_URL = 'https://adlmxhzgtuwiauxpfhmd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_M17a0W3t3FJKDGU0Tf-Wpw_W0SyHxuD';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-	let calState = {
+// ---------- ค่าคงที่ของระบบ ----------
+const DEFAULT_ANNUAL_ENTITLEMENT = 10;   // สิทธิลาพักผ่อนต่อปี (วัน)
+const MAX_CARRYOVER_DAYS = 10;           // ยกยอดไปปีถัดไปได้สูงสุด (วัน)
+const NON_COUNTING_STATUSES = ['RejectedByHR', 'RejectedByManager', 'RejectedByDelegate', 'SendBack'];
+const NON_COUNTING_IN = '(' + NON_COUNTING_STATUSES.join(',') + ')';
+const EDITABLE_STATUSES = ['SendBack', 'PendingHR', 'PendingDelegate', 'RejectedByDelegate'];
+
+// คอลัมน์ที่ดึงตอนแสดงรายการ (ไม่ดึงไฟล์แนบ/ลายเซ็น เพราะขนาดใหญ่ ดึงเฉพาะตอนเปิดดู/พิมพ์)
+const LIST_COLS = [
+  'id', 'timestamp', 'applicant_email', 'employee_id', 'prefix', 'name', 'position', 'phone',
+  'leave_category', 'leave_type', 'start_date', 'end_date', 'last_leave_date', 'leave_duration',
+  'total_cumulative_days', 'reason', 'contact_address',
+  'delegate_name', 'delegate_position', 'delegate_employee_id', 'delegate_comment', 'delegate_decision_date',
+  'status', 'has_attachment',
+  'hr_comment', 'hr_approver_name', 'hr_decision_date',
+  'approver_comment', 'manager_approver_name', 'manager_decision_date'
+].join(',');
+
+// คอลัมน์พนักงาน (ไม่รวม password)
+const EMP_COLS = 'employee_id,prefix,name,position,email,phone,role,status';
+
+// ---------- Global state ----------
+let currentLang = 'th';
+let loggedInEmployee = null;
+let allCachedRequests = [];      // คำขอทั้งหมด (HR / ผู้จัดการ)
+let myRequestsCache = [];        // คำขอของฉัน
+let cachedDelegateTasks = [];    // งานที่ได้รับมอบหมาย
+let cachedHolidays = [];
+let cachedEmployees = [];        // พนักงานที่ใช้งานอยู่ (ใช้เป็นตัวเลือกผู้รับมอบหมาย)
+let cachedAllEmployeesAdmin = [];
+let cachedSummaryReport = null;
+let isManagerAuthorized = false;
+let pendingDirectLink = null;
+let chartInstances = { kit: null, puay: null, vacation: null };
+
+let lastAnnualBalanceCache = null;
+let annualBalanceToken = 0;
+let dateOverlapDetected = false;
+let overlapCheckToken = 0;
+let lastOverlapAlertKey = '';
+const OVERLAP_MESSAGE = 'เลือกวันที่ซ้ำกับวันที่เคยลามาแล้ว โปรดเลือกวันที่ใหม่';
+
+const thaiMonthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+const thaiWeekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+let calState = {
   hr: { year: new Date().getFullYear(), month: new Date().getMonth() },
   manager: { year: new Date().getFullYear(), month: new Date().getMonth() }
 };
-	  
-async function loadEmployeesToDropdown() {
-  const selectElement = document.getElementById('employeeSelect');
-  if (!selectElement) return; // ถ้ายังไม่เจอช่องนี้ ให้ข้ามไปก่อนเพื่อป้องกัน Error
-  
-  const { data: employees, error } = await supabaseClient.from('employees').select('id, name');
-  if (error) {
-    console.error('เกิดข้อผิดพลาดในการโหลดพนักงาน:', error);
-    return;
-  }
-  
-  selectElement.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
-  (employees || []).forEach(emp => {
-    const option = document.createElement('option');
-    option.value = emp.id;
-    option.text = emp.name;
-    selectElement.appendChild(option);
-  });
-}
-    
-    // Category Lists Map
-    const leaveCategoryTypes = {
-      "ลากิจ": [
-        "ลากิจเพื่อทำธุระส่วนตัว (Personal Business)",
-        "ลากิจเพื่อเข้าร่วมพิธีทางศาสนา (Religious Leave)",
-        "ลากิจเพื่อจัดการเอกสารราชการ (Government Paperwork)"
-      ],
-      "ลาป่วย": [
-        "ลาป่วยทั่วไป (General Sickness)",
-        "ลาป่วยเนื่องจากอุบัติเหตุ (Accident Sick Leave)",
-        "ลาป่วยระยะยาว/รักษาตัว (Long-term Medical Care)"
-      ],
-      "ลาพักผ่อน": [
-        "ลาพักผ่อนประจำปี (Annual Leave)"
-      ]
-    };
 
- // ==========================================
-function updateLeaveSubTypes() {
-  const mainTypeSelect = document.getElementById('leaveType'); // ตรวจสอบ ID ของช่องประเภทหลักใน HTML ของคุณ
-  const subTypeSelect = document.getElementById('leaveSubType');   // ตรวจสอบ ID ของช่องประเภทย่อยใน HTML
-  
-  if (!mainTypeSelect || !subTypeSelect) return;
+const leaveCategoryTypes = {
+  "ลากิจ": [
+    "ลากิจเพื่อทำธุระส่วนตัว (Personal Business)",
+    "ลากิจเพื่อเข้าร่วมพิธีทางศาสนา (Religious Leave)",
+    "ลากิจเพื่อจัดการเอกสารราชการ (Government Paperwork)"
+  ],
+  "ลาป่วย": [
+    "ลาป่วยทั่วไป (General Sickness)",
+    "ลาป่วยเนื่องจากอุบัติเหตุ (Accident Sick Leave)",
+    "ลาป่วยระยะยาว/รักษาตัว (Long-term Medical Care)"
+  ],
+  "ลาพักผ่อน": [
+    "ลาพักผ่อนประจำปี (Annual Leave)"
+  ]
+};
 
-  const selectedValue = mainTypeSelect.value;
-  
-  // ล้างค่าตัวเลือกเดิมออก
-  subTypeSelect.innerHTML = '<option value="">-- กรุณาเลือกประเภทการยื่นลา --</option>';
+const STATUS_MAP = {
+  PendingDelegate:    { label: 'รอผู้รับมอบหมายงานแทนรับทราบ', badgeClass: 'bg-info text-dark' },
+  RejectedByDelegate: { label: 'ผู้รับมอบหมายงานแทนไม่รับ',    badgeClass: 'bg-danger' },
+  PendingHR:          { label: 'รอ HR ตรวจสอบ',               badgeClass: 'bg-warning text-dark' },
+  PendingManager:     { label: 'รอผู้จัดการอนุมัติ',           badgeClass: 'bg-warning text-dark' },
+  Approved:           { label: 'อนุมัติแล้ว',                 badgeClass: 'bg-success' },
+  RejectedByHR:       { label: 'ไม่อนุมัติ (โดย HR)',          badgeClass: 'bg-danger' },
+  RejectedByManager:  { label: 'ไม่อนุมัติ (โดยผู้จัดการ)',     badgeClass: 'bg-danger' },
+  SendBack:           { label: 'ส่งกลับแก้ไข',                badgeClass: 'bg-secondary' },
+  // สถานะรุ่นเก่า (เผื่อมีข้อมูลเดิมในตาราง)
+  ApprovedByDelegate: { label: 'รอ HR ตรวจสอบ',               badgeClass: 'bg-warning text-dark' },
+  Rejected:           { label: 'ไม่อนุมัติ',                   badgeClass: 'bg-danger' }
+};
 
-  // ดึงข้อมูลประเภทย่อยจากตัวแปร leaveCategoryTypes ด้านบน
-  const subTypes = leaveCategoryTypes[selectedValue] || [];
-
-  // เติมตัวเลือกย่อยลงใน Dropdown
-  subTypes.forEach(opt => {
-    const optionElement = document.createElement('option');
-    optionElement.value = opt;
-    optionElement.textContent = opt;
-    subTypeSelect.appendChild(optionElement);
+// ======================================================================
+// Helpers
+// ======================================================================
+function esc(s) {
+  return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
 }
 
-// ผูก Event ให้ทำงานเมื่อมีการเปลี่ยนประเภทการลาหลัก
-document.addEventListener('DOMContentLoaded', () => {
-  const mainTypeSelect = document.getElementById('leaveType');
-  if (mainTypeSelect) {
-    mainTypeSelect.addEventListener('change', updateLeaveSubTypes);
-  }
-});
+function $(id) { return document.getElementById(id); }
 
-    window.onload = function () {
-      // ซิงค์ดร็อปดาวน์เริ่มต้น
-      syncCategoryDropdown("ลากิจ");
-      
-      // ดึงข้อมูลกรณีเปิดลิงก์ตรงจากไลน์ / อีเมล
-      const urlParams = new URLSearchParams(window.location.search);
-      const targetPage = "<?= page ?>";
-      const directId = "<?= requestId ?>";
-      
-      if (targetPage === 'approve' && directId) {
-        // ดึงพนักงานไปที่สิทธิ์พื้นที่ผู้บริหาร
-        const tabTrigger = new bootstrap.Tab(document.getElementById('manager-tab'));
-        tabTrigger.show();
-        // คีย์ค่าเริ่มต้น
-        document.getElementById('actionRequestId').value = directId;
-        document.getElementById('actionRequestIdLabel').innerText = directId;
-      }
+function getStatusInfo(status) {
+  return STATUS_MAP[status] || { label: status || 'รอดำเนินการ', badgeClass: 'bg-secondary' };
+}
+
+function isRejectedStatusClient(status) {
+  return status === 'RejectedByHR' || status === 'RejectedByManager' || status === 'RejectedByDelegate' || status === 'Rejected';
+}
+
+function normalizeRole(r) {
+  const v = (r || '').toString().trim().toLowerCase();
+  if (v === 'hr') return 'HR';
+  if (v === 'manager' || v === 'ผู้จัดการ' || v === 'ผู้อำนวยการ') return 'Manager';
+  return 'Employee';
+}
+
+function isEmployeeActive(emp) {
+  const s = (emp.status || '').toString().trim().toLowerCase();
+  return !s || s === 'active' || s === 'ใช้งานได้' || s === 'ใช้งาน';
+}
+
+function fullName(o) { return (o.prefix || '') + (o.name || ''); }
+
+function toYMD(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// แปลง 'YYYY-MM-DD' เป็น Date (เวลาท้องถิ่น) โดยไม่เพี้ยนเขตเวลา
+function ymdToDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''));
+  if (!m) return null;
+  return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+}
+
+// แสดงวันที่แบบไทย dd/mm/พ.ศ.
+function formatStringToDateTimeInput(v) {
+  if (!v) return '-';
+  const d = ymdToDate(v);
+  if (d) return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + (d.getFullYear() + 543);
+  const t = new Date(v);
+  if (isNaN(t.getTime())) return String(v);
+  return String(t.getDate()).padStart(2, '0') + '/' + String(t.getMonth() + 1).padStart(2, '0') + '/' + (t.getFullYear() + 543);
+}
+
+function formatThaiDateTime(v) {
+  if (!v) return '-';
+  const t = new Date(v);
+  if (isNaN(t.getTime())) return String(v);
+  return formatStringToDateTimeInput(toYMD(t)) + ' ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + ' น.';
+}
+
+function round1(n) { return Math.round((Number(n) || 0) * 10) / 10; }
+
+function packFile(obj) { return obj ? JSON.stringify(obj) : null; }
+function unpackFile(v) {
+  if (!v) return null;
+  if (typeof v === 'object') return v;
+  try { return JSON.parse(v); } catch (e) { return null; }
+}
+
+function csvCell(v) { return '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""') + '"'; }
+
+function showAppAlert(title, message, type) {
+  const ph = $('alertPlaceholder');
+  ph.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show shadow-sm" role="alert">
+      <strong>${title}</strong> ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showLoading(msg) {
+  $('loaderMessage').innerText = msg;
+  $('globalLoader').style.display = 'flex';
+}
+function hideLoading() { $('globalLoader').style.display = 'none'; }
+
+function getModal(id) { return bootstrap.Modal.getOrCreateInstance($(id)); }
+function showTab(id) { bootstrap.Tab.getOrCreateInstance($(id)).show(); }
+
+// อ่านไฟล์เป็น Base64 — resolve null ถ้าไม่มีไฟล์
+function readFileAsBase64(inputId) {
+  return new Promise(function (resolve, reject) {
+    const input = $(inputId);
+    if (!input || !input.files.length) { resolve(null); return; }
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      resolve({ base64: String(e.target.result).split(',')[1], mimeType: file.type, name: file.name });
     };
+    reader.onerror = function () { reject(new Error('อ่านไฟล์ไม่สำเร็จ')); };
+    reader.readAsDataURL(file);
+  });
+}
 
-    // แปลภาษาสองทาง
-    function toggleLanguage(lang) {
-      currentLang = lang;
-      document.querySelectorAll('[data-th]').forEach(el => {
-        el.innerText = lang === 'th' ? el.getAttribute('data-th') : el.getAttribute('data-en');
-      });
-      document.querySelectorAll('input[placeholder]').forEach(el => {
-        if (el.getAttribute('data-th') && el.getAttribute('data-en')) {
-          el.placeholder = lang === 'th' ? el.getAttribute('data-th') : el.getAttribute('data-en');
-        }
-      });
+function checkFileSize(inputId, maxMB, label) {
+  const input = $(inputId);
+  if (input && input.files.length && input.files[0].size > maxMB * 1024 * 1024) {
+    showAppAlert('ไฟล์ใหญ่เกินไป', `❌ ${label}ต้องมีขนาดไม่เกิน ${maxMB}MB`, 'danger');
+    return false;
+  }
+  return true;
+}
+
+// ======================================================================
+// ภาษา
+// ======================================================================
+function toggleLanguage(lang) {
+  currentLang = lang;
+  document.querySelectorAll('[data-th]').forEach(function (el) {
+    if (el.tagName === 'INPUT') return;
+    if (el.children.length > 0) return; // ไม่ทับ element ที่มีลูก (เช่น ป้ายรหัสคำขอใน modal)
+    el.innerText = lang === 'th' ? el.getAttribute('data-th') : (el.getAttribute('data-en') || el.getAttribute('data-th'));
+  });
+  document.querySelectorAll('input[placeholder]').forEach(function (el) {
+    if (el.getAttribute('data-th') && el.getAttribute('data-en')) {
+      el.placeholder = lang === 'th' ? el.getAttribute('data-th') : el.getAttribute('data-en');
     }
+  });
+}
 
-    // ซิงค์เลือกประเภทย่อยตามหลักกิจ/ป่วย
-    function syncCategoryDropdown(cat, skipLastLeaveFetch) {
-      const typeSelect = document.getElementById('leaveType');
-      typeSelect.innerHTML = '';
-      const list = leaveCategoryTypes[cat] || [];
-      list.forEach(item => {
-        let opt = document.createElement('option');
-        opt.value = item;
-        opt.innerText = item;
-        typeSelect.appendChild(opt);
-      });
+// ======================================================================
+// ฟอร์มยื่นใบลา
+// ======================================================================
+function syncCategoryDropdown(cat, skipLastLeaveFetch) {
+  const typeSelect = $('leaveType');
+  typeSelect.innerHTML = '';
+  (leaveCategoryTypes[cat] || []).forEach(function (item) {
+    const opt = document.createElement('option');
+    opt.value = item;
+    opt.textContent = item;
+    typeSelect.appendChild(opt);
+  });
+  if (!skipLastLeaveFetch) fetchLastLeaveDate();
+  updateDelegateRequirement();
+  updateAnnualLeaveBalanceDisplay();
+  refreshCumulativePreview();
+}
 
-      // เมื่อเลือกประเภทการลาหลัก ให้ดึงวันที่ลาครั้งล่าสุดของประเภทนี้มาแสดงอัตโนมัติ
-      // (ข้าม step นี้ตอนโหลดข้อมูลเก่ากลับมาแก้ไข เพื่อไม่ให้ทับค่าที่บันทึกไว้เดิม)
-      if (!skipLastLeaveFetch) {
-        fetchLastLeaveDate();
-      }
+// ดึงวันที่ลาครั้งล่าสุด (ประเภทเดียวกัน ก่อนวันที่เริ่มลาปัจจุบัน) มาเติมในฟอร์ม
+async function fetchLastLeaveDate() {
+  const email = $('applicantEmail').value;
+  const cat = $('leaveCategory').value;
+  const start = $('startDate').value;
+  const editId = $('editRequestId').value;
+  if (!email || !cat) return;
+  try {
+    let q = supabaseClient.from('leave_requests')
+      .select('end_date')
+      .eq('applicant_email', email)
+      .eq('leave_category', cat)
+      .not('status', 'in', NON_COUNTING_IN)
+      .order('end_date', { ascending: false })
+      .limit(1);
+    if (start) q = q.lt('start_date', start);
+    if (editId) q = q.neq('id', editId);
+    const { data, error } = await q;
+    if (error) { console.error('fetchLastLeaveDate:', error); return; }
+    $('lastLeaveDate').value = (data && data[0] && data[0].end_date) ? String(data[0].end_date).slice(0, 10) : '';
+  } catch (err) { console.error(err); }
+}
 
-      // เงื่อนไขบังคับผู้รับมอบหมายงานแทน ขึ้นอยู่กับประเภทการลาด้วย จึงต้องเช็คซ้ำทุกครั้งที่เปลี่ยนประเภท
-      updateDelegateRequirement();
+// ---------- สิทธิลาพักผ่อน ----------
+// คำนวณสิทธิวันลาพักผ่อนของพนักงาน (อีเมล) ในปี ค.ศ. ที่ระบุ
+async function getAnnualLeaveBalance(email, year, excludeId) {
+  const [ledRes, reqRes] = await Promise.all([
+    supabaseClient.from('annual_leave_ledger').select('year,carried_over,entitlement').eq('email', email),
+    supabaseClient.from('leave_requests').select('id,start_date,leave_duration,status')
+      .eq('applicant_email', email).eq('leave_category', 'ลาพักผ่อน')
+  ]);
+  if (ledRes.error) throw ledRes.error;
+  if (reqRes.error) throw reqRes.error;
 
-      // แสดง/ซ่อนกล่องสิทธิวันลาพักผ่อน ขึ้นอยู่กับประเภทการลาที่เลือก
-      updateAnnualLeaveBalanceDisplay();
-    }
+  const ledger = {};
+  (ledRes.data || []).forEach(function (r) { ledger[Number(r.year)] = r; });
 
-    // จำนวนสิทธิวันลาพักผ่อนล่าสุดที่ดึงมา ใช้ตรวจสอบซ้ำตอนกดส่งฟอร์ม (ไม่ต้องรอ round-trip ไปเซิร์ฟเวอร์ก่อนแจ้งเตือน)
-    let lastAnnualBalanceCache = null;
+  const usedByYear = {};
+  (reqRes.data || []).forEach(function (r) {
+    if (r.id === excludeId) return;
+    if (NON_COUNTING_STATUSES.indexOf(r.status) !== -1) return;
+    if (!r.start_date) return;
+    const y = parseInt(String(r.start_date).slice(0, 4), 10);
+    usedByYear[y] = (usedByYear[y] || 0) + (parseFloat(r.leave_duration) || 0);
+  });
 
-    // ดึง+แสดงสิทธิวันลาพักผ่อนคงเหลือ (แสดงเฉพาะเมื่อเลือกประเภทการลาเป็น "ลาพักผ่อน")
-    function updateAnnualLeaveBalanceDisplay() {
-      const category = document.getElementById('leaveCategory').value;
-      const box = document.getElementById('annualLeaveBalanceBox');
-      const textEl = document.getElementById('annualLeaveBalanceText');
+  const allYears = Object.keys(ledger).map(Number).concat(Object.keys(usedByYear).map(Number));
+  const earliest = allYears.length ? Math.min.apply(null, allYears) : year;
 
-      if (category !== 'ลาพักผ่อน') {
-        box.style.display = 'none';
-        lastAnnualBalanceCache = null;
-        return;
-      }
+  function calc(y) {
+    const row = ledger[y];
+    const entitlement = (row && row.entitlement !== null && row.entitlement !== undefined) ? Number(row.entitlement) : DEFAULT_ANNUAL_ENTITLEMENT;
+    let carried;
+    if (row && row.carried_over !== null && row.carried_over !== undefined) carried = Number(row.carried_over);
+    else if (y > earliest) carried = Math.min(MAX_CARRYOVER_DAYS, Math.max(0, calc(y - 1).remaining));
+    else carried = 0;
+    const used = usedByYear[y] || 0;
+    const total = carried + entitlement;
+    return { carried: carried, entitlement: entitlement, used: used, total: total, remaining: total - used };
+  }
 
-      const email = document.getElementById('applicantEmail').value;
-      if (!email) {
-        box.style.display = 'none';
-        return;
-      }
+  const c = calc(year);
+  return {
+    yearBE: year + 543,
+    carriedOver: round1(c.carried),
+    entitlement: round1(c.entitlement),
+    totalAvailable: round1(c.total),
+    used: round1(c.used),
+    remaining: round1(c.remaining)
+  };
+}
 
-      box.style.display = 'block';
-      textEl.parentElement.classList.remove('alert-danger');
-      textEl.parentElement.classList.add('alert-info');
-      textEl.innerText = 'กำลังตรวจสอบสิทธิวันลาพักผ่อน...';
+async function updateAnnualLeaveBalanceDisplay() {
+  const category = $('leaveCategory').value;
+  const box = $('annualLeaveBalanceBox');
+  const textEl = $('annualLeaveBalanceText');
 
-      const startDateVal = document.getElementById('startDate').value;
-      const duration = parseFloat(document.getElementById('leaveDuration').value) || 0;
-      const yearForBalance = startDateVal ? new Date(startDateVal).getFullYear() : new Date().getFullYear();
-
-      google.script.run
-        .withSuccessHandler(function (bal) {
-          lastAnnualBalanceCache = bal;
-          const afterThis = bal.remaining - duration;
-
-          let msg = `สิทธิวันลาพักผ่อนปี ${bal.yearBE}: ยกมา ${bal.carriedOver} วัน + สิทธิปีนี้ ${bal.entitlement} วัน = ใช้ได้รวม ${bal.totalAvailable} วัน | ใช้ไปแล้ว ${bal.used} วัน | คงเหลือ ${bal.remaining} วัน`;
-
-          if (duration > 0) {
-            msg += ` — <b>คงเหลือหลังคำขอนี้: ${afterThis} วัน</b>`;
-            if (afterThis < 0) {
-              textEl.parentElement.classList.remove('alert-info');
-              textEl.parentElement.classList.add('alert-danger');
-              msg += ' ⚠️ เกินสิทธิที่มี ไม่สามารถยื่นคำขอนี้ได้';
-            }
-          }
-          textEl.innerHTML = msg;
-        })
-        .withFailureHandler(function (err) {
-          textEl.innerText = 'ไม่สามารถตรวจสอบสิทธิวันลาพักผ่อนได้: ' + err.toString();
-        })
-        .getAnnualLeaveBalance(email, yearForBalance);
-    }
-
-    // ดึงวันที่ลาครั้งล่าสุด (ตามประเภทการลาหลัก + อีเมล) มาเติมในฟอร์มอัตโนมัติ
-  async function fetchLastLeaveDate(employeeId) {
-  // หากไม่มีรหัสพนักงาน หรือค่าเป็น undefined ให้หยุดทำงานทันทีเพื่อป้องกัน Error
-  if (!employeeId || employeeId === 'undefined') {
+  if (category !== 'ลาพักผ่อน') {
+    box.style.display = 'none';
+    lastAnnualBalanceCache = null;
     return;
   }
+  const email = $('applicantEmail').value;
+  if (!email) { box.style.display = 'none'; return; }
+
+  box.style.display = 'block';
+  textEl.parentElement.classList.remove('alert-danger');
+  textEl.parentElement.classList.add('alert-info');
+  textEl.innerText = 'กำลังตรวจสอบสิทธิวันลาพักผ่อน...';
+
+  const startVal = $('startDate').value;
+  const duration = parseFloat($('leaveDuration').value) || 0;
+  const year = startVal ? parseInt(startVal.slice(0, 4), 10) : new Date().getFullYear();
+  const token = ++annualBalanceToken;
 
   try {
-    const { data, error } = await supabaseClient
-    .from('leave_requests')
-    .select('*')
-    .eq('applicant_email', userEmail) // เปลี่ยนมาเทียบกับอีเมลผู้ยื่น (ปรับตัวแปรอีเมลให้ตรงกับระบบของคุณ เช่น email หรือ applicantEmail)
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-    if (error) {
-      console.error('Error fetching last leave date:', error);
-      return;
+    const bal = await getAnnualLeaveBalance(email, year, $('editRequestId').value);
+    if (token !== annualBalanceToken) return;
+    lastAnnualBalanceCache = bal;
+    const afterThis = round1(bal.remaining - duration);
+    let msg = `สิทธิวันลาพักผ่อนปี ${bal.yearBE}: ยกมา ${bal.carriedOver} วัน + สิทธิปีนี้ ${bal.entitlement} วัน = ใช้ได้รวม ${bal.totalAvailable} วัน | ใช้ไปแล้ว ${bal.used} วัน | คงเหลือ ${bal.remaining} วัน`;
+    if (duration > 0) {
+      msg += ` — <b>คงเหลือหลังคำขอนี้: ${afterThis} วัน</b>`;
+      if (afterThis < 0) {
+        textEl.parentElement.classList.remove('alert-info');
+        textEl.parentElement.classList.add('alert-danger');
+        msg += ' ⚠️ เกินสิทธิที่มี ไม่สามารถยื่นคำขอนี้ได้';
+      }
     }
-
-    if (data && data.length > 0) {
-      const lastDate = data[0].end_date || data[0].date_to || data[0].to_date || '';
-      const inputEl = document.getElementById('lastLeaveDateInput'); // ปรับ ID ตามฟอร์มจริง
-      if (inputEl) inputEl.value = lastDate;
-    }
+    textEl.innerHTML = msg;
   } catch (err) {
-    console.error('System error:', err);
+    if (token !== annualBalanceToken) return;
+    textEl.innerText = 'ไม่สามารถตรวจสอบสิทธิวันลาพักผ่อนได้: ' + (err.message || err);
   }
 }
 
-    // สลับสถานะบังคับกรอก "ผู้รับมอบหมายงานแทน": ลากิจ/ลาพักผ่อน มากกว่า 2 วัน (3 วันขึ้นไป)
-    function updateDelegateRequirement() {
-      const duration = parseFloat(document.getElementById('leaveDuration').value) || 0;
-      const category = document.getElementById('leaveCategory').value;
-      const delegateSelect = document.getElementById('delegateName');
-      const mark = document.getElementById('delegateRequiredMark');
-      const hint = document.getElementById('delegateRequiredHint');
+// ---------- สถิติสะสม ----------
+async function getLeaveStats(email, category, startDate, duration, excludeId) {
+  const year = startDate ? parseInt(String(startDate).slice(0, 4), 10) : new Date().getFullYear();
+  const { data, error } = await supabaseClient.from('leave_requests')
+    .select('id,leave_duration,status')
+    .eq('applicant_email', email)
+    .eq('leave_category', category)
+    .gte('start_date', year + '-01-01')
+    .lte('start_date', year + '-12-31');
+  if (error) throw error;
+  let prev = 0;
+  (data || []).forEach(function (r) {
+    if (r.id === excludeId) return;
+    if (NON_COUNTING_STATUSES.indexOf(r.status) !== -1) return;
+    prev += parseFloat(r.leave_duration) || 0;
+  });
+  prev = round1(prev);
+  return { previousDays: prev, totalWithCurrent: round1(prev + (parseFloat(duration) || 0)) };
+}
 
-      // บังคับกรอกผู้รับมอบหมายงานแทน เมื่อเป็นลากิจหรือลาพักผ่อน และลามากกว่า 2 วัน (3 วันขึ้นไป)
-      const isRequired = (category === 'ลากิจ' || category === 'ลาพักผ่อน') && duration > 2;
+async function refreshCumulativePreview() {
+  const email = $('applicantEmail').value;
+  const cat = $('leaveCategory').value;
+  const duration = parseFloat($('leaveDuration').value) || 0;
+  if (!email || !cat) return;
+  try {
+    const stats = await getLeaveStats(email, cat, $('startDate').value, duration, $('editRequestId').value);
+    $('cumulativePreview').value = stats.totalWithCurrent + ' วัน (สะสมเดิม ' + stats.previousDays + ' วัน)';
+  } catch (err) { console.error(err); }
+}
 
-      if (isRequired) {
-        delegateSelect.setAttribute('required', 'required');
-        mark.style.display = 'inline';
-        hint.style.display = 'block';
-      } else {
-        delegateSelect.removeAttribute('required');
-        mark.style.display = 'none';
-        hint.style.display = 'none';
+function fetchAccumulatedOnEmailChange(skipLastLeaveFetch) {
+  if (!skipLastLeaveFetch) fetchLastLeaveDate();
+  updateAnnualLeaveBalanceDisplay();
+  refreshCumulativePreview();
+}
+
+// ---------- ผู้รับมอบหมายงานแทน ----------
+function updateDelegateRequirement() {
+  const duration = parseFloat($('leaveDuration').value) || 0;
+  const category = $('leaveCategory').value;
+  const sel = $('delegateName');
+  const isRequired = (category === 'ลากิจ' || category === 'ลาพักผ่อน') && duration > 2;
+  if (isRequired) sel.setAttribute('required', 'required'); else sel.removeAttribute('required');
+  $('delegateRequiredMark').style.display = isRequired ? 'inline' : 'none';
+  $('delegateRequiredHint').style.display = isRequired ? 'block' : 'none';
+}
+
+async function loadEmployeeListForDelegate() {
+  try {
+    const { data, error } = await supabaseClient.from('employees').select(EMP_COLS).order('name', { ascending: true });
+    if (error) { console.error('Error fetching employees for delegate:', error); return; }
+    cachedEmployees = (data || []).filter(isEmployeeActive);
+    renderDelegateOptions(true);
+  } catch (err) { console.error(err); }
+}
+
+function renderDelegateOptions(keepValue) {
+  const sel = $('delegateName');
+  if (!sel) return;
+  const current = keepValue ? sel.value : '';
+  sel.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
+  cachedEmployees.forEach(function (emp) {
+    if (loggedInEmployee && emp.employee_id === loggedInEmployee.employee_id) return; // ไม่ให้เลือกตัวเอง
+    const opt = document.createElement('option');
+    opt.value = emp.employee_id;
+    opt.dataset.position = emp.position || '';
+    opt.textContent = fullName(emp) + ' (' + (emp.position || 'ไม่มีตำแหน่ง') + ')';
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+  syncDelegatePosition();
+}
+
+function syncDelegatePosition() {
+  const sel = $('delegateName');
+  const opt = sel.options[sel.selectedIndex];
+  $('delegatePosition').value = (opt && sel.value) ? (opt.dataset.position || '') : '';
+}
+
+// ---------- คำนวณวันลา ----------
+function calculateDateDuration() {
+  const startInput = $('startDate').value;
+  const endInput = $('endDate').value;
+  const durationInput = $('leaveDuration');
+  const excludedNote = $('excludedDaysNote');
+
+  function finish() {
+    updateDelegateRequirement();
+    updateAnnualLeaveBalanceDisplay();
+    checkDateOverlapNow();
+    refreshCumulativePreview();
+  }
+
+  if (!startInput || !endInput) {
+    durationInput.value = 0; clearOverlapState(); excludedNote.innerHTML = ''; finish(); return;
+  }
+  const start = ymdToDate(startInput);
+  const end = ymdToDate(endInput);
+  if (!start || !end || end < start) {
+    durationInput.value = 0; clearOverlapState(); excludedNote.innerHTML = ''; finish(); return;
+  }
+
+  const holidayMap = {};
+  cachedHolidays.forEach(function (h) { holidayMap[String(h.date).slice(0, 10)] = h.description; });
+
+  let count = 0;
+  const excluded = [];
+  const cursor = new Date(start.getTime());
+  while (cursor <= end) {
+    const dow = cursor.getDay();
+    const ds = toYMD(cursor);
+    if (dow === 0 || dow === 6) excluded.push(formatStringToDateTimeInput(ds) + ' (วันหยุดสุดสัปดาห์)');
+    else if (holidayMap[ds]) excluded.push(formatStringToDateTimeInput(ds) + ' (' + esc(holidayMap[ds]) + ')');
+    else count++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  durationInput.value = count;
+  excludedNote.innerHTML = excluded.length
+    ? '<i class="fa-solid fa-circle-info me-1"></i>ไม่นับวันหยุดต่อไปนี้: ' + excluded.join(', ')
+    : '';
+  finish();
+}
+
+// ---------- ตรวจวันที่ซ้ำ ----------
+function clearOverlapState() {
+  dateOverlapDetected = false;
+  lastOverlapAlertKey = '';
+  overlapCheckToken++;
+  ['startDate', 'endDate'].forEach(function (id) { const el = $(id); if (el) el.classList.remove('is-invalid'); });
+  const wrap = $('dateOverlapNoteWrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+async function checkDateOverlapNow() {
+  const startVal = $('startDate').value;
+  const endVal = $('endDate').value;
+  const email = $('applicantEmail').value;
+  const editId = $('editRequestId').value;
+
+  if (!startVal || !endVal || !email || endVal < startVal) { clearOverlapState(); return; }
+
+  const token = ++overlapCheckToken;
+  try {
+    const { data: requests, error } = await supabaseClient.from('leave_requests')
+      .select('id,start_date,end_date,status')
+      .eq('applicant_email', email)
+      .not('status', 'in', NON_COUNTING_IN);
+
+    if (token !== overlapCheckToken) return;
+    if (error) { console.error('Error checking overlap:', error); return; }
+
+    const conflicts = [];
+    (requests || []).forEach(function (req) {
+      if (editId && req.id === editId) return;
+      const s = String(req.start_date).slice(0, 10);
+      const e = String(req.end_date).slice(0, 10);
+      if (startVal <= e && endVal >= s) {
+        conflicts.push({ date: formatStringToDateTimeInput(s) + (s !== e ? ' ถึง ' + formatStringToDateTimeInput(e) : ''), requestId: req.id });
       }
-    }
+    });
 
-    // คำนวณวันลาอัตโนมัติ โดยอ้างอิงเฉพาะวันที่ (Date Only)
-    function toYMD(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
-
-    // ===== ตรวจเช็ควันที่ซ้ำกับวันที่เคยลามาแล้ว =====
-    let dateOverlapDetected = false;
-    let overlapCheckToken = 0;
-    let lastOverlapAlertKey = '';
-    const OVERLAP_MESSAGE = 'เลือกวันที่ซ้ำกับวันที่เคยลามาแล้ว โปรดเลือกวันที่ใหม่';
-
-    function clearOverlapState() {
+    if (conflicts.length) {
+      dateOverlapDetected = true;
+      ['startDate', 'endDate'].forEach(function (id) { $(id).classList.add('is-invalid'); });
+      const detail = conflicts.slice(0, 5).map(function (c) { return esc(c.date) + ' (' + esc(c.requestId) + ')'; }).join(', ');
+      $('dateOverlapNote').innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i><b>' + OVERLAP_MESSAGE + '</b><br>วันที่ซ้ำ: ' + detail;
+      $('dateOverlapNoteWrap').style.display = 'block';
+      const key = startVal + '|' + endVal;
+      if (lastOverlapAlertKey !== key) {
+        lastOverlapAlertKey = key;
+        showAppAlert('วันที่ซ้ำ', OVERLAP_MESSAGE, 'danger');
+      }
+    } else {
       dateOverlapDetected = false;
       lastOverlapAlertKey = '';
-      overlapCheckToken++; // ยกเลิกผลตรวจที่ยังค้างอยู่ (กันผลเก่ามาทับ)
-      ['startDate', 'endDate'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove('is-invalid');
-      });
-      const wrap = document.getElementById('dateOverlapNoteWrap');
-      if (wrap) wrap.style.display = 'none';
+      ['startDate', 'endDate'].forEach(function (id) { $(id).classList.remove('is-invalid'); });
+      $('dateOverlapNoteWrap').style.display = 'none';
     }
-
-    function formatConflictDate(ymd) {
-      const p = ymd.split('-');
-      return parseInt(p[2], 10) + ' ' + thaiMonthNames[parseInt(p[1], 10) - 1] + ' ' + (parseInt(p[0], 10) + 543);
-    }
-
-    // เรียกทุกครั้งที่ช่วงวันที่เปลี่ยน — ตรวจสอบวันลาซ้ำจาก Supabase
-    async function checkDateOverlapNow() {
-      const startVal = document.getElementById('startDate').value;
-      const endVal = document.getElementById('endDate').value;
-      const email = document.getElementById('applicantEmail').value;
-      const editId = document.getElementById('editRequestId').value;
-
-      if (!startVal || !endVal || !email || new Date(endVal) < new Date(startVal)) {
-        clearOverlapState();
-        return;
-      }
-
-      const token = ++overlapCheckToken;
-
-      try {
-        // ดึงข้อมูลคำขอลาทั้งหมดของอีเมลนี้จาก Supabase เพื่อมาตรวจสอบช่วงวันที่ทับซ้อน
-        const { data: requests, error } = await supabaseClient
-          .from('leave_requests')
-          .select('id, start_date, end_date, status')
-          .eq('applicant_email', email)
-          .neq('status', 'Rejected'); // ไม่นับรายการที่ถูกปฏิเสธ
-
-        if (token !== overlapCheckToken) return; // มีการเปลี่ยนวันที่ใหม่ไปแล้ว ผลนี้เก่าเกินไป
-
-        if (error) {
-          console.error('Error checking overlap:', error);
-          return;
-        }
-
-        let hasOverlap = false;
-        let conflicts = [];
-
-        const newStart = new Date(startVal);
-        const newEnd = new Date(endVal);
-
-        if (requests && requests.length > 0) {
-          requests.forEach(req => {
-            // ถ้าเป็นการแก้ไข ให้ข้ามรายการของตัวเอง
-            if (editId && req.id === editId) return;
-
-            const existingStart = new Date(req.start_date);
-            const existingEnd = new Date(req.end_date);
-
-            // ตรวจสอบช่วงวันที่ทับซ้อนกัน (Overlap condition)
-            if (newStart <= existingEnd && newEnd >= existingStart) {
-              hasOverlap = true;
-              conflicts.push({
-                date: req.start_date + (req.start_date !== req.end_date ? ' ถึง ' + req.end_date : ''),
-                requestId: req.id
-              });
-            }
-          });
-        }
-
-        if (hasOverlap) {
-          dateOverlapDetected = true;
-          ['startDate', 'endDate'].forEach(id => document.getElementById(id).classList.add('is-invalid'));
-
-          const detail = conflicts.slice(0, 5)
-            .map(c => c.date + ' (' + c.requestId + ')')
-            .join(', ');
-          
-          document.getElementById('dateOverlapNote').innerHTML =
-            '<i class="fa-solid fa-triangle-exclamation me-1"></i><b>' + (typeof OVERLAP_MESSAGE !== 'undefined' ? OVERLAP_MESSAGE : 'ช่วงวันที่เลือกมีการลาซ้ำซ้อนกับรายการอื่น') + '</b><br>วันที่ซ้ำ: ' + detail;
-          document.getElementById('dateOverlapNoteWrap').style.display = 'block';
-
-          const key = startVal + '|' + endVal;
-          if (typeof lastOverlapAlertKey !== 'undefined' && lastOverlapAlertKey !== key) {
-            lastOverlapAlertKey = key;
-            showAppAlert('วันที่ซ้ำ', (typeof OVERLAP_MESSAGE !== 'undefined' ? OVERLAP_MESSAGE : 'ช่วงวันที่เลือกมีการลาซ้ำซ้อน'), 'danger');
-          }
-        } else {
-          dateOverlapDetected = false;
-          if (typeof lastOverlapAlertKey !== 'undefined') lastOverlapAlertKey = '';
-          ['startDate', 'endDate'].forEach(id => document.getElementById(id).classList.remove('is-invalid'));
-          document.getElementById('dateOverlapNoteWrap').style.display = 'none';
-        }
-
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-      updateDelegateRequirement();
-      updateAnnualLeaveBalanceDisplay();
-      checkDateOverlapNow();
-      
-      // อัปเดตสถิติตามการเลือกอีเมลและประเภทการลา
-      fetchAccumulatedOnEmailChange();
-    
-    // ดึงค่าสถิติวินสะสมรวมอัตโนมัติเมื่ออีเมลผู้ใช้งานเปลี่ยนแปลง
-    function fetchAccumulatedOnEmailChange(skipLastLeaveFetch) {
-      const email = document.getElementById('applicantEmail').value;
-      const cat = document.getElementById('leaveCategory').value;
-      const duration = document.getElementById('leaveDuration').value;
-
-      // เผื่อกรณีเลือกอีเมลก่อนเลือกประเภทวันที่ ให้ลองดึงวันที่ลาครั้งล่าสุดด้วย
-      if (!skipLastLeaveFetch) {
-        fetchLastLeaveDate();
-      }
-
-      // อัปเดตกล่องสิทธิวันลาพักผ่อน (ถ้ากำลังเลือกประเภทนี้อยู่) ตามอีเมลล่าสุด
-      updateAnnualLeaveBalanceDisplay();
-
-      if (!email || !cat || parseFloat(duration) <= 0) return;
-
-      google.script.run
-        .withSuccessHandler(function (stats) {
-          document.getElementById('cumulativePreview').value = stats.totalWithCurrent + " วัน (สะสมเดิม " + stats.previousDays + " วัน)";
-        })
-        .withFailureHandler(function (err) {
-          console.error(err);
-        })
-        .getLeaveStats(email, cat, duration);
-    }
-
-    // จัดแสดงข้อความแจ้งเตือน Box
-    function showAppAlert(title, message, type) {
-      const alertPlaceholder = document.getElementById('alertPlaceholder');
-      alertPlaceholder.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show shadow-sm" role="alert">
-          <strong>${title}</strong> ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      `;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function showLoading(msg) {
-      document.getElementById('loaderMessage').innerText = msg;
-      document.getElementById('globalLoader').style.display = 'flex';
-    }
-
-    function hideLoading() {
-      document.getElementById('globalLoader').style.display = 'none';
-    }
-
-    // แปลงไฟล์ที่เลือกให้เป็น Base64 คืนค่า Promise แล้ว resolve เป็น null ถ้าไม่มีไฟล์
-    function readFileAsBase64(inputId) {
-      return new Promise(function (resolve) {
-        const fileInput = document.getElementById(inputId);
-        if (!fileInput.files.length) {
-          resolve(null);
-          return;
-        }
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          resolve({
-            base64: e.target.result.split(',')[1],
-            mimeType: file.type,
-            name: file.name
-          });
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    // จัดระเบียบการจัดส่งพร้อมสแกนแปลงเอกสาร Base64
-    function handleFormSubmission(event) {
-      event.preventDefault();
-
-      const startDateVal = new Date(document.getElementById('startDate').value);
-      const endDateVal = new Date(document.getElementById('endDate').value);
-
-      if (endDateVal < startDateVal) {
-      showAppAlert(
-        currentLang === 'th' ? "วันที่ไม่ถูกต้อง" : "Invalid Leave Dates",
-        currentLang === 'th' ? "❌ วันที่สิ้นสุดการลาพักต้องไม่ก่อนวันที่เริ่มต้นเสนอลาพัก!" : "❌ Error: The end date must not be before the start date.",
-        "danger"
-      );
-      return;
-    }
-
-      if (dateOverlapDetected) {
-        showAppAlert('วันที่ซ้ำ', OVERLAP_MESSAGE, 'danger');
-        return;
-      }
-
-    const durationVal = parseFloat(document.getElementById('leaveDuration').value) || 0;
-    const categoryVal = document.getElementById('leaveCategory').value;
-    const delegateNameVal = document.getElementById('delegateName').value;
-    const delegateNeeded = (categoryVal === 'ลากิจ' || categoryVal === 'ลาพักผ่อน') && durationVal > 2;
-    
-    if (delegateNeeded && !delegateNameVal) {
-      showAppAlert(
-        currentLang === 'th' ? "ข้อมูลไม่ครบถ้วน" : "Missing Information",
-        currentLang === 'th' ? "❌ กรณีลากิจหรือลาพักผ่อนมากกว่า 2 วัน กรุณาระบุผู้รับมอบหมายงานแทน" : "❌ Please specify a delegate for personal or annual leave longer than 2 days.",
-        "danger"
-      );
-      return;
-    }
-
-      if (categoryVal === 'ลาพักผ่อน' && lastAnnualBalanceCache && durationVal > lastAnnualBalanceCache.remaining) {
-        showAppAlert(
-          "สิทธิวันลาพักผ่อนไม่เพียงพอ",
-          `❌ สิทธิวันลาพักผ่อนคงเหลือของคุณมีเพียง ${lastAnnualBalanceCache.remaining} วัน ไม่สามารถยื่นขอลา ${durationVal} วันได้`,
-          "danger"
-        );
-        return;
-      }
-
-      showLoading(currentLang === 'th' ? "กำลังดำเนินการประมวลผลจัดเก็บข้อมูลพร้อมส่งต่อเอกสาร..." : "Uploading data and storing certificates...");
-
-      Promise.all([
-        readFileAsBase64('attachmentFile'),
-        readFileAsBase64('signatureFile')
-      ]).then(function (results) {
-        sendDataToGAS(results[0], results[1]);
-      });
-    }
-
-    // ส่งข้อมูลใบลาเข้าสู่ตาราง leave_requests ใน Supabase
-    async function sendDataToGAS(fileData, signatureData) {
-      const editRequestId = document.getElementById('editRequestId').value;
-      const prefix = document.getElementById('prefix').value;
-      const name = document.getElementById('name').value;
-      const position = document.getElementById('position').value;
-      const applicantEmail = document.getElementById('applicantEmail').value;
-      const telephone = document.getElementById('telephone').value;
-      const leaveCategory = document.getElementById('leaveCategory').value;
-      const leaveType = document.getElementById('leaveType').value;
-      const startDate = document.getElementById('startDate').value;
-      const endDate = document.getElementById('endDate').value;
-      const lastLeaveDate = document.getElementById('lastLeaveDate').value;
-      const leaveDuration = document.getElementById('leaveDuration').value;
-      const reason = document.getElementById('reason').value;
-      const contactAddress = document.getElementById('contactAddress').value;
-
-      // ดึงข้อมูลผู้รับมอบหมายงานแทน (Delegate)
-      const sel = document.getElementById('delegateName');
-      const delegateName = sel ? sel.value : '';
-      const selectedOption = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
-      const delegateEmployeeId = selectedOption ? (selectedOption.getAttribute('data-employee-id') || '') : '';
-
-      if (!startDate || !endDate || !reason) {
-        hideLoading();
-        showAppAlert(
-          currentLang === 'th' ? "ข้อมูลไม่ครบถ้วน" : "Incomplete Data",
-          currentLang === 'th' ? "กรุณากรอกวันที่เริ่มต้น สิ้นสุด และเหตุผลการลา" : "Please fill in start date, end date, and reason.",
-          "danger"
-        );
-        return;
-      }
-
-      showLoading(currentLang === 'th' ? "กำลังบันทึกข้อมูลใบลา..." : "Saving leave request...");
-        
-		try {
-    // สร้างเลขรันอัตโนมัติรูปแบบ LR-ปีเดือนวัน-xxxx (เช่น LR-20261028-0001)
-    const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const prefixId = `LR-${todayStr}-`;
-
-    let requestId = editRequestId;
-    if (!requestId) {
-        const { data: existingRequests, error: countError } = await supabaseClient
-            .from('leave_requests')
-            .select('id')
-            .like('id', `${prefixId}%`);
-
-        let runningNumber = 1;
-        if (!countError && existingRequests) {
-            runningNumber = existingRequests.length + 1;
-        }
-        
-        const runningStr = String(runningNumber).padStart(4, '0');
-        requestId = `${prefixId}${runningStr}`;
-    }
-        const hasDelegate = delegateEmployeeId ? true : false;
-
-        const payload = {
-          id: requestId,
-          timestamp: new Date().toISOString(),
-          applicant_email: applicantEmail,
-          prefix: prefix,
-          name: name,
-          position: position,
-          phone: telephone,
-          leave_category: leaveCategory,
-          leave_type: leaveType,
-		  start_date: startDate || null,
-		  end_date: endDate || null,
-		  last_leave_date: lastLeaveDate || null,
-          leave_duration: parseFloat(leaveDuration) || 0,
-          reason: reason,
-          contact_address: contactAddress,
-          delegate_name: delegateName,
-          delegate_employee_id: delegateEmployeeId || null,
-          status: hasDelegate ? 'PendingDelegate' : 'PendingManager',
-          file_data: fileData || null,
-          signature_data: signatureData || null,
-          //employee_id: loggedInEmployee ? loggedInEmployee.employee_id : null
-        };
-
-        // ทำการ Upsert (ถ้ามี id อยู่แล้วจะเป็นการอัปเดต ถ้ายังไม่มีจะเป็นการสร้างใหม่)
-        const { data, error } = await supabaseClient
-          .from('leave_requests')
-          .upsert([payload], { onConflict: ['id'] });
-
-        hideLoading();
-
-        if (error) {
-          console.error('Error saving leave request:', error);
-          showAppAlert("Error", error.message, "danger");
-          return;
-        }
-
-        showAppAlert(
-          currentLang === 'th' ? "สำเร็จ!" : "Success!",
-          currentLang === 'th' ? `🎉 บันทึกการยื่นใบขออนุมัติวันลาแล้ว (รหัส: ${requestId})` + (hasDelegate ? ' — ระบบส่งต่อให้ผู้รับมอบหมายงานแทนรับทราบ' : '') : `Successfully submitted leave request (ID: ${requestId})`,
-          "success"
-        );
-
-        resetRequestForm();
-        if (typeof loadMyRequests === 'function') {
-          loadMyRequests();
-        }
-
-      } catch (err) {
-        hideLoading();
-        console.error(err);
-        showAppAlert("Error", err.toString(), "danger");
-      }
-    }
-
-    // ล้างและตั้งค่าฟอร์มกลับสู่แบบเริ่มต้น
-    function resetRequestForm() {
-      document.getElementById('leaveForm').reset();
-      document.getElementById('editRequestId').value = '';
-      document.getElementById('cumulativePreview').value = '0';
-      document.getElementById('editLabel').style.display = 'none';
-      document.getElementById('cancelEditBtn').style.display = 'none';
-      document.getElementById('leaveDuration').value = '0';
-      clearOverlapState();
-
-      // form.reset() จะล้างช่องข้อมูลผู้ใช้งานที่ readonly/disabled ไปด้วย ต้องเติมกลับจากบัญชีที่ล็อกอินอยู่เสมอ
-      if (loggedInEmployee) {
-        document.getElementById('prefix').value = loggedInEmployee.prefix;
-        document.getElementById('name').value = loggedInEmployee.name;
-        document.getElementById('position').value = loggedInEmployee.position;
-        document.getElementById('applicantEmail').value = loggedInEmployee.email;
-        document.getElementById('telephone').value = loggedInEmployee.telephone;
-      }
-
-      updateDelegateRequirement();
-      syncCategoryDropdown("ลากิจ");
-      loadEmployeeListForDelegate();
-    }
-
-    // สถานะที่ถือว่าไม่ได้ลาจริง (ถูกปฏิเสธ) — ไม่นับในยอดสะสม/ปฏิทิน
-    function isRejectedStatusClient(status) {
-      return status === "RejectedByHR" || status === "RejectedByManager" || status === "RejectedByDelegate";
-    }
-
-    // แปลสถานะเป็นป้ายกำกับภาษาไทย + คลาสสี ใช้ร่วมกันทั้งตาราง/แดชบอร์ด/ป้ายสถานะพนักงาน
-    function getStatusInfo(status) {
-    switch (status) {
-        case 'PendingDelegate':
-            return { label: 'รอผู้รับมอบหมายงานแทนรับทราบ', badgeClass: 'bg-info text-dark' };
-            
-        // เพิ่มหรือปรับแก้ให้รองรับสถานะ 'PendingHR' ที่เพิ่งเปลี่ยนเมื่อสักครู่
-        case 'PendingManager':
-		case 'PendingHR':
-        case 'ApprovedByDelegate':
-            return { label: 'รอ HR ตรวจสอบ', badgeClass: 'bg-warning text-dark' }; // ใช้สีเหลืองตามภาพตัวอย่าง        
-        case 'Approved':
-            return { label: 'อนุมัติแล้ว', badgeClass: 'bg-success' };
-        case 'Rejected':
-            return { label: 'ไม่อนุมัติ', badgeClass: 'bg-danger' };
-        default:
-            return { label: status || 'รอดำเนินการ', badgeClass: 'bg-secondary' };
-    }
+  } catch (err) { console.error(err); }
 }
 
-    // สลับการแสดง/ซ่อนรหัสผ่านในหน้า Login
-    function toggleLoginPasswordVisibility() {
-      const input = document.getElementById('employeePasswordInput');
-      const icon = document.getElementById('loginPasswordToggleIcon');
-      if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-      } else {
-        input.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-      }
-    }
+// ---------- ส่งใบลา ----------
+async function handleFormSubmission(event) {
+  event.preventDefault();
+  if (!loggedInEmployee) return;
 
-	  
-	  
-// เข้าสู่ระบบแบบรวมศูนย์ — ใช้บัญชีเดียวกันทั้งพนักงาน/HR/ผู้จัดการ ระบบจะพาไปหน้าที่ถูกต้องตาม Role อัตโนมัติ
- // ฟังก์ชันเข้าสู่ระบบผ่าน Supabase	  
-async function doEmployeeLogin() {
-  const employeeId = document.getElementById('employeeIdInput').value.trim();
-  const password = document.getElementById('employeePasswordInput').value.trim();
- 
-  if (!employeeId || !password) {
-    showAppAlert("ข้อมูลไม่ครบถ้วน", "กรุณาระบุชื่อผู้ใช้และรหัสผ่าน", "danger");
+  const startVal = $('startDate').value;
+  const endVal = $('endDate').value;
+
+  if (endVal < startVal) {
+    showAppAlert(
+      currentLang === 'th' ? 'วันที่ไม่ถูกต้อง' : 'Invalid Leave Dates',
+      currentLang === 'th' ? '❌ วันที่สิ้นสุดการลาต้องไม่ก่อนวันที่เริ่มต้น!' : '❌ Error: The end date must not be before the start date.',
+      'danger');
+    return;
+  }
+  if (dateOverlapDetected) { showAppAlert('วันที่ซ้ำ', OVERLAP_MESSAGE, 'danger'); return; }
+
+  const durationVal = parseFloat($('leaveDuration').value) || 0;
+  if (durationVal <= 0) {
+    showAppAlert('ไม่มีวันทำการ', '❌ ช่วงวันที่เลือกไม่มีวันทำการ (เป็นวันหยุดทั้งหมด) จึงไม่สามารถยื่นลาได้', 'danger');
     return;
   }
 
-  showLoading("กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...");
+  const categoryVal = $('leaveCategory').value;
+  const delegateNeeded = (categoryVal === 'ลากิจ' || categoryVal === 'ลาพักผ่อน') && durationVal > 2;
+  if (delegateNeeded && !$('delegateName').value) {
+    showAppAlert(
+      currentLang === 'th' ? 'ข้อมูลไม่ครบถ้วน' : 'Missing Information',
+      currentLang === 'th' ? '❌ กรณีลากิจหรือลาพักผ่อนมากกว่า 2 วัน กรุณาระบุผู้รับมอบหมายงานแทน' : '❌ Please specify a delegate for personal or annual leave longer than 2 days.',
+      'danger');
+    return;
+  }
 
+  if (!checkFileSize('attachmentFile', 5, 'ไฟล์เอกสารแนบ')) return;
+  if (!checkFileSize('signatureFile', 2, 'ไฟล์ลายเซ็น')) return;
+
+  showLoading(currentLang === 'th' ? 'กำลังบันทึกข้อมูลใบลา...' : 'Saving leave request...');
   try {
-    // 1. ค้นหาพนักงานจากตาราง employees ใน Supabase ตามรหัสผู้ใช้
-    const { data: employee, error } = await supabaseClient
-      .from('employees')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .single();
-
-    hideLoading();
-
-    if (error || !employee) {
-      showAppAlert("เข้าสู่ระบบไม่สำเร็จ", "ไม่พบชื่อผู้ใช้งานนี้ในระบบ", "danger");
-      return;
-    }
-
-    // 2. ตรวจสอบรหัสผ่าน
-    if (employee.password !== password) {
-      showAppAlert("เข้าสู่ระบบไม่สำเร็จ", "รหัสผ่านไม่ถูกต้อง", "danger");
-      return;
-    }
-
-	  // กำหนดสิทธิ์และซ่อน/แสดงแท็บตาม Role ของผู้ใช้งาน
-        const userRole = employee.role || 'Employee';
-        routeToRolePage(userRole);
-	  
-
-// ฟังก์ชันจัดการสิทธิ์และการซ่อน/แสดงแท็บตาม Role
-function routeToRolePage(userRole) {
-    const navItems = document.querySelectorAll('.nav-link, .nav-item, button, a');
-    
-    navItems.forEach(el => {
-        const text = el.textContent || '';
-        if (text.includes('พื้นที่ HR') || text.includes('พื้นที่ผู้จัดการ') || text.includes('แดชบอร์ดฝ่าย HR')) {
-            if (userRole === 'HR' || userRole === 'hr') {
-                if (text.includes('พื้นที่ผู้จัดการ')) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.display = '';
-                }
-            } else if (userRole === 'Manager' || userRole === 'manager' || userRole === 'ผู้อำนวยการ' || userRole === 'ผู้จัดการ') {
-                if (text.includes('พื้นที่ HR')) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.display = '';
-                }
-            } else {
-                // พนักงานทั่วไป -> ซ่อนทั้งแท็บ HR และ ผู้จัดการ
-                el.style.display = 'none';
-            }
-        }
-    });
-}
-
-	
-    // 3. ล็อกอินผ่าน! บันทึกข้อมูลและสลับหน้าจอ
-    loggedInEmployee = employee;
-    
-    document.getElementById('loginGate').style.display = 'none';
-    document.getElementById('userTopBar').style.display = 'block';
-    document.getElementById('appShell').style.display = 'block';
-    document.getElementById('employeeWelcomeText').innerText = "สวัสดีคุณ " + loggedInEmployee.prefix + loggedInEmployee.name + " (" + loggedInEmployee.position + ")";
-
-    // โหลดรายชื่อพนักงานใส่ Dropdown
-    loadEmployeesToDropdown();
-
-    routeToRolePage(loggedInEmployee.role);
-    showAppAlert("เข้าสู่ระบบสำเร็จ", "ยินดีต้อนรับคุณ " + loggedInEmployee.prefix + loggedInEmployee.name, "success");
-
+    const [fileData, signatureData] = await Promise.all([readFileAsBase64('attachmentFile'), readFileAsBase64('signatureFile')]);
+    await saveLeaveRequest(fileData, signatureData);
   } catch (err) {
     hideLoading();
     console.error(err);
-    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+    showAppAlert('Error', esc(err.message || err.toString()), 'danger');
   }
 }
 
-// ฟังก์ชันสำหรับอัปเดตแถบแสดงสถานะล่าสุดด้านบนหน้าจอ
-function updateTopStatusBanner(latestRequest) {
-    const bannerElement = document.getElementById('userLatestStatus'); // หรือ ID ของจุดที่แสดงสถานะใต้ชื่อผู้ใช้
-    if (bannerElement && latestRequest) {
-        const statusInfo = getStatusInfo(latestRequest.status);
-        bannerElement.innerHTML = `
-            สถานะล่าสุด (${latestRequest.id}): 
-            <span class="badge ${statusInfo.badgeClass}">${statusInfo.label}</span>
-        `;
-    }
-}
-	  
-	function openDetailsModal(requestId, type) {
-    console.log("Opening details modal for:", requestId, type);
-    
-    // 1. ค้นหาข้อมูลใบลาจากตัวแปรแคชในระบบ
-    const req = (typeof cachedDelegateTasks !== 'undefined' ? cachedDelegateTasks.find(t => t.id === requestId) : null) 
-             || (typeof leaveRequests !== 'undefined' ? leaveRequests.find(t => t.id === requestId) : null);
-
-    if (req) {
-        // 2. อัปเดตข้อความหัวข้อ Modal ให้แสดงเลขที่ใบลา เช่น "ข้อมูลใบลาพักเลขที่: LR-20261028-0002"
-        const modalTitle = document.getElementById('timelineModalLabel') || document.querySelector('.modal-title');
-        if (modalTitle) {
-            modalTitle.innerText = `ข้อมูลใบลาพักเลขที่: ${req.id}`;
-        }
-
-        // 3. เรียกฟังก์ชันแสดงข้อมูลรายละเอียดและ Timeline ที่มีอยู่เดิมในระบบ
-        if (typeof renderLeaveDetails === 'function') {
-            renderLeaveDetails(req);
-        }
-        if (typeof renderTimeline === 'function') {
-            renderTimeline(req);
-        }
-    }
-
-    // 4. สั่งเปิด Bootstrap Modal
-    const modalElement = document.getElementById('timelineModal');
-    if (modalElement) {
-        const myModal = new bootstrap.Modal(modalElement);
-        myModal.show();
-    }
+async function generateRequestId() {
+  const prefixId = 'LR-' + toYMD(new Date()).replace(/-/g, '') + '-';
+  const { data, error } = await supabaseClient.from('leave_requests')
+    .select('id').like('id', prefixId + '%').order('id', { ascending: false }).limit(1);
+  if (error) throw error;
+  let n = 1;
+  if (data && data.length) {
+    const last = parseInt(String(data[0].id).slice(prefixId.length), 10);
+    if (!isNaN(last)) n = last + 1;
+  }
+  return prefixId + String(n).padStart(4, '0');
 }
 
-	  
-	// ฟังก์ชันสำหรับเปิดหน้าต่างจัดการงานที่ได้รับมอบหมาย (รับทราบ / ปฏิเสธ)
-function openDelegateDecisionDialog(requestId, actionType) {
-    console.log("Opening delegate decision for:", requestId, actionType);
-    
-    // บันทึกรหัสคำขอเก็บไว้ใน input hidden ตามโครงสร้าง Modal ที่เตรียมไว้
-    const reqIdInput = document.getElementById('delegateActionRequestId');
-    if (reqIdInput) {
-        reqIdInput.value = requestId;
+async function saveLeaveRequest(fileData, signatureData) {
+  const editId = $('editRequestId').value;
+  const emp = loggedInEmployee;
+
+  const startDate = $('startDate').value;
+  const endDate = $('endDate').value;
+  const reason = $('reason').value.trim();
+  if (!startDate || !endDate || !reason) {
+    hideLoading();
+    showAppAlert(
+      currentLang === 'th' ? 'ข้อมูลไม่ครบถ้วน' : 'Incomplete Data',
+      currentLang === 'th' ? 'กรุณากรอกวันที่เริ่มต้น สิ้นสุด และเหตุผลการลา' : 'Please fill in start date, end date, and reason.',
+      'danger');
+    return;
+  }
+
+  const leaveCategory = $('leaveCategory').value;
+  const duration = parseFloat($('leaveDuration').value) || 0;
+
+  // ตรวจสิทธิลาพักผ่อนซ้ำจากฐานข้อมูลล่าสุด
+  if (leaveCategory === 'ลาพักผ่อน') {
+    const bal = await getAnnualLeaveBalance(emp.email, parseInt(startDate.slice(0, 4), 10), editId);
+    if (duration > bal.remaining) {
+      hideLoading();
+      showAppAlert('สิทธิวันลาพักผ่อนไม่เพียงพอ', `❌ สิทธิวันลาพักผ่อนคงเหลือของคุณมีเพียง ${bal.remaining} วัน ไม่สามารถยื่นขอลา ${duration} วันได้`, 'danger');
+      return;
     }
-        // เรียกใช้งาน Bootstrap Modal เพื่อแสดงหน้าต่างที่มี id="delegateDecisionModal"
-    const modalElement = document.getElementById('delegateDecisionModal');
-    if (modalElement) {
-        const myModal = new bootstrap.Modal(modalElement);
-        myModal.show();
-    }
-}
-	    
-	  // 1. ฟังก์ชันรองรับชื่อที่ระบบเรียกใช้งาน
-	 function formatStringToDateTimeInput(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear() + 543;
-    
-    return `${day}/${month}/${year}`;
-}
-  
-	  	  
-// 2. ตามด้วยฟังก์ชันโหลดงาน (ที่เรียกใช้งานฟังก์ชันด้านบน)
-async function loadDelegateTasks(silent) {
-    if (!loggedInEmployee) return;
-    if (!silent) showLoading("กำลังโหลดงานที่ได้รับมอบหมาย...");
-    
-    try {
-        const { data: tasks, error } = await supabaseClient
-            .from('leave_requests')
-            .select('*')
-            .eq('delegate_name', loggedInEmployee.name)
-            .order('timestamp', { ascending: false });
+  }
 
-        if (!silent) hideLoading();
+  // ผู้รับมอบหมาย
+  const delegateEmpId = $('delegateName').value;
+  const delegateEmp = delegateEmpId ? cachedEmployees.find(function (e) { return e.employee_id === delegateEmpId; }) : null;
+  const hasDelegate = !!delegateEmp;
 
-        if (error) {
-          console.error('Error fetching delegate tasks:', error);
-          if (!silent) showAppAlert("ข้อผิดพลาดระบบ", error.message, "danger");
-          return;
-        }
+  const stats = await getLeaveStats(emp.email, leaveCategory, startDate, duration, editId);
 
-        cachedDelegateTasks = tasks || [];
-        renderDelegateTasks();
-      } catch (err) {
-        if (!silent) hideLoading();
-        console.error(err);
-        if (!silent) showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-      }
-    }
+  const base = {
+    applicant_email: emp.email,
+    employee_id: emp.employee_id,
+    prefix: emp.prefix || '',
+    name: emp.name,
+    position: emp.position || '',
+    phone: $('telephone').value.trim(),
+    leave_category: leaveCategory,
+    leave_type: $('leaveType').value,
+    start_date: startDate,
+    end_date: endDate,
+    last_leave_date: $('lastLeaveDate').value || null,
+    leave_duration: duration,
+    total_cumulative_days: stats.totalWithCurrent,
+    reason: reason,
+    contact_address: $('contactAddress').value.trim(),
+    delegate_name: hasDelegate ? delegateEmp.name : null,
+    delegate_position: hasDelegate ? (delegateEmp.position || null) : null,
+    delegate_employee_id: hasDelegate ? delegateEmp.employee_id : null,
+    status: hasDelegate ? 'PendingDelegate' : 'PendingHR',
+    timestamp: new Date().toISOString()
+  };
+  if (fileData) { base.file_data = packFile(fileData); base.has_attachment = true; }
+  if (signatureData) { base.signature_data = packFile(signatureData); }
 
-    function renderDelegateTasks() {
-      const tbody = document.getElementById('delegateTableBody');
-      const badge = document.getElementById('delegateTaskBadge');
-      const pendingCount = cachedDelegateTasks.filter(t => t.status === 'PendingDelegate').length;
+  let requestId = editId;
 
-      if (pendingCount > 0) {
-        badge.innerText = pendingCount;
-        badge.style.display = 'inline-block';
-      } else {
-        badge.style.display = 'none';
-      }
+  if (editId) {
+    // โหมดแก้ไข: ตรวจสิทธิ์และสถานะล่าสุดก่อน
+    const { data: cur, error: curErr } = await supabaseClient.from('leave_requests')
+      .select('status,applicant_email').eq('id', editId).maybeSingle();
+    if (curErr) throw curErr;
+    if (!cur || cur.applicant_email !== emp.email) { hideLoading(); showAppAlert('ไม่สามารถแก้ไขได้', 'ไม่พบคำขอนี้ หรือไม่ใช่คำขอของคุณ', 'danger'); return; }
+    if (EDITABLE_STATUSES.indexOf(cur.status) === -1) { hideLoading(); showAppAlert('ไม่สามารถแก้ไขได้', 'คำขอนี้ถูกพิจารณาไปแล้ว จึงไม่สามารถแก้ไขได้', 'danger'); return; }
 
-      if (!cachedDelegateTasks.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีงานที่ได้รับมอบหมาย</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = cachedDelegateTasks.map(t => {
-    const info = getStatusInfo(t.status);
-    const actionable = (t.status === 'PendingDelegate');
-		  
-   // ปุ่มเป็น "รับทราบ/ลงลายเซ็น"
-    const actionBtn = actionable 
-        ? `<div class="d-flex gap-1 justify-content-center align-items-center">
-             <button class="btn btn-sm btn-primary fw-bold text-nowrap" onclick="openDelegateDecisionDialog('${t.id}', 'Accepted')"><i class="fa-solid fa-signature me-1"></i>รับทราบ/ลงลายเซ็น</button>
-           </div>`
-        : `<span class="small text-muted">${t.status === 'RejectedByDelegate' ? 'คุณไม่รับมอบหมาย' : 'รับทราบแล้ว'}</span>`;
-    return `
-        <tr>
-            <td><b>${t.id}</b></td>
-            <td>${t.prefix || ''}${t.name || ''}<br><span class="small text-muted">${t.position || ''}</span></td>
-            <td>${t.leave_type || '-'}<br><span class="small text-muted">${formatStringToDateTimeInput(t.start_date)} ถึง ${formatStringToDateTimeInput(t.end_date)}</span></td>
-            <td>${t.leave_duration || 0} วัน</td>
-            <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary me-1" onclick="openDetailsModal('${t.id}', 'delegate')"><i class="fa-solid fa-eye"></i></button>
-                ${actionBtn}
-            </td>
-        </tr>
-	   `;
-		}).join('');
-    }
-
-		
-    function routeToRolePage(role) {
-      const applyTabLi = document.getElementById('apply-tab').closest('li');
-      const myReqTabLi = document.getElementById('myrequests-tab').closest('li');
-      const hrTabLi = document.getElementById('hr-tab').closest('li');
-      const managerTabLi = document.getElementById('manager-tab').closest('li');
-      const delegateTabLi = document.getElementById('delegate-tab').closest('li');
-
-      applyTabLi.style.display = 'none';
-      myReqTabLi.style.display = 'none';
-      hrTabLi.style.display = 'none';
-      managerTabLi.style.display = 'none';
-		
-      // ทุกบทบาทสามารถถูกระบุเป็นผู้รับมอบหมายงานแทนได้ จึงแสดงแท็บนี้ให้ทุกคน (มีตัวเลขแจ้งงานที่รอรับทราบ)
-      delegateTabLi.style.display = '';
-      document.getElementById('employeeLatestStatusText').innerHTML = '';
-      loadDelegateTasks(true);
-
-      if (role === 'Manager') {
-        managerTabLi.style.display = '';
-        new bootstrap.Tab(document.getElementById('manager-tab')).show();
-        loginAsManager();
-      } else if (role === 'HR') {
-        hrTabLi.style.display = '';
-        new bootstrap.Tab(document.getElementById('hr-tab')).show();
-        loginAsHR();
-      } else {
-		  
-        // พนักงานทั่วไป: เห็นเฉพาะแท็บยื่นใบลา + ประวัติของฉัน
-        applyTabLi.style.display = '';
-        myReqTabLi.style.display = '';
-        new bootstrap.Tab(document.getElementById('apply-tab')).show();
-
-        // เติมข้อมูลในฟอร์มยื่นใบลาอัตโนมัติจากข้อมูลพนักงาน
-        document.getElementById('prefix').value = loggedInEmployee.prefix;
-        document.getElementById('name').value = loggedInEmployee.name;
-        document.getElementById('position').value = loggedInEmployee.position;
-        document.getElementById('applicantEmail').value = loggedInEmployee.email;
-        document.getElementById('telephone').value = loggedInEmployee.telephone;
-
-        // โหลดประวัติของฉันอัตโนมัติ + อัปเดตป้ายสถานะล่าสุด
-        document.getElementById('searchEmail').value = loggedInEmployee.email;
-        loadMyRequests();
-
-        // โหลดรายการวันหยุด (แบบเงียบ) ไว้ใช้คำนวณจำนวนวันลาให้ถูกต้องตั้งแต่ต้น
-        loadHolidays(true);
-
-        // โหลดรายชื่อพนักงานจริงมาเติมตัวเลือก "ผู้รับมอบหมายงานแทน"
-        loadEmployeeListForDelegate();
-      }
-    }
-
-// โหลดรายชื่อพนักงานสำหรับเลือกผู้รับมอบหมายงานแทนจาก Supabase
-async function loadEmployeeListForDelegate() {
-    try {
-        const { data: employees, error } = await supabaseClient
-            .from('employees')
-            .select('*');
-
-        if (error) {
-            console.error('Error fetching employees for delegate:', error);
-            return;
-        }
-
-        // เก็บข้อมูลใส่ตัวแปรกลางไว้ตามเดิม
-        window.cachedEmployees = employees || [];
-
-        // เติมข้อมูลลงใน Dropdown ผู้รับมอบหมายโดยตรงเพื่อความชัวร์
-        const delegateSelect = document.getElementById('delegateName'); // ตรวจสอบ ID ใน HTML ของคุณ
-        if (delegateSelect) {
-            delegateSelect.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
-            window.cachedEmployees.forEach(emp => {
-                const opt = document.createElement('option');
-				opt.value = emp.name; // ใช้ชื่อพนักงานเป็นค่า value
-       			opt.dataset.position = emp.position || 'ไม่มีตำแหน่ง'; // เก็บตำแหน่งไว้ใน dataset 
-                opt.textContent = `${emp.name} (${emp.position || 'ไม่มีตำแหน่ง'})`;
-                delegateSelect.appendChild(opt);
-            });
-        }
-		// ฟังก์ชันอัปเดตตำแหน่งอัตโนมัติเมื่อเลือกชื่อผู้รับมอบหมาย
-function updateDelegatePosition() {
-    const delegateSelect = document.getElementById('delegateName');
-	
-    // ตรวจสอบ ID ของช่องแสดงตำแหน่ง (จากภาพคาดว่าน่าจะเป็น delegatePosition หรือช่อง input ตำแหน่ง)
-    const positionInput = document.getElementById('delegatePosition') || document.getElementById('delegatePositionInput'); 
-    
-    if (!delegateSelect || !positionInput) return;
-
-    const selectedOption = delegateSelect.options[delegateSelect.selectedIndex];
-    const position = selectedOption.dataset.position || '';
-
-    // ถ้าระบุชื่อ ให้ใส่ตำแหน่งอัตโนมัติ ถ้าไม่เลือกให้ล้างค่าว่าง
-    positionInput.value = delegateSelect.value ? position : '';
-}
-
-// ผูก Event ให้ทำงานเมื่อมีการเปลี่ยนชื่อผู้รับมอบหมาย
-document.addEventListener('DOMContentLoaded', () => {
-    const delegateSelect = document.getElementById('delegateName');
-    if (delegateSelect) {
-        delegateSelect.addEventListener('change', updateDelegatePosition);
-    }
-});
-
-        // เรียกฟังก์ชันเรนเดอร์เดิม (ถ้ามี)
-        if (typeof renderEmployeeDropdownForDelegate === 'function') {
-            renderEmployeeDropdownForDelegate(window.cachedEmployees);
-        }
-    } catch (err) {
-        console.error(err);
-    }
-}
-    document.addEventListener('DOMContentLoaded', () => {
-        loadEmployeeListForDelegate();
+    // ล้างผลพิจารณาเดิมทั้งหมด เพื่อเริ่มกระบวนการอนุมัติใหม่
+    Object.assign(base, {
+      delegate_comment: null, delegate_decision_date: null, delegate_signature_data: null,
+      hr_comment: null, hr_approver_name: null, hr_decision_date: null, hr_signature_data: null,
+      approver_comment: null, manager_approver_name: null, manager_decision_date: null, approver_signature_data: null
     });
+    const { error } = await supabaseClient.from('leave_requests').update(base).eq('id', editId);
+    if (error) throw error;
+  } else {
+    // สร้างใหม่: ใช้ insert (ไม่ใช้ upsert เพื่อกันเขียนทับคำขอของคนอื่นหากเลขซ้ำ) และลองใหม่เมื่อเลขชน
+    let saved = false;
+    for (let attempt = 0; attempt < 5 && !saved; attempt++) {
+      requestId = await generateRequestId();
+      const { error } = await supabaseClient.from('leave_requests').insert([Object.assign({ id: requestId }, base)]);
+      if (!error) { saved = true; break; }
+      if (error.code !== '23505') throw error;
+    }
+    if (!saved) throw new Error('ไม่สามารถสร้างรหัสคำขอได้ กรุณาลองใหม่อีกครั้ง');
+  }
 
-    // เติมตำแหน่งผู้รับมอบหมายงานแทนอัตโนมัติ ตามชื่อที่เลือกจากข้อมูลพนักงานจริง
-    function syncDelegatePosition() {
-      const select = document.getElementById('delegateName');
-      const selectedOption = select.options[select.selectedIndex];
-      const position = selectedOption ? selectedOption.getAttribute('data-position') : '';
-      document.getElementById('delegatePosition').value = position || '';
+  hideLoading();
+  showAppAlert(
+    currentLang === 'th' ? 'สำเร็จ!' : 'Success!',
+    currentLang === 'th'
+      ? `🎉 บันทึกการยื่นใบขออนุมัติวันลาแล้ว (รหัส: ${esc(requestId)})` + (hasDelegate ? ' — ระบบส่งต่อให้ผู้รับมอบหมายงานแทนรับทราบ' : ' — ส่งต่อให้ HR ตรวจสอบ')
+      : `Successfully submitted leave request (ID: ${esc(requestId)})`,
+    'success');
+  resetRequestForm();
+  loadMyRequests(true);
+}
+
+function fillApplicantFields() {
+  if (!loggedInEmployee) return;
+  const prefixSel = $('prefix');
+  const p = loggedInEmployee.prefix || '';
+  if (p && !Array.prototype.some.call(prefixSel.options, function (o) { return o.value === p; })) {
+    const o = document.createElement('option'); o.value = p; o.textContent = p; prefixSel.appendChild(o);
+  }
+  prefixSel.value = p;
+  $('name').value = loggedInEmployee.name || '';
+  $('position').value = loggedInEmployee.position || '';
+  $('applicantEmail').value = loggedInEmployee.email || '';
+  $('telephone').value = loggedInEmployee.phone || '';
+}
+
+function resetRequestForm() {
+  $('leaveForm').reset();
+  $('editRequestId').value = '';
+  $('cumulativePreview').value = '0';
+  $('editLabel').style.display = 'none';
+  $('cancelEditBtn').style.display = 'none';
+  $('leaveDuration').value = '0';
+  $('excludedDaysNote').innerHTML = '';
+  $('annualLeaveBalanceBox').style.display = 'none';
+  clearOverlapState();
+  fillApplicantFields();
+  syncCategoryDropdown('ลากิจ', true);
+  updateDelegateRequirement();
+  renderDelegateOptions(false);
+}
+
+// นำคำขอกลับมาแก้ไข
+function loadRequestBackToForm(id) {
+  const req = myRequestsCache.find(function (r) { return r.id === id; });
+  if (!req) return;
+  if (EDITABLE_STATUSES.indexOf(req.status) === -1) {
+    showAppAlert('ไม่สามารถแก้ไขได้', 'คำขอนี้ถูกพิจารณาไปแล้ว', 'danger');
+    return;
+  }
+
+  fillApplicantFields();
+  $('editRequestId').value = req.id;
+  $('telephone').value = req.phone || (loggedInEmployee && loggedInEmployee.phone) || '';
+
+  $('leaveCategory').value = req.leave_category;
+  syncCategoryDropdown(req.leave_category, true);
+  $('leaveType').value = req.leave_type;
+
+  clearOverlapState();
+  $('startDate').value = req.start_date ? String(req.start_date).slice(0, 10) : '';
+  $('endDate').value = req.end_date ? String(req.end_date).slice(0, 10) : '';
+  $('lastLeaveDate').value = req.last_leave_date ? String(req.last_leave_date).slice(0, 10) : '';
+  $('reason').value = req.reason || '';
+  $('contactAddress').value = req.contact_address || '';
+
+  let delegateId = req.delegate_employee_id || '';
+  if (!delegateId && req.delegate_name) {
+    const m = cachedEmployees.find(function (e) { return e.name === req.delegate_name; });
+    if (m) delegateId = m.employee_id;
+  }
+  renderDelegateOptions(false);
+  $('delegateName').value = delegateId;
+  syncDelegatePosition();
+
+  $('editLabel').style.display = 'inline-block';
+  $('cancelEditBtn').style.display = 'inline-block';
+  showTab('apply-tab');
+
+  calculateDateDuration();
+  showAppAlert('โหมดแก้ไข', 'ระบบได้ดึงข้อมูลใบลารหัส ' + esc(id) + ' กลับมาเตรียมปรับแก้ไขแล้ว โปรดตรวจสอบและส่งคำขอใหม่อีกครั้ง (หากไม่แนบไฟล์ใหม่ ระบบจะใช้ไฟล์เดิม)', 'info');
+}
+
+// ======================================================================
+// ล็อกอิน / ออกจากระบบ / เปลี่ยนรหัส
+// ======================================================================
+function toggleLoginPasswordVisibility() {
+  const input = $('employeePasswordInput');
+  const icon = $('loginPasswordToggleIcon');
+  if (input.type === 'password') {
+    input.type = 'text'; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash');
+  } else {
+    input.type = 'password'; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye');
+  }
+}
+
+async function doEmployeeLogin() {
+  const employeeId = $('employeeIdInput').value.trim();
+  const password = $('employeePasswordInput').value.trim();
+  if (!employeeId || !password) {
+    showAppAlert('ข้อมูลไม่ครบถ้วน', 'กรุณาระบุชื่อผู้ใช้และรหัสผ่าน', 'danger');
+    return;
+  }
+
+  showLoading('กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...');
+  try {
+    const { data: employee, error } = await supabaseClient.from('employees')
+      .select(EMP_COLS)
+      .eq('employee_id', employeeId)
+      .eq('password', password)
+      .maybeSingle();
+
+    if (error) {
+      hideLoading();
+      console.error(error);
+      showAppAlert('ข้อผิดพลาดระบบ', esc(error.message), 'danger');
+      return;
+    }
+    if (!employee) {
+      hideLoading();
+      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'danger');
+      return;
+    }
+    if (!isEmployeeActive(employee)) {
+      hideLoading();
+      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อ HR', 'danger');
+      return;
     }
 
-    // ===== จัดการวันหยุด (เสาร์-อาทิตย์ไม่ต้องเพิ่ม ระบบไม่นับให้อัตโนมัติอยู่แล้ว / เพิ่มเฉพาะวันหยุดนักขัตฤกษ์) =====
+    loggedInEmployee = employee;
+    $('loginGate').style.display = 'none';
+    $('userTopBar').style.display = 'block';
+    $('appShell').style.display = 'block';
+    $('employeeWelcomeText').innerText = 'สวัสดีคุณ ' + fullName(employee) + (employee.position ? ' (' + employee.position + ')' : '');
 
-    // ดึงรายการวันหยุดจากระบบ มาเก็บไว้ใช้คำนวณจำนวนวันลา — silent=true จะไม่ render ตารางจัดการ (ใช้ตอนโหลดฟอร์มพนักงาน)
-// โหลดรายการวันหยุดจาก Supabase มาใช้งานในระบบ
+    await loadEmployeeListForDelegate();
+    await routeToRolePage(normalizeRole(employee.role));
+    hideLoading();
+    showAppAlert('เข้าสู่ระบบสำเร็จ', 'ยินดีต้อนรับคุณ ' + esc(fullName(employee)), 'success');
+    handleDirectLink();
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+async function routeToRolePage(role) {
+  const applyLi = $('apply-tab').closest('li');
+  const myReqLi = $('myrequests-tab').closest('li');
+  const hrLi = $('hr-tab').closest('li');
+  const managerLi = $('manager-tab').closest('li');
+  const delegateLi = $('delegate-tab').closest('li');
+
+  applyLi.style.display = 'none';
+  myReqLi.style.display = 'none';
+  hrLi.style.display = 'none';
+  managerLi.style.display = 'none';
+  delegateLi.style.display = '';   // ทุก Role อาจถูกระบุเป็นผู้รับมอบหมายงานแทนได้
+  $('employeeLatestStatusText').innerHTML = '';
+
+  loadDelegateTasks(true);
+
+  if (role === 'Manager') {
+    managerLi.style.display = '';
+    showTab('manager-tab');
+    await loginAsManager();
+  } else if (role === 'HR') {
+    hrLi.style.display = '';
+    showTab('hr-tab');
+    await loginAsHR();
+  } else {
+    applyLi.style.display = '';
+    myReqLi.style.display = '';
+    showTab('apply-tab');
+    resetRequestForm();
+    $('searchEmail').value = loggedInEmployee.email || '';
+    $('searchEmail').readOnly = true;
+    await Promise.all([loadMyRequests(true), loadHolidays(true)]);
+  }
+}
+
+function handleDirectLink() {
+  if (!pendingDirectLink || !loggedInEmployee) return;
+  const link = pendingDirectLink;
+  pendingDirectLink = null;
+  if (link.page !== 'approve' || !link.requestId) return;
+  const role = normalizeRole(loggedInEmployee.role);
+  const req = allCachedRequests.find(function (r) { return r.id === link.requestId; });
+  if (role === 'Manager') {
+    if (req && req.status === 'PendingManager') openDecisionDialog(link.requestId);
+    else showAppAlert('แจ้งเตือน', 'คำขอ ' + esc(link.requestId) + ' ไม่อยู่ในสถานะรอผู้จัดการอนุมัติ', 'warning');
+  } else if (role === 'HR') {
+    if (req && req.status === 'PendingHR') openHRDecisionDialog(link.requestId);
+    else showAppAlert('แจ้งเตือน', 'คำขอ ' + esc(link.requestId) + ' ไม่อยู่ในสถานะรอ HR ตรวจสอบ', 'warning');
+  }
+}
+
+function doEmployeeLogout() {
+  loggedInEmployee = null;
+  allCachedRequests = [];
+  myRequestsCache = [];
+  cachedDelegateTasks = [];
+  cachedAllEmployeesAdmin = [];
+  isManagerAuthorized = false;
+  ['kit', 'puay', 'vacation'].forEach(function (k) { if (chartInstances[k]) { chartInstances[k].destroy(); chartInstances[k] = null; } });
+
+  const badge = $('delegateTaskBadge');
+  if (badge) badge.style.display = 'none';
+  $('loginGate').style.display = 'flex';
+  $('userTopBar').style.display = 'none';
+  $('appShell').style.display = 'none';
+  $('employeeIdInput').value = '';
+  $('employeePasswordInput').value = '';
+  $('searchEmail').value = '';
+  $('searchEmail').readOnly = false;
+  $('alertPlaceholder').innerHTML = '';
+  $('leaveForm').reset();
+  $('editRequestId').value = '';
+  clearOverlapState();
+}
+
+function openChangePasswordModal() {
+  $('oldPasswordInput').value = '';
+  $('newPasswordInput').value = '';
+  $('confirmPasswordInput').value = '';
+  getModal('changePasswordModal').show();
+}
+
+async function submitChangePassword() {
+  const oldPass = $('oldPasswordInput').value.trim();
+  const newPass = $('newPasswordInput').value.trim();
+  const confirmPass = $('confirmPasswordInput').value.trim();
+
+  if (!oldPass || !newPass || !confirmPass) { showAppAlert('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกข้อมูลให้ครบทุกช่อง', 'danger'); return; }
+  if (newPass !== confirmPass) { showAppAlert('ข้อมูลไม่ตรงกัน', 'รหัสผ่านใหม่และการยืนยันไม่ตรงกัน', 'danger'); return; }
+  if (newPass.length < 4) { showAppAlert('รหัสผ่านสั้นเกินไป', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร', 'danger'); return; }
+
+  getModal('changePasswordModal').hide();
+  showLoading('กำลังบันทึกรหัสผ่านใหม่...');
+  try {
+    const { data, error } = await supabaseClient.from('employees')
+      .update({ password: newPass })
+      .eq('employee_id', loggedInEmployee.employee_id)
+      .eq('password', oldPass)
+      .select('employee_id');
+    hideLoading();
+    if (error) { showAppAlert('ข้อผิดพลาดระบบ', esc(error.message), 'danger'); return; }
+    if (!data || !data.length) { showAppAlert('ไม่สำเร็จ', 'รหัสผ่านเดิมไม่ถูกต้อง', 'danger'); return; }
+    showAppAlert('สำเร็จ', 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว', 'success');
+  } catch (err) {
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// ======================================================================
+// ประวัติของฉัน
+// ======================================================================
+async function loadMyRequests(silent) {
+  const emailInput = $('searchEmail');
+  if (!emailInput) return;
+  if (!emailInput.value && $('applicantEmail').value) emailInput.value = $('applicantEmail').value;
+  const email = emailInput.value.trim();
+  if (!email) return;
+
+  if (!silent) showLoading(currentLang === 'th' ? 'กำลังเรียกค้นประวัติของคุณ...' : 'Fetching personal leave archive...');
+  try {
+    const { data, error } = await supabaseClient.from('leave_requests')
+      .select(LIST_COLS).eq('applicant_email', email).order('timestamp', { ascending: false });
+    if (!silent) hideLoading();
+    if (error) { console.error(error); showAppAlert('Error', esc(error.message), 'danger'); return; }
+
+    myRequestsCache = data || [];
+    filterMyRequestsTable();
+
+    if (loggedInEmployee) {
+      if (myRequestsCache.length) {
+        const latest = myRequestsCache[0];
+        const info = getStatusInfo(latest.status);
+        $('employeeLatestStatusText').innerHTML = `สถานะล่าสุด (${esc(latest.id)}): <span class="badge ${info.badgeClass}">${info.label}</span>`;
+      } else {
+        $('employeeLatestStatusText').innerText = 'สถานะล่าสุด: ยังไม่มีประวัติการลา';
+      }
+    }
+  } catch (err) {
+    if (!silent) hideLoading();
+    console.error(err);
+    showAppAlert('Error', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+function filterMyRequestsTable() {
+  const searchVal = ($('historySearch').value || '').trim().toLowerCase();
+  const statusFilter = $('historyStatusFilter').value;
+  const filtered = myRequestsCache.filter(function (r) {
+    const hay = [r.id, fullName(r), r.leave_category, r.leave_type, r.reason].join(' ').toLowerCase();
+    return (!searchVal || hay.indexOf(searchVal) !== -1) && (!statusFilter || r.status === statusFilter);
+  });
+  renderRequestsTable(filtered, 'historyTableBody', 'self');
+}
+
+function exportToCSV() {
+  if (!myRequestsCache.length) return;
+  let csv = '\uFEFF' + 'Request ID,Timestamp,Name,Position,Leave Type,Start Date,End Date,Duration Days,Cumulative YTD,Status\n';
+  myRequestsCache.forEach(function (r) {
+    csv += [r.id, r.timestamp, fullName(r), r.position, r.leave_type, r.start_date, r.end_date, r.leave_duration,
+      r.total_cumulative_days, getStatusInfo(r.status).label].map(csvCell).join(',') + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'รายงานสถิติวันลา_สอ_ครูภูเก็ต_' + toYMD(new Date()) + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+
+// ======================================================================
+// เรนเดอร์ตารางคำขอ — viewMode: "self" | "hr" | "manager"
+// ======================================================================
+function renderRequestsTable(data, elementId, viewMode) {
+  const tbody = $(elementId);
+  if (!tbody) return;
+  const isReview = (viewMode === 'hr' || viewMode === 'manager');
+
+  if (!data || !data.length) {
+    tbody.innerHTML = `<tr><td colspan="${isReview ? 7 : 8}" class="text-center py-3 text-muted">ไม่พบข้อมูลใบลาในระบบ</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map(function (req) {
+    const info = getStatusInfo(req.status);
+    const rejected = isRejectedStatusClient(req.status);
+    const idAttr = `data-id="${esc(req.id)}"`;
+    const viewBtn = `<button class="btn btn-sm btn-outline-primary me-1" ${idAttr} onclick="openDetailsModal(this.dataset.id)" title="ดูรายละเอียด"><i class="fa-solid fa-eye"></i></button>`;
+    const printBtn = req.status === 'Approved'
+      ? `<button class="btn btn-sm btn-outline-success ms-1" ${idAttr} onclick="printLeaveForm(this.dataset.id)" title="พิมพ์ใบลา / บันทึก PDF"><i class="fa-solid fa-file-pdf"></i></button>` : '';
+
+    if (isReview) {
+      const actionable = (viewMode === 'hr' && req.status === 'PendingHR') || (viewMode === 'manager' && req.status === 'PendingManager');
+      const decisionFn = viewMode === 'hr' ? 'openHRDecisionDialog' : 'openDecisionDialog';
+      let note;
+      if (req.status === 'PendingDelegate') note = 'รอผู้รับมอบหมายงานแทนรับทราบก่อน';
+      else if (viewMode === 'manager' && req.status === 'PendingHR') note = 'รอ HR ตรวจสอบก่อน';
+      else note = 'ดำเนินการแล้ว';
+      const decisionBtn = actionable
+        ? `<button class="btn btn-sm btn-dark" ${idAttr} onclick="${decisionFn}(this.dataset.id)" title="พิจารณา"><i class="fa-solid fa-gavel"></i></button>`
+        : `<span class="small text-muted">${note}</span>`;
+      const cum = rejected ? '- (ไม่นับ)' : ((req.total_cumulative_days !== null && req.total_cumulative_days !== undefined ? req.total_cumulative_days : req.leave_duration) + ' วัน');
+      return `<tr>
+        <td><b>${esc(req.id)}</b></td>
+        <td>${esc(fullName(req))}<br><span class="small text-muted">${esc(req.position)}</span></td>
+        <td>${esc(req.leave_type)}</td>
+        <td>${esc(req.leave_duration)} วัน</td>
+        <td>${cum}</td>
+        <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
+        <td class="text-center">${viewBtn}${decisionBtn}${printBtn}</td>
+      </tr>`;
+    }
+
+    const editBtn = EDITABLE_STATUSES.indexOf(req.status) !== -1
+      ? `<button class="btn btn-sm btn-outline-warning ms-1" ${idAttr} onclick="loadRequestBackToForm(this.dataset.id)" title="แก้ไข"><i class="fa-solid fa-edit"></i></button>` : '';
+    return `<tr>
+      <td><b>${esc(req.id)}</b></td>
+      <td>${esc(fullName(req))}</td>
+      <td>${esc(req.leave_category)} / ${esc(req.leave_type)}</td>
+      <td>${formatStringToDateTimeInput(req.start_date)}</td>
+      <td>${formatStringToDateTimeInput(req.end_date)}</td>
+      <td>${esc(req.leave_duration)} วัน</td>
+      <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
+      <td class="text-center">${viewBtn.replace('me-1', '')}${editBtn}${printBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---------- ประวัติทั้งหมด (HR / ผู้จัดการ) ----------
+function getFilteredHistoryData(area) {
+  const searchVal = $(area + 'HistorySearch').value.trim().toLowerCase();
+  const statusVal = $(area + 'HistoryStatusFilter').value;
+  return (allCachedRequests || []).filter(function (req) {
+    const nameMatch = !searchVal || fullName(req).toLowerCase().indexOf(searchVal) !== -1 || String(req.id).toLowerCase().indexOf(searchVal) !== -1;
+    return nameMatch && (!statusVal || req.status === statusVal);
+  });
+}
+
+function renderHistoryTable(area) {
+  renderRequestsTable(getFilteredHistoryData(area), area + 'HistoryTableBody', area);
+}
+
+function exportAreaToExcel(area) {
+  const filtered = getFilteredHistoryData(area);
+  if (!filtered.length) {
+    showAppAlert('ไม่มีข้อมูล', 'ไม่พบข้อมูลที่จะส่งออกตามเงื่อนไขการค้นหา/กรองปัจจุบัน', 'danger');
+    return;
+  }
+  const rows = filtered.map(function (r) {
+    return {
+      'รหัสคำขอ': r.id,
+      'วันที่ยื่นคำขอ': formatThaiDateTime(r.timestamp),
+      'ชื่อผู้เสนอลา': fullName(r),
+      'ตำแหน่ง': r.position,
+      'อีเมล': r.applicant_email,
+      'ประเภทลาหลัก': r.leave_category,
+      'ประเภทการลา': r.leave_type,
+      'ตั้งแต่วันที่': formatStringToDateTimeInput(r.start_date),
+      'ถึงวันที่': formatStringToDateTimeInput(r.end_date),
+      'จำนวนวัน': r.leave_duration,
+      'สะสมปีนี้': isRejectedStatusClient(r.status) ? '- (ไม่นับ)' : (r.total_cumulative_days !== null && r.total_cumulative_days !== undefined ? r.total_cumulative_days : r.leave_duration),
+      'สถานะปัจจุบัน': getStatusInfo(r.status).label,
+      'ความเห็น HR': r.hr_comment || '-',
+      'ความเห็นผู้จัดการ': r.approver_comment || '-',
+      'ผู้รับมอบหมายงานแทน': r.delegate_name || '-'
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 24 }, { wch: 12 }, { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 26 }, { wch: 28 }, { wch: 28 }, { wch: 20 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ประวัติการลา');
+  XLSX.writeFile(wb, `รายงานประวัติการลา_${area === 'hr' ? 'HR' : 'ผู้จัดการ'}_${toYMD(new Date())}.xlsx`);
+}
+
+// ======================================================================
+// รายละเอียด + Timeline
+// ======================================================================
+function findRequestInCaches(id) {
+  return allCachedRequests.find(function (r) { return r.id === id; })
+    || myRequestsCache.find(function (r) { return r.id === id; })
+    || cachedDelegateTasks.find(function (r) { return r.id === id; });
+}
+
+function openDetailsModal(id) {
+  const req = findRequestInCaches(id);
+  if (!req) return;
+
+  $('timelineModalTitle').innerHTML = `<i class="fa-solid fa-circle-info me-2"></i>ข้อมูลใบลาพักเลขที่: ${esc(req.id)}`;
+
+  const attach = req.has_attachment
+    ? `<button class="btn btn-xs btn-primary py-0 px-2 fw-bold small" onclick="openAttachment('${esc(req.id)}')"><i class="fa-solid fa-paperclip"></i> ดูเอกสารแนบ</button>`
+    : '<span class="text-muted">ไม่มีเอกสาร</span>';
+
+  $('timelineCardDetails').innerHTML = `
+    <table class="table table-sm table-borderless">
+      <tr><td><b>ผู้ขออนุมัติ:</b></td><td>${esc(fullName(req))}</td></tr>
+      <tr><td><b>ตำแหน่ง:</b></td><td>${esc(req.position) || '-'}</td></tr>
+      <tr><td><b>ประเภทลา:</b></td><td>${esc(req.leave_category)} (${esc(req.leave_type)})</td></tr>
+      <tr><td><b>ตั้งแต่วันที่:</b></td><td>${formatStringToDateTimeInput(req.start_date)}</td></tr>
+      <tr><td><b>ถึงวันที่:</b></td><td>${formatStringToDateTimeInput(req.end_date)}</td></tr>
+      <tr><td><b>เวลารวม:</b></td><td><span class="text-danger fw-bold">${esc(req.leave_duration)} วัน</span></td></tr>
+      <tr><td><b>เหตุผลการลา:</b></td><td>${esc(req.reason)}</td></tr>
+      <tr><td><b>ส่งเอกสารแนบ:</b></td><td>${attach}</td></tr>
+      <tr><td><b>เบอร์โทร:</b></td><td>${esc(req.phone) || '-'}</td></tr>
+      <tr><td><b>ผู้รับมอบหมาย:</b></td><td>${req.delegate_name ? esc(req.delegate_name) + ' (' + (esc(req.delegate_position) || '-') + ')' : '-'}</td></tr>
+      <tr><td><b>ที่อยู่ติดต่อ:</b></td><td>${esc(req.contact_address) || '-'}</td></tr>
+    </table>`;
+
+  const st = req.status;
+  const hasDelegateStage = !!(req.delegate_employee_id || req.delegate_name);
+  const noteBox = function (text, color, label) {
+    return text ? `<div class="p-2 bg-light rounded mt-1 border-start border-${color} border-4"><b>${label}:</b> ${esc(text)}</div>` : '';
+  };
+  const dt = function (v) { return v ? '• ' + formatThaiDateTime(v) : ''; };
+
+  let h = `
+    <div class="timeline-item approved">
+      <h6 class="mb-1 fw-bold">ยื่นเสนอขออนุมัติวันลา (Submitted)</h6>
+      <p class="text-muted small mb-0">ส่งเข้าระบบเมื่อ: ${formatThaiDateTime(req.timestamp)}</p>
+    </div>`;
+
+  if (hasDelegateStage) {
+    if (st === 'PendingDelegate') {
+      h += `<div class="timeline-item pending">
+        <h6 class="mb-1 fw-bold text-warning">รอผู้รับมอบหมายงานแทนรับทราบ + แนบลายเซ็น</h6>
+        <p class="text-muted small mb-0">ผู้รับมอบหมาย: ${esc(req.delegate_name)} (${esc(req.delegate_position) || '-'})</p></div>`;
+    } else if (st === 'RejectedByDelegate') {
+      h += `<div class="timeline-item rejected">
+        <h6 class="mb-1 text-danger fw-bold">ผู้รับมอบหมายงานแทนไม่รับมอบหมาย</h6>
+        <p class="text-muted small mb-0">ผู้รับมอบหมาย: ${esc(req.delegate_name)} ${dt(req.delegate_decision_date)}</p>
+        ${noteBox(req.delegate_comment, 'danger', 'เหตุผล')}</div>`;
+    } else {
+      h += `<div class="timeline-item approved">
+        <h6 class="mb-1 fw-bold text-success">ผู้รับมอบหมายงานแทนรับทราบและลงลายเซ็นแล้ว</h6>
+        <p class="text-muted small mb-0">ผู้รับมอบหมาย: ${esc(req.delegate_name)} ${dt(req.delegate_decision_date)}</p>
+        ${noteBox(req.delegate_comment, 'success', 'ความเห็น')}</div>`;
+    }
+  }
+
+  if (st === 'PendingHR') {
+    h += `<div class="timeline-item pending"><h6 class="mb-1 fw-bold text-warning">รอฝ่าย HR ตรวจสอบ</h6>
+      <p class="text-muted small mb-0">สถานะ: รอการตรวจสอบขั้นแรก</p></div>`;
+  } else if (st === 'RejectedByHR') {
+    h += `<div class="timeline-item rejected"><h6 class="mb-1 text-danger fw-bold">ฝ่าย HR ไม่อนุมัติ</h6>
+      <p class="text-muted small mb-0">ผู้ตรวจสอบ: ${esc(req.hr_approver_name) || '-'} ${dt(req.hr_decision_date)}</p>
+      ${noteBox(req.hr_comment, 'danger', 'เหตุผล')}</div>`;
+  } else if (st === 'SendBack') {
+    h += `<div class="timeline-item pending"><h6 class="mb-1 text-info fw-bold">ส่งคำขอกลับเพื่อแก้ไขข้อมูล (Send Back)</h6>
+      ${noteBox(req.approver_comment || req.hr_comment, 'info', 'หมายเหตุ')}</div>`;
+  } else if (st === 'PendingManager' || st === 'Approved' || st === 'RejectedByManager') {
+    h += `<div class="timeline-item approved"><h6 class="mb-1 fw-bold text-success">ฝ่าย HR ตรวจสอบผ่านแล้ว</h6>
+      <p class="text-muted small mb-0">ผู้ตรวจสอบ: ${esc(req.hr_approver_name) || '-'} ${dt(req.hr_decision_date)}</p>
+      ${noteBox(req.hr_comment, 'success', 'ความเห็น HR')}</div>`;
+  }
+
+  if (st === 'PendingManager') {
+    h += `<div class="timeline-item pending"><h6 class="mb-1 fw-bold text-warning">รอผู้จัดการอนุมัติขั้นสุดท้าย</h6></div>`;
+  } else if (st === 'Approved') {
+    h += `<div class="timeline-item approved"><h6 class="mb-1 fw-bold text-success">ผู้จัดการอนุมัติเรียบร้อย (Approved)</h6>
+      <p class="text-muted small mb-0">ผู้อนุมัติ: ${esc(req.manager_approver_name) || '-'} ${dt(req.manager_decision_date)}</p>
+      ${noteBox(req.approver_comment, 'success', 'ความเห็น')}</div>`;
+  } else if (st === 'RejectedByManager') {
+    h += `<div class="timeline-item rejected"><h6 class="mb-1 text-danger fw-bold">ผู้จัดการไม่อนุมัติ (Rejected)</h6>
+      <p class="text-muted small mb-0">ผู้อนุมัติ: ${esc(req.manager_approver_name) || '-'} ${dt(req.manager_decision_date)}</p>
+      ${noteBox(req.approver_comment, 'danger', 'เหตุผล')}</div>`;
+  }
+
+  $('timelineList').innerHTML = h;
+  getModal('timelineModal').show();
+}
+
+// เปิดไฟล์แนบ (ดึงจากฐานข้อมูลเฉพาะตอนกดดู)
+async function openAttachment(id) {
+  const w = window.open('', '_blank');
+  try {
+    const { data, error } = await supabaseClient.from('leave_requests').select('file_data').eq('id', id).maybeSingle();
+    const f = unpackFile(data && data.file_data);
+    if (error || !f || !f.base64) {
+      if (w) w.close();
+      showAppAlert('ไม่พบไฟล์', 'ไม่พบเอกสารแนบของคำขอนี้', 'danger');
+      return;
+    }
+    const bin = atob(f.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([bytes], { type: f.mimeType || 'application/octet-stream' }));
+    if (w) w.location.href = url;
+    else {
+      const a = document.createElement('a'); a.href = url; a.download = f.name || 'attachment';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+  } catch (err) {
+    if (w) w.close();
+    showAppAlert('ข้อผิดพลาด', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// พิมพ์ใบลา / บันทึกเป็น PDF (แทน PDF ที่เคยสร้างจาก Apps Script)
+async function printLeaveForm(id) {
+  const w = window.open('', '_blank');
+  try {
+    const { data: r, error } = await supabaseClient.from('leave_requests').select('*').eq('id', id).maybeSingle();
+    if (error || !r) { if (w) w.close(); showAppAlert('ข้อผิดพลาด', 'ไม่พบข้อมูลคำขอ', 'danger'); return; }
+
+    const sig = function (v) {
+      const f = unpackFile(v);
+      return f && f.base64 ? `<img class="sig" src="data:${esc(f.mimeType || 'image/png')};base64,${f.base64}">` : '<div class="sig-blank"></div>';
+    };
+    const box = function (title, nameTxt, dateTxt, sigData, comment) {
+      return `<div class="sigbox"><div class="t">${title}</div>${sig(sigData)}
+        <div>( ${esc(nameTxt) || '........................................'} )</div>
+        <div class="d">${dateTxt || 'วันที่ ......../......../........'}</div>
+        ${comment ? `<div class="c">ความเห็น: ${esc(comment)}</div>` : ''}</div>`;
+    };
+    const dOnly = function (v) { return v ? 'วันที่ ' + formatStringToDateTimeInput(toYMD(new Date(v))) : ''; };
+
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ใบลา ${esc(r.id)}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+      <style>
+        body{font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:16px;margin:30px 40px;color:#000}
+        h2,h3{text-align:center;margin:4px 0} table.info{width:100%;border-collapse:collapse;margin-top:14px}
+        table.info td{padding:5px 6px;vertical-align:top;border-bottom:1px dotted #999}
+        td.k{width:30%;font-weight:700}
+        .sigs{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}
+        .sigbox{text-align:center;border:1px solid #bbb;padding:10px;border-radius:6px;min-height:140px}
+        .sigbox .t{font-weight:700;margin-bottom:6px} .sig{max-height:60px;max-width:180px}
+        .sig-blank{height:60px} .d{font-size:14px;color:#444} .c{font-size:13px;text-align:left;margin-top:6px}
+        .no-print{text-align:center;margin-bottom:12px} @media print{.no-print{display:none}}
+      </style></head><body>
+      <div class="no-print"><button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button></div>
+      <h2>สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</h2><h3>ใบขออนุมัติลา (${esc(r.leave_category)})</h3>
+      <div style="text-align:right">เลขที่: ${esc(r.id)}<br>ยื่นเมื่อ: ${formatThaiDateTime(r.timestamp)}</div>
+      <table class="info">
+        <tr><td class="k">ผู้ขอลา</td><td>${esc(fullName(r))}</td></tr>
+        <tr><td class="k">ตำแหน่ง</td><td>${esc(r.position) || '-'}</td></tr>
+        <tr><td class="k">ประเภทการลา</td><td>${esc(r.leave_type)}</td></tr>
+        <tr><td class="k">เหตุผล</td><td>${esc(r.reason)}</td></tr>
+        <tr><td class="k">ตั้งแต่วันที่ — ถึงวันที่</td><td>${formatStringToDateTimeInput(r.start_date)} — ${formatStringToDateTimeInput(r.end_date)}</td></tr>
+        <tr><td class="k">รวมครั้งนี้</td><td>${esc(r.leave_duration)} วัน (สะสมปีนี้ ${esc(r.total_cumulative_days !== null && r.total_cumulative_days !== undefined ? r.total_cumulative_days : r.leave_duration)} วัน)</td></tr>
+        <tr><td class="k">ลาครั้งล่าสุด</td><td>${r.last_leave_date ? formatStringToDateTimeInput(r.last_leave_date) : '-'}</td></tr>
+        <tr><td class="k">ผู้รับมอบหมายงานแทน</td><td>${r.delegate_name ? esc(r.delegate_name) + ' (' + (esc(r.delegate_position) || '-') + ')' : '-'}</td></tr>
+        <tr><td class="k">ที่อยู่ที่ติดต่อได้</td><td>${esc(r.contact_address) || '-'} โทร. ${esc(r.phone) || '-'}</td></tr>
+      </table>
+      <div class="sigs">
+        ${box('ผู้ขอลา', fullName(r), dOnly(r.timestamp), r.signature_data)}
+        ${r.delegate_name ? box('ผู้รับมอบหมายงานแทน', r.delegate_name, dOnly(r.delegate_decision_date), r.delegate_signature_data, r.delegate_comment) : '<div></div>'}
+        ${box('ผู้ตรวจสอบ (HR)', r.hr_approver_name, dOnly(r.hr_decision_date), r.hr_signature_data, r.hr_comment)}
+        ${box('ผู้อนุมัติ (ผู้จัดการ)', r.manager_approver_name, dOnly(r.manager_decision_date), r.approver_signature_data, r.approver_comment)}
+      </div></body></html>`;
+
+    if (!w) { showAppAlert('ถูกบล็อก', 'เบราว์เซอร์บล็อกหน้าต่างใหม่ กรุณาอนุญาต pop-up แล้วลองอีกครั้ง', 'warning'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    setTimeout(function () { try { w.focus(); w.print(); } catch (e) { } }, 800);
+  } catch (err) {
+    if (w) w.close();
+    showAppAlert('ข้อผิดพลาด', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// ======================================================================
+// ผู้รับมอบหมายงานแทน
+// ======================================================================
+async function loadDelegateTasks(silent) {
+  if (!loggedInEmployee) return;
+  if (!silent) showLoading('กำลังโหลดงานที่ได้รับมอบหมาย...');
+  try {
+    const empId = String(loggedInEmployee.employee_id).replace(/"/g, '');
+    const nm = String(loggedInEmployee.name).replace(/"/g, '');
+    const { data, error } = await supabaseClient.from('leave_requests')
+      .select(LIST_COLS)
+      .or(`delegate_employee_id.eq."${empId}",delegate_name.eq."${nm}"`)
+      .order('timestamp', { ascending: false });
+    if (!silent) hideLoading();
+    if (error) {
+      console.error('Error fetching delegate tasks:', error);
+      if (!silent) showAppAlert('ข้อผิดพลาดระบบ', esc(error.message), 'danger');
+      return;
+    }
+    cachedDelegateTasks = data || [];
+    renderDelegateTasks();
+  } catch (err) {
+    if (!silent) hideLoading();
+    console.error(err);
+    if (!silent) showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+function renderDelegateTasks() {
+  const tbody = $('delegateTableBody');
+  const badge = $('delegateTaskBadge');
+  const pending = cachedDelegateTasks.filter(function (t) { return t.status === 'PendingDelegate'; }).length;
+  if (pending > 0) { badge.innerText = pending; badge.style.display = 'inline-block'; } else { badge.style.display = 'none'; }
+
+  if (!cachedDelegateTasks.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีงานที่ได้รับมอบหมาย</td></tr>';
+    return;
+  }
+  tbody.innerHTML = cachedDelegateTasks.map(function (t) {
+    const info = getStatusInfo(t.status);
+    const actionable = t.status === 'PendingDelegate';
+    const idAttr = `data-id="${esc(t.id)}"`;
+    const actionBtn = actionable
+      ? `<button class="btn btn-sm btn-primary fw-bold text-nowrap" ${idAttr} onclick="openDelegateDecisionDialog(this.dataset.id)"><i class="fa-solid fa-signature me-1"></i>รับทราบ/ลงลายเซ็น</button>`
+      : `<span class="small text-muted">${t.status === 'RejectedByDelegate' ? 'คุณไม่รับมอบหมาย' : 'รับทราบแล้ว'}</span>`;
+    return `<tr>
+      <td><b>${esc(t.id)}</b></td>
+      <td>${esc(fullName(t))}<br><span class="small text-muted">${esc(t.position)}</span></td>
+      <td>${esc(t.leave_type) || '-'}<br><span class="small text-muted">${formatStringToDateTimeInput(t.start_date)} ถึง ${formatStringToDateTimeInput(t.end_date)}</span></td>
+      <td>${esc(t.leave_duration || 0)} วัน</td>
+      <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
+      <td class="text-center">
+        <div class="d-flex gap-1 justify-content-center align-items-center">
+          <button class="btn btn-sm btn-outline-primary" ${idAttr} onclick="openDetailsModal(this.dataset.id)"><i class="fa-solid fa-eye"></i></button>
+          ${actionBtn}
+        </div>
+      </td></tr>`;
+  }).join('');
+}
+
+function openDelegateDecisionDialog(id) {
+  const task = cachedDelegateTasks.find(function (t) { return t.id === id; });
+  if (!task) return;
+  $('delegateActionRequestId').value = id;
+  $('delegateActionComment').value = '';
+  $('delegateSignatureFile').value = '';
+  $('delegateRequestSummary').innerHTML =
+    `<b>รหัสคำขอ:</b> ${esc(task.id)}<br>` +
+    `<b>ผู้ขอลา:</b> ${esc(fullName(task))} (${esc(task.position)})<br>` +
+    `<b>ประเภท:</b> ${esc(task.leave_type)} (${esc(task.leave_duration || 0)} วัน)<br>` +
+    `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(task.start_date)} ถึง ${formatStringToDateTimeInput(task.end_date)}<br>` +
+    `<b>เหตุผลการลา:</b> ${esc(task.reason) || '-'}`;
+  getModal('delegateDecisionModal').show();
+}
+
+async function submitDelegateDecision(decision) {
+  const id = $('delegateActionRequestId').value;
+  const comment = $('delegateActionComment').value.trim();
+  const hasSignature = $('delegateSignatureFile').files.length > 0;
+  if (!id) return;
+
+  if (decision === 'Accepted' && !hasSignature) { alert('กรุณาแนบไฟล์ลายเซ็นก่อนกด "รับทราบ"'); return; }
+  if (decision === 'Declined' && !comment) { alert('กรุณาระบุเหตุผลที่ไม่สามารถรับมอบหมายงานแทน'); return; }
+  if (!checkFileSize('delegateSignatureFile', 2, 'ไฟล์ลายเซ็น')) return;
+
+  getModal('delegateDecisionModal').hide();
+  showLoading('กำลังบันทึกการตัดสินใจของผู้รับมอบหมายงานแทน...');
+  try {
+    const payload = {
+      status: decision === 'Accepted' ? 'PendingHR' : 'RejectedByDelegate',
+      delegate_comment: comment || null,
+      delegate_decision_date: new Date().toISOString()
+    };
+    if (decision === 'Accepted') payload.delegate_signature_data = packFile(await readFileAsBase64('delegateSignatureFile'));
+
+    const { data, error } = await supabaseClient.from('leave_requests')
+      .update(payload).eq('id', id).eq('status', 'PendingDelegate').select('id');
+    hideLoading();
+    if (error) throw error;
+    if (!data || !data.length) {
+      showAppAlert('ไม่สำเร็จ', 'คำขอนี้ถูกดำเนินการไปแล้วหรือถูกแก้ไขโดยผู้ยื่น', 'warning');
+    } else {
+      showAppAlert('สำเร็จ', decision === 'Accepted' ? 'รับทราบเรียบร้อย ระบบส่งต่อให้ HR ตรวจสอบแล้ว' : 'บันทึกการไม่รับมอบหมายเรียบร้อยแล้ว', 'success');
+    }
+    loadDelegateTasks(true);
+  } catch (err) {
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// ======================================================================
+// HR
+// ======================================================================
+async function loginAsHR() {
+  if (!loggedInEmployee) return;
+  showLoading('กำลังโหลดข้อมูลคำขอทั้งหมดสำหรับ HR...');
+  try {
+    const { data, error } = await supabaseClient.from('leave_requests').select(LIST_COLS).order('timestamp', { ascending: false });
+    hideLoading();
+    if (error) { console.error(error); showAppAlert('เกิดข้อผิดพลาดในการโหลดข้อมูล', esc(error.message), 'danger'); return; }
+    allCachedRequests = data || [];
+    updateHRMetrics(allCachedRequests);
+    renderRequestsTable(allCachedRequests.filter(function (r) { return r.status === 'PendingHR'; }), 'hrTableBody', 'hr');
+    renderHistoryTable('hr');
+    await loadHolidays(true);
+    renderLeaveCalendar('hr');
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+function updateHRMetrics(data) {
+  data = data || [];
+  $('hrMetricAll').innerText = data.length;
+  $('hrMetricPending').innerText = data.filter(function (r) { return r.status === 'PendingHR'; }).length;
+  $('hrMetricPassed').innerText = data.filter(function (r) { return r.status === 'PendingManager' || r.status === 'Approved' || r.status === 'RejectedByManager'; }).length;
+  $('hrMetricRejected').innerText = data.filter(function (r) { return r.status === 'RejectedByHR'; }).length;
+}
+
+function openHRDecisionDialog(id) {
+  $('hrActionRequestId').value = id;
+  $('hrActionRequestIdLabel').innerText = id;
+  $('hrActionComment').value = '';
+  $('hrSignatureFile').value = '';
+  getModal('hrDecisionModal').show();
+}
+
+async function submitHRDecision(decision) {
+  const id = $('hrActionRequestId').value;
+  const comment = $('hrActionComment').value.trim();
+  if (!id || !loggedInEmployee || normalizeRole(loggedInEmployee.role) !== 'HR') return;
+
+  if ((decision === 'RejectedByHR' || decision === 'SendBack') && !comment) {
+    alert('กรุณาระบุความเห็น / สาเหตุ หรือเหตุผลการส่งคืนแก้ไขด้วยครับ');
+    return;
+  }
+  if (!checkFileSize('hrSignatureFile', 2, 'ไฟล์ลายเซ็น')) return;
+
+  getModal('hrDecisionModal').hide();
+  showLoading('กำลังบันทึกผลการตรวจสอบ...');
+  try {
+    const nextStatus = { Approved: 'PendingManager', RejectedByHR: 'RejectedByHR', SendBack: 'SendBack' }[decision];
+    const payload = {
+      status: nextStatus,
+      hr_comment: comment || null,
+      hr_approver_name: fullName(loggedInEmployee),
+      hr_decision_date: new Date().toISOString()
+    };
+    const sigData = await readFileAsBase64('hrSignatureFile');
+    if (sigData) payload.hr_signature_data = packFile(sigData);
+
+    const { data, error } = await supabaseClient.from('leave_requests')
+      .update(payload).eq('id', id).eq('status', 'PendingHR').select('id');
+    hideLoading();
+    if (error) throw error;
+    if (!data || !data.length) showAppAlert('ไม่สำเร็จ', 'คำขอนี้ถูกดำเนินการไปแล้วหรือสถานะเปลี่ยนไป', 'warning');
+    else showAppAlert('บันทึกผลแล้ว', 'บันทึกผลการตรวจสอบคำขอ ' + esc(id) + ' เรียบร้อยแล้ว', 'success');
+    loginAsHR();
+  } catch (err) {
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// ---------- วันหยุด ----------
 async function loadHolidays(silent) {
   try {
-    const { data: holidays, error } = await supabaseClient
-      .from('holidays')
-      .select('*');
-
-    if (error) {
-      console.error('Error fetching holidays:', error);
-      return;
-    }
-
-    window.cachedHolidays = holidays || [];
-    if (typeof renderHolidays === 'function') {
-      renderHolidays(window.cachedHolidays);
-    }
-  } catch (err) {
-    console.error(err);
-  }
+    const { data, error } = await supabaseClient.from('holidays').select('*').order('date', { ascending: true });
+    if (error) { console.error('Error fetching holidays:', error); if (!silent) showAppAlert('ข้อผิดพลาด', esc(error.message), 'danger'); return; }
+    cachedHolidays = data || [];
+    if (!silent) renderHolidayTable();
+  } catch (err) { console.error(err); }
 }
 
-    function renderHolidayTable() {
-      const tbody = document.getElementById('holidayTableBody');
-      if (!tbody) return;
-      if (!cachedHolidays.length) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">ยังไม่มีข้อมูลวันหยุด</td></tr>';
-        return;
-      }
-      tbody.innerHTML = cachedHolidays.map(h => `
-        <tr>
-          <td>${formatStringToDateTimeInput(h.date)}</td>
-          <td>${h.description}</td>
-          <td class="text-center"><button class="btn btn-sm btn-outline-danger" onclick="deleteHolidayEntry('${h.date}')"><i class="fa-solid fa-trash"></i></button></td>
-        </tr>
-      `).join('');
-    }
+function renderHolidayTable() {
+  const tbody = $('holidayTableBody');
+  if (!tbody) return;
+  if (!cachedHolidays.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">ยังไม่มีข้อมูลวันหยุด</td></tr>';
+    return;
+  }
+  tbody.innerHTML = cachedHolidays.map(function (h) {
+    const ds = String(h.date).slice(0, 10);
+    return `<tr>
+      <td>${formatStringToDateTimeInput(ds)}</td>
+      <td>${esc(h.description)}</td>
+      <td class="text-center"><button class="btn btn-sm btn-outline-danger" data-date="${esc(ds)}" onclick="deleteHolidayEntry(this.dataset.date)"><i class="fa-solid fa-trash"></i></button></td>
+    </tr>`;
+  }).join('');
+}
 
-    function addHolidayEntry() {
-      const date = document.getElementById('newHolidayDate').value;
-      const desc = document.getElementById('newHolidayDesc').value.trim();
-      if (!date || !desc) {
-        showAppAlert("ข้อมูลไม่ครบ", "กรุณาระบุวันที่และรายละเอียดวันหยุด", "danger");
-        return;
-      }
-      showLoading("กำลังบันทึกวันหยุด...");
-      google.script.run
-        .withSuccessHandler(function (res) {
-          hideLoading();
-          if (res.success) {
-            document.getElementById('newHolidayDate').value = '';
-            document.getElementById('newHolidayDesc').value = '';
-            showAppAlert("สำเร็จ", res.message, "success");
-            loadHolidays();
-            renderLeaveCalendar('hr');
-          } else {
-            showAppAlert("ผิดพลาด", res.message, "danger");
-          }
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .saveHoliday(date, desc);
-    }
-
-    function deleteHolidayEntry(dateStr) {
-      if (!confirm("ยืนยันลบวันหยุดวันที่ " + formatStringToDateTimeInput(dateStr) + " ใช่หรือไม่?")) return;
-      showLoading("กำลังลบวันหยุด...");
-      google.script.run
-        .withSuccessHandler(function (res) {
-          hideLoading();
-          showAppAlert(res.success ? "สำเร็จ" : "ผิดพลาด", res.message, res.success ? "success" : "danger");
-          loadHolidays();
-          renderLeaveCalendar('hr');
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .deleteHoliday(dateStr);
-    }
-
-    // ===== จัดการสิทธิวันลาพักผ่อน (ยอดยกมา/สิทธิรายปี) — สำหรับฝ่าย HR =====
-
-    // เตรียมข้อมูลตอนเปิดแท็บครั้งแรก: เติมรายชื่อพนักงานในดรอปดาวน์ + ตั้งปีปัจจุบันเป็นค่าเริ่มต้น
-    async function initAnnualLeaveManager() {
+async function addHolidayEntry() {
+  const date = $('newHolidayDate').value;
+  const desc = $('newHolidayDesc').value.trim();
+  if (!date || !desc) { showAppAlert('ข้อมูลไม่ครบ', 'กรุณาระบุวันที่และรายละเอียดวันหยุด', 'danger'); return; }
+  showLoading('กำลังบันทึกวันหยุด...');
   try {
-    const { data: employees, error } = await supabaseClient
-      .from('employees')
-      .select('*');
-
-    if (error) {
-      console.error('Error fetching employees for annual leave:', error);
-      return;
-    }
-
-    // ฟังก์ชันเรนเดอร์ข้อมูลสิทธิ์วันลาพักผ่อน (ตามระบบเดิมของคุณ)
-    if (typeof renderAnnualLeaveTable === 'function') {
-      renderAnnualLeaveTable(employees || []);
-    }
+    const { data: ex, error: e1 } = await supabaseClient.from('holidays').select('date').eq('date', date).limit(1);
+    if (e1) throw e1;
+    let res;
+    if (ex && ex.length) res = await supabaseClient.from('holidays').update({ description: desc }).eq('date', date);
+    else res = await supabaseClient.from('holidays').insert([{ date: date, description: desc }]);
+    hideLoading();
+    if (res.error) throw res.error;
+    $('newHolidayDate').value = '';
+    $('newHolidayDesc').value = '';
+    showAppAlert('สำเร็จ', (ex && ex.length) ? 'แก้ไขรายละเอียดวันหยุดเรียบร้อยแล้ว' : 'เพิ่มวันหยุดเรียบร้อยแล้ว', 'success');
+    await loadHolidays();
+    renderLeaveCalendar('hr');
   } catch (err) {
-    console.error(err);
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
   }
 }
 
-    // ===== จัดการพนักงาน (เพิ่มบัญชี / ระงับ-เปิดใช้งานบัญชี) =====
-   
-	async function loadEmployeeManager() {
-  showLoading("กำลังโหลดรายชื่อพนักงาน...");
-  
+async function deleteHolidayEntry(dateStr) {
+  if (!confirm('ยืนยันลบวันหยุดวันที่ ' + formatStringToDateTimeInput(dateStr) + ' ใช่หรือไม่?')) return;
+  showLoading('กำลังลบวันหยุด...');
   try {
-    const { data, error } = await supabaseClient
-      .from('employees')
-      .select('*')
-      .order('employee_id', { ascending: true });
-
+    const { error } = await supabaseClient.from('holidays').delete().eq('date', dateStr);
     hideLoading();
-
-    if (error) {
-      console.error('Error loading employees:', error);
-      showAppAlert("ข้อผิดพลาด", error.message, "danger");
-      return;
-    }
-
-    const empData = data || [];
-    cachedAllEmployeesAdmin = empData;
-    
-    if (typeof renderEmployeeManagerTable === 'function') {
-      renderEmployeeManagerTable(cachedAllEmployeesAdmin);
-    }
-
+    if (error) throw error;
+    showAppAlert('สำเร็จ', 'ลบวันหยุดเรียบร้อยแล้ว', 'success');
+    await loadHolidays();
+    renderLeaveCalendar('hr');
   } catch (err) {
     hideLoading();
-    console.error(err);
-    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
   }
 }
-	  
-try {
-    // เก็บข้อมูลลงตัวแปรแคชไว้ใช้งาน
-    window.cachedEmployeesManager = employees || [];
 
-    // เรียกฟังก์ชันเรนเดอร์ลงตารางจัดการพนักงาน
-	  if (typeof renderEmployeeManagerTable === 'function') {
-      renderEmployeeManagerTable(window.cachedEmployeesManager);
-    } 
+// ---------- สิทธิวันลาพักผ่อน (HR) ----------
+async function initAnnualLeaveManager() {
+  try {
+    const { data, error } = await supabaseClient.from('employees').select(EMP_COLS).order('name', { ascending: true });
+    if (error) { console.error(error); showAppAlert('ข้อผิดพลาด', esc(error.message), 'danger'); return; }
+    const sel = $('annualLeaveEmployeeSelect');
+    sel.innerHTML = '<option value="">-- เลือกจากรายชื่อ --</option>';
+    (data || []).filter(isEmployeeActive).forEach(function (emp) {
+      const o = document.createElement('option');
+      o.value = emp.email || '';
+      o.textContent = fullName(emp) + (emp.email ? ' (' + emp.email + ')' : '');
+      sel.appendChild(o);
+    });
+    if (!$('annualLeaveYearBE').value) $('annualLeaveYearBE').value = new Date().getFullYear() + 543;
+    $('maxCarryoverLabel').innerText = MAX_CARRYOVER_DAYS;
+  } catch (err) { console.error(err); }
+}
 
+async function loadAnnualLeaveLedger() {
+  const email = $('annualLeaveEmail').value.trim();
+  const yearBE = parseInt($('annualLeaveYearBE').value, 10);
+  if (!email || !yearBE) { showAppAlert('ข้อมูลไม่ครบ', 'กรุณาเลือก/ระบุอีเมลพนักงาน และปี พ.ศ.', 'danger'); return; }
+
+  showLoading('กำลังโหลดข้อมูลสิทธิวันลาพักผ่อน...');
+  try {
+    const bal = await getAnnualLeaveBalance(email, yearBE - 543);
+    hideLoading();
+    $('annualLeaveResultCard').style.display = 'block';
+    $('annualLeaveEmptyState').style.display = 'none';
+    $('editCarriedOverDays').value = bal.carriedOver;
+    $('editAnnualEntitlement').value = bal.entitlement;
+    $('annualLeaveSummaryText').innerHTML =
+      `ใช้ได้รวม ${bal.totalAvailable} วัน | ใช้ไปแล้วปีนี้ ${bal.used} วัน (รวมคำขอที่อยู่ระหว่างพิจารณา) | คงเหลือปัจจุบัน <b>${bal.remaining} วัน</b>`;
   } catch (err) {
     hideLoading();
-    console.error(err);
-    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
   }
+}
 
-	  
+async function saveAnnualLeaveLedger() {
+  const email = $('annualLeaveEmail').value.trim();
+  const yearBE = parseInt($('annualLeaveYearBE').value, 10);
+  const carried = parseFloat($('editCarriedOverDays').value);
+  const entitlement = parseFloat($('editAnnualEntitlement').value);
+  if (!email || !yearBE) return;
+  if (isNaN(carried) || isNaN(entitlement) || carried < 0 || entitlement < 0) {
+    showAppAlert('ข้อมูลไม่ถูกต้อง', 'กรุณากรอกยอดยกมาและสิทธิปีนี้เป็นตัวเลขตั้งแต่ 0 ขึ้นไป', 'danger');
+    return;
+  }
+  const year = yearBE - 543;
+
+  showLoading('กำลังบันทึกยอดวันลาพักผ่อน...');
+  try {
+    const { data: ex, error: e1 } = await supabaseClient.from('annual_leave_ledger')
+      .select('email').eq('email', email).eq('year', year).limit(1);
+    if (e1) throw e1;
+    const row = { carried_over: carried, entitlement: entitlement, updated_at: new Date().toISOString() };
+    let res;
+    if (ex && ex.length) res = await supabaseClient.from('annual_leave_ledger').update(row).eq('email', email).eq('year', year);
+    else res = await supabaseClient.from('annual_leave_ledger').insert([Object.assign({ email: email, year: year }, row)]);
+    hideLoading();
+    if (res.error) throw res.error;
+    showAppAlert('สำเร็จ', 'บันทึกยอดวันลาพักผ่อนเรียบร้อยแล้ว', 'success');
+    loadAnnualLeaveLedger();
+  } catch (err) {
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// ---------- จัดการพนักงาน ----------
+async function loadEmployeeManager() {
+  showLoading('กำลังโหลดรายชื่อพนักงาน...');
+  try {
+    const { data, error } = await supabaseClient.from('employees').select(EMP_COLS).order('employee_id', { ascending: true });
+    hideLoading();
+    if (error) { console.error(error); showAppAlert('ข้อผิดพลาด', esc(error.message), 'danger'); return; }
+    cachedAllEmployeesAdmin = data || [];
+    renderEmployeeManagerTable();
+  } catch (err) {
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
 function renderEmployeeManagerTable() {
-  const searchVal = document.getElementById('employeeManagerSearch').value.trim().toLowerCase();
-  const tbody = document.getElementById('employeeManagerTableBody');
-
-  const filtered = (cachedAllEmployeesAdmin || []).filter(emp => {
+  const searchVal = $('employeeManagerSearch').value.trim().toLowerCase();
+  const tbody = $('employeeManagerTableBody');
+  const filtered = (cachedAllEmployeesAdmin || []).filter(function (emp) {
     if (!searchVal) return true;
-    return (emp.employee_id || '').toLowerCase().includes(searchVal) ||
-           (emp.prefix + emp.name).toLowerCase().includes(searchVal) ||
-           (emp.email || '').toLowerCase().includes(searchVal);
+    return String(emp.employee_id || '').toLowerCase().indexOf(searchVal) !== -1 ||
+      fullName(emp).toLowerCase().indexOf(searchVal) !== -1 ||
+      String(emp.email || '').toLowerCase().indexOf(searchVal) !== -1;
   });
-
   if (!filtered.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูลพนักงาน</td></tr>';
     return;
   }
-
-  const roleLabelMap = { Employee: 'พนักงาน', HR: 'HR', Manager: 'ผู้จัดการ' };
-
-  tbody.innerHTML = filtered.map(emp => {
-    const isActive = emp.status === 'Active' || !emp.status; // ถ้ายังไม่เซ็ตให้มองเป็น Active
-    const statusBadge = isActive
-      ? '<span class="badge bg-success">ใช้งานได้</span>'
-      : '<span class="badge bg-secondary">ระงับการใช้งาน</span>';
-    const toggleBtn = isActive
-      ? `<button class="btn btn-sm btn-outline-danger" onclick="toggleEmployeeStatus('${emp.employee_id}', 'Inactive')"><i class="fa-solid fa-user-slash me-1"></i>ระงับ</button>`
-      : `<button class="btn btn-sm btn-outline-success" onclick="toggleEmployeeStatus('${emp.employee_id}', 'Active')"><i class="fa-solid fa-user-check me-1"></i>เปิด</button>`;
-
-    return `
-      <tr>
-        <td><b>${emp.employee_id || '-'}</b></td>
-        <td>${emp.prefix || ''}${emp.name || ''}</td>
-        <td>${emp.position || '-'}</td>
-        <td>${emp.email || '-'}</td>
-        <td>${roleLabelMap[emp.role] || emp.role || 'Employee'}</td>
-        <td>${statusBadge}</td>
-        <td class="text-center">${toggleBtn}</td>
-      </tr>
-    `;
+  const roleLabel = { Employee: 'พนักงาน', HR: 'HR', Manager: 'ผู้จัดการ' };
+  tbody.innerHTML = filtered.map(function (emp) {
+    const active = isEmployeeActive(emp);
+    const badge = active ? '<span class="badge bg-success">ใช้งานได้</span>' : '<span class="badge bg-secondary">ระงับการใช้งาน</span>';
+    const btn = active
+      ? `<button class="btn btn-sm btn-outline-danger" data-id="${esc(emp.employee_id)}" data-status="Inactive" onclick="toggleEmployeeStatus(this.dataset.id, this.dataset.status)"><i class="fa-solid fa-user-slash me-1"></i>ระงับ</button>`
+      : `<button class="btn btn-sm btn-outline-success" data-id="${esc(emp.employee_id)}" data-status="Active" onclick="toggleEmployeeStatus(this.dataset.id, this.dataset.status)"><i class="fa-solid fa-user-check me-1"></i>เปิด</button>`;
+    return `<tr>
+      <td><b>${esc(emp.employee_id) || '-'}</b></td>
+      <td>${esc(fullName(emp))}</td>
+      <td>${esc(emp.position) || '-'}</td>
+      <td>${esc(emp.email) || '-'}</td>
+      <td>${roleLabel[normalizeRole(emp.role)] || 'พนักงาน'}</td>
+      <td>${badge}</td>
+      <td class="text-center">${btn}</td></tr>`;
   }).join('');
 }
-	  
-   async function toggleEmployeeStatus(employeeId, newStatus) {
-  showLoading("กำลังเปลี่ยนสถานะบัญชี...");
-  try {
-    // อัปเดตสถานะในตาราง employees ของ Supabase
-    const { data, error } = await supabaseClient
-      .from('employees')
-      .update({ status: newStatus })
-      .eq('employee_id', employeeId);
 
-    hideLoading();
-
-    if (error) {
-      console.error('Error updating employee status:', error);
-      showAppAlert("ผิดพลาด", error.message, "danger");
-      return;
-    }
-
-    showAppAlert("สำเร็จ", "เปลี่ยนสถานะพนักงานเรียบร้อยแล้ว", "success");
-    
-    // โหลดรายชื่อพนักงานใหม่เพื่ออัปเดตปุ่มบนหน้าจอ
-    loadEmployeeManager();
-
-  } catch (err) {
-    hideLoading();
-    console.error(err);
-    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-  }
-}
-
-   async function addEmployeeEntry() {
-  const employeeData = {
-    employee_id: document.getElementById('newEmpId').value.trim(),
-    password: document.getElementById('newEmpPassword').value.trim(),
-    prefix: document.getElementById('newEmpPrefix').value,
-    name: document.getElementById('newEmpName').value.trim(),
-    position: document.getElementById('newEmpPosition').value.trim(),
-    email: document.getElementById('newEmpEmail').value.trim(),
-    phone: document.getElementById('newEmpTelephone').value.trim(),
-    role: document.getElementById('newEmpRole').value,
-    status: 'ใช้งานได้'
-  };
-
-  if (!employeeData.employee_id || !employeeData.password || !employeeData.name || !employeeData.email) {
-    showAppAlert("ข้อมูลไม่ครบ", "กรุณากรอกรหัสผู้ใช้ รหัสผ่าน ชื่อ และอีเมล ให้ครบถ้วน", "danger");
+async function toggleEmployeeStatus(employeeId, newStatus) {
+  if (loggedInEmployee && employeeId === loggedInEmployee.employee_id && newStatus === 'Inactive') {
+    showAppAlert('ไม่สามารถทำได้', 'ไม่สามารถระงับบัญชีของตัวเองได้', 'danger');
     return;
   }
-
-  showLoading("กำลังเพิ่มพนักงานใหม่...");
+  showLoading('กำลังเปลี่ยนสถานะบัญชี...');
   try {
-    const { data, error } = await supabaseClient
-      .from('employees')
-      .insert([employeeData]);
-
+    const { error } = await supabaseClient.from('employees').update({ status: newStatus }).eq('employee_id', employeeId);
     hideLoading();
-
-    if (error) {
-      console.error('Error adding employee:', error);
-      showAppAlert("ผิดพลาด", error.message, "danger");
-      return;
-    }
-
-    showAppAlert("สำเร็จ", "เพิ่มพนักงานใหม่เรียบร้อยแล้ว", "success");
-    
-    // เคลียร์ฟอร์ม
-    ['newEmpId', 'newEmpPassword', 'newEmpName', 'newEmpPosition', 'newEmpEmail', 'newEmpTelephone'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
-    
-    // โหลดรายชื่อพนักงานใหม่แสดงในตาราง
+    if (error) throw error;
+    showAppAlert('สำเร็จ', 'เปลี่ยนสถานะพนักงานเรียบร้อยแล้ว', 'success');
     loadEmployeeManager();
-
+    loadEmployeeListForDelegate();
   } catch (err) {
     hideLoading();
-    console.error(err);
-    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+    showAppAlert('ผิดพลาด', esc(err.message || err.toString()), 'danger');
   }
 }
 
-    // โหลดยอดวันลาพักผ่อนของพนักงาน+ปีที่เลือก มาแสดงในฟอร์มแก้ไข
-    function loadAnnualLeaveLedger() {
-      const email = document.getElementById('annualLeaveEmail').value.trim();
-      const yearBE = parseInt(document.getElementById('annualLeaveYearBE').value, 10);
-
-      if (!email || !yearBE) {
-        showAppAlert("ข้อมูลไม่ครบ", "กรุณาเลือก/ระบุอีเมลพนักงาน และปี พ.ศ.", "danger");
-        return;
-      }
-
-      const calendarYear = yearBE - 543;
-      showLoading("กำลังโหลดข้อมูลสิทธิวันลาพักผ่อน...");
-
-      google.script.run
-        .withSuccessHandler(function (bal) {
-          hideLoading();
-          document.getElementById('annualLeaveResultCard').style.display = 'block';
-          document.getElementById('annualLeaveEmptyState').style.display = 'none';
-          document.getElementById('editCarriedOverDays').value = bal.carriedOver;
-          document.getElementById('editAnnualEntitlement').value = bal.entitlement;
-          document.getElementById('annualLeaveSummaryText').innerHTML =
-            `ใช้ได้รวม ${bal.totalAvailable} วัน | ใช้ไปแล้วปีนี้ ${bal.used} วัน | คงเหลือปัจจุบัน <b>${bal.remaining} วัน</b>`;
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .getAnnualLeaveBalance(email, calendarYear);
-    }
-
-    // บันทึกยอดยกมา/สิทธิปีนี้ ที่แก้ไข
-    function saveAnnualLeaveLedger() {
-      const email = document.getElementById('annualLeaveEmail').value.trim();
-      const yearBE = parseInt(document.getElementById('annualLeaveYearBE').value, 10);
-      const carriedOver = document.getElementById('editCarriedOverDays').value;
-      const entitlement = document.getElementById('editAnnualEntitlement').value;
-
-      if (!email || !yearBE) return;
-      const calendarYear = yearBE - 543;
-
-      showLoading("กำลังบันทึกยอดวันลาพักผ่อน...");
-      google.script.run
-        .withSuccessHandler(function (res) {
-          hideLoading();
-          showAppAlert(res.success ? "สำเร็จ" : "ผิดพลาด", res.message, res.success ? "success" : "danger");
-          if (res.success) loadAnnualLeaveLedger();
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .setAnnualLeaveLedger(email, calendarYear, carriedOver, entitlement);
-    }
-
-    // ออกจากระบบ (ใช้ร่วมกันทุก Role)
-    function doEmployeeLogout() {
-      loggedInEmployee = null;
-      cachedDelegateTasks = [];
-      const badge = document.getElementById('delegateTaskBadge');
-      if (badge) badge.style.display = 'none';
-      document.getElementById('loginGate').style.display = 'flex';
-      document.getElementById('userTopBar').style.display = 'none';
-      document.getElementById('appShell').style.display = 'none';
-      document.getElementById('employeeIdInput').value = '';
-      document.getElementById('employeePasswordInput').value = '';
-      document.getElementById('searchEmail').value = '';
-      allCachedRequests = [];
-    }
-
-    // เปิดหน้าต่างเปลี่ยนรหัสผ่าน
-    function openChangePasswordModal() {
-      document.getElementById('oldPasswordInput').value = '';
-      document.getElementById('newPasswordInput').value = '';
-      document.getElementById('confirmPasswordInput').value = '';
-      new bootstrap.Modal(document.getElementById('changePasswordModal')).show();
-    }
-
-    // บันทึกรหัสผ่านใหม่
-    function submitChangePassword() {
-      const oldPass = document.getElementById('oldPasswordInput').value.trim();
-      const newPass = document.getElementById('newPasswordInput').value.trim();
-      const confirmPass = document.getElementById('confirmPasswordInput').value.trim();
-
-      if (!oldPass || !newPass || !confirmPass) {
-        showAppAlert("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลให้ครบทุกช่อง", "danger");
-        return;
-      }
-      if (newPass !== confirmPass) {
-        showAppAlert("ข้อมูลไม่ตรงกัน", "รหัสผ่านใหม่และการยืนยันไม่ตรงกัน", "danger");
-        return;
-      }
-
-      showLoading("กำลังบันทึกรหัสผ่านใหม่...");
-      google.script.run
-        .withSuccessHandler(function (res) {
-          hideLoading();
-          bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
-          if (res.success) {
-            loggedInEmployee.password = newPass;
-            showAppAlert("สำเร็จ", res.message, "success");
-          } else {
-            showAppAlert("ไม่สำเร็จ", res.message, "danger");
-          }
-        })
-        .withFailureHandler(function (err) {
-          hideLoading();
-          showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-        })
-        .changePassword(loggedInEmployee.employeeId, oldPass, newPass);
-    }
-
-    // โหลดประวัติของพนักงานรายบุคคล
-  // โหลดประวัติการลาของพนักงานรายบุคคลจาก Supabase
-async function loadMyRequests() {
-  const emailInput = document.getElementById('searchEmail');
-  if (!emailInput) return;
-  
-  if (!emailInput.value && document.getElementById('applicantEmail')) {
-    emailInput.value = document.getElementById('applicantEmail').value;
+async function addEmployeeEntry() {
+  const emp = {
+    employee_id: $('newEmpId').value.trim(),
+    password: $('newEmpPassword').value.trim(),
+    prefix: $('newEmpPrefix').value,
+    name: $('newEmpName').value.trim(),
+    position: $('newEmpPosition').value.trim(),
+    email: $('newEmpEmail').value.trim(),
+    phone: $('newEmpTelephone').value.trim(),
+    role: $('newEmpRole').value,
+    status: 'Active'
+  };
+  if (!emp.employee_id || !emp.password || !emp.name || !emp.email) {
+    showAppAlert('ข้อมูลไม่ครบ', 'กรุณากรอกรหัสผู้ใช้ รหัสผ่าน ชื่อ และอีเมล ให้ครบถ้วน', 'danger');
+    return;
   }
-  
-  const searchEmailValue = emailInput.value.trim();
-  if (!searchEmailValue) return;
-
-  showLoading(currentLang === 'th' ? "กำลังเรียกค้นคืนประวัติของคุณ..." : "Fetching personal leave archive...");
-
+  showLoading('กำลังเพิ่มพนักงานใหม่...');
   try {
-    // ดึงข้อมูลจากตาราง leave_requests ตามอีเมลผู้ยื่น
-    const { data: requests, error } = await supabaseClient
-      .from('leave_requests')
-      .select('*')
-      .eq('applicant_email', searchEmailValue)
-      .order('timestamp', { ascending: false });
+    const { data: dup, error: e1 } = await supabaseClient.from('employees').select('employee_id').eq('employee_id', emp.employee_id).limit(1);
+    if (e1) throw e1;
+    if (dup && dup.length) { hideLoading(); showAppAlert('รหัสซ้ำ', 'รหัสผู้ใช้ ' + esc(emp.employee_id) + ' มีอยู่ในระบบแล้ว', 'danger'); return; }
 
+    const { error } = await supabaseClient.from('employees').insert([emp]);
     hideLoading();
-
-    if (error) {
-      console.error('Error fetching leave requests:', error);
-      showAppAlert("Error", error.message, "danger");
-      return;
-    }
-
-    allCachedRequests = requests || [];
-    renderRequestsTable(allCachedRequests, 'historyTableBody', 'self');
-
-    // อัปเดตป้ายสถานะล่าสุด (ถ้าล็อกอินอยู่)
-    if (loggedInEmployee) {
-      if (allCachedRequests.length > 0) {
-        const latest = allCachedRequests[0]; // เรียงล่าสุดขึ้นก่อนอยู่แล้ว
-        const info = getStatusInfo(latest.status);
-        document.getElementById('employeeLatestStatusText').innerHTML = `สถานะล่าสุด (${latest.id}): <span class="badge ${info.badgeClass}">${info.label}</span>`;
-      } else {
-        document.getElementById('employeeLatestStatusText').innerText = "สถานะล่าสุด: ยังไม่มีประวัติการลา";
-      }
-    }
+    if (error) throw error;
+    showAppAlert('สำเร็จ', 'เพิ่มพนักงานใหม่เรียบร้อยแล้ว', 'success');
+    ['newEmpId', 'newEmpPassword', 'newEmpName', 'newEmpPosition', 'newEmpEmail', 'newEmpTelephone'].forEach(function (id) { $(id).value = ''; });
+    loadEmployeeManager();
+    loadEmployeeListForDelegate();
   } catch (err) {
     hideLoading();
-    console.error(err);
-    showAppAlert("Error", err.toString(), "danger");
- }
-    }
-
-          
-    // เรนเดอร์ตารางบันทึกวันลา — viewMode: "self" | "hr" | "manager"
-    function renderRequestsTable(data, elementId, viewMode) {
-      const tbody = document.getElementById(elementId);
-      tbody.innerHTML = '';
-      const isReviewView = (viewMode === 'hr' || viewMode === 'manager');
-
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${isReviewView ? 7 : 8}" class="text-center py-3 text-muted">ไม่พบข้อมูลใบลาค้างอยู่ในระบบ</td></tr>`;
-        return;
-      }
-
-      data.forEach(req => {
-        const info = getStatusInfo(req.Status);
-        const isRejected = isRejectedStatusClient(req.Status);
-
-        let startFormatted = formatStringToDateTimeInput(req.StartDate);
-        let endFormatted = formatStringToDateTimeInput(req.EndDate);
-
-        let row = document.createElement('tr');
-
-        if (isReviewView) {
-          // ปุ่มตัดสินใจจะกดได้เฉพาะเมื่อสถานะตรงกับขั้นตอนของฝ่ายนั้นๆ เท่านั้น
-          const actionable = (viewMode === 'hr' && req.Status === "PendingHR") ||
-                              (viewMode === 'manager' && req.Status === "PendingManager");
-          const decisionFn = viewMode === 'hr' ? 'openHRDecisionDialog' : 'openDecisionDialog';
-
-          const decisionBtn = actionable
-            ? `<button class="btn btn-sm btn-dark" onclick="${decisionFn}('${req.ID}')"><i class="fa-solid fa-gavel"></i></button>`
-            : `<span class="small text-muted">${req.Status === 'PendingDelegate' ? 'รอผู้รับมอบหมายงานแทนรับทราบก่อน' : viewMode === 'hr' ? 'ดำเนินการแล้ว' : (req.Status === 'PendingHR' ? 'รอ HR ตรวจสอบก่อน' : 'ดำเนินการแล้ว')}</span>`;
-
-          row.innerHTML = `
-            <td><b>${req.ID}</b></td>
-            <td>${req.Prefix}${req.Name}<br><span class="small text-muted">${req.Position}</span></td>
-            <td>${req.LeaveType}</td>
-            <td>${req.LeaveDuration} วัน</td>
-            <td>${isRejected ? "- (ไม่นับ)" : req.TotalCumulativeDays + " วัน"}</td>
-            <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
-            <td class="text-center">
-              <button class="btn btn-sm btn-outline-primary me-1" onclick="openDetailsModal('${req.ID}')"><i class="fa-solid fa-eye"></i></button>
-              ${decisionBtn}
-            </td>
-          `;
-        } else {
-          let actionButtons = `
-            <button class="btn btn-sm btn-outline-primary" onclick="openDetailsModal('${req.ID}')"><i class="fa-solid fa-eye"></i></button>
-          `;
-          
-          if (req.Status === "SendBack" || req.Status === "PendingHR" || req.Status === "PendingDelegate" || req.Status === "RejectedByDelegate") {
-            actionButtons += `
-              <button class="btn btn-sm btn-outline-warning ms-1" onclick="loadRequestBackToForm('${req.ID}')"><i class="fa-solid fa-edit"></i></button>
-            `;
-          }
-
-          if (req.FinalPdfUrl) {
-            actionButtons += `
-              <a href="${req.FinalPdfUrl}" target="_blank" class="btn btn-sm btn-outline-success ms-1"><i class="fa-solid fa-file-pdf"></i></a>
-            `;
-          }
-
-          row.innerHTML = `
-            <td><b>${req.ID}</b></td>
-            <td>${req.Prefix}${req.Name}</td>
-            <td>${req.LeaveCategory} / ${req.LeaveType}</td>
-            <td>${startFormatted}</td>
-            <td>${endFormatted}</td>
-            <td>${req.LeaveDuration} วัน</td>
-            <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
-            <td class="text-center">${actionButtons}</td>
-          `;
-        }
-        tbody.appendChild(row);
-      });
-    }
-
-    // แสดงตาราง "ประวัติการลาทั้งหมด" ที่ค้นหา/กรองได้ — ใช้ร่วมกันทั้งพื้นที่ HR และผู้จัดการ
-    // area: "hr" | "manager"
-    // กรองข้อมูลตามคำค้นหา/สถานะที่เลือกไว้ในแท็บ "ประวัติการลาทั้งหมด" — ใช้ร่วมกันทั้งตารางและปุ่ม Export Excel
-    function getFilteredHistoryData(area) {
-      const searchVal = document.getElementById(area + 'HistorySearch').value.trim().toLowerCase();
-      const statusVal = document.getElementById(area + 'HistoryStatusFilter').value;
-
-      return (allCachedRequests || []).filter(req => {
-        const nameMatch = !searchVal ||
-          (req.Prefix + req.Name).toLowerCase().includes(searchVal) ||
-          req.ID.toLowerCase().includes(searchVal);
-        const statusMatch = !statusVal || req.Status === statusVal;
-        return nameMatch && statusMatch;
-      });
-    }
-
-    function renderHistoryTable(area) {
-      const filtered = getFilteredHistoryData(area);
-      renderRequestsTable(filtered, area + 'HistoryTableBody', area);
-    }
-
-    // ส่งออกไฟล์ Excel (.xlsx) จริง ตามข้อมูลที่กรองไว้อยู่ในแท็บ "ประวัติการลาทั้งหมด" — area: "hr" | "manager"
-    function exportAreaToExcel(area) {
-      const filtered = getFilteredHistoryData(area);
-      if (!filtered.length) {
-        showAppAlert("ไม่มีข้อมูล", "ไม่พบข้อมูลที่จะส่งออกตามเงื่อนไขการค้นหา/กรองปัจจุบัน", "danger");
-        return;
-      }
-
-      const statusLabelMap = {
-        PendingHR: "รอ HR ตรวจสอบ",
-        PendingManager: "รอผู้จัดการอนุมัติ",
-        Approved: "อนุมัติแล้ว",
-        RejectedByHR: "ไม่อนุมัติ (โดย HR)",
-        RejectedByManager: "ไม่อนุมัติ (โดยผู้จัดการ)",
-        PendingDelegate: "รอผู้รับมอบหมายงานแทนรับทราบ",
-        RejectedByDelegate: "ผู้รับมอบหมายงานแทนไม่รับ",
-        SendBack: "ส่งกลับแก้ไข"
-      };
-
-      const rows = filtered.map(r => ({
-        "รหัสคำขอ": r.ID,
-        "วันที่ยื่นคำขอ": r.Timestamp,
-        "ชื่อผู้เสนอลา": r.Prefix + r.Name,
-        "ตำแหน่ง": r.Position,
-        "อีเมล": r.ApplicantEmail,
-        "ประเภทลาหลัก": r.LeaveCategory,
-        "ประเภทการลา": r.LeaveType,
-        "ตั้งแต่วันที่": r.StartDate,
-        "ถึงวันที่": r.EndDate,
-        "จำนวนวัน": r.LeaveDuration,
-        "สะสมปีนี้": isRejectedStatusClient(r.Status) ? "- (ไม่นับ)" : r.TotalCumulativeDays,
-        "สถานะปัจจุบัน": statusLabelMap[r.Status] || r.Status,
-        "ความเห็น HR": r.HRComment || "-",
-        "ความเห็นผู้จัดการ": r.ApproverComment || "-",
-        "ผู้รับมอบหมายงานแทน": r.DelegateName || "-"
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      worksheet['!cols'] = [
-        { wch: 20 }, { wch: 16 }, { wch: 22 }, { wch: 20 }, { wch: 24 },
-        { wch: 12 }, { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 10 },
-        { wch: 12 }, { wch: 22 }, { wch: 28 }, { wch: 28 }, { wch: 20 }
-      ];
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "ประวัติการลา");
-
-      const areaLabel = area === 'hr' ? 'HR' : 'ผู้จัดการ';
-      const filename = `รายงานประวัติการลา_${areaLabel}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      XLSX.writeFile(workbook, filename);
-    }
-
-	  // ฟังก์ชันสำหรับ Export ข้อมูลรายงานสรุปประจำปีเป็นไฟล์ Excel (.csv)
-function exportAnnualSummaryToExcel() {
-  try {
-    const table = document.querySelector('#hrSummaryReportPane table') || document.querySelector('table');
-    if (!table) {
-      showAppAlert("แจ้งเตือน", "ไม่พบตารางข้อมูลสำหรับส่งออก", "warning");
-      return;
-    }
-
-    let csv = [];
-    const rows = table.querySelectorAll('tr');
-    
-    for (let i = 0; i < rows.length; i++) {
-      let row = [], cols = rows[i].querySelectorAll('td, th');
-      for (let j = 0; j < cols.length; j++) {
-        // Clean text and handle commas
-        let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
-        row.push('"' + data + '"');
-      }
-      csv.push(row.join(','));
-    }
-
-    // สร้างไฟล์และดาวน์โหลด
-    const csvFile = new Blob(["\uFEFF" + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const downloadLink = document.createElement("a");
-    downloadLink.download = `leave_summary_report_${Date.now()}.csv`;
-    downloadLink.href = window.URL.createObjectURL(csvFile);
-    downloadLink.style.display = "none";
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-
-  } catch (err) {
-    console.error(err);
-    showAppAlert("ข้อผิดพลาด", "ไม่สามารถส่งออกไฟล์ Excel ได้: " + err.toString(), "danger");
+    showAppAlert('ผิดพลาด', esc(err.message || err.toString()), 'danger');
   }
 }
-    // ===== รายงานสรุปประจำปี (พนักงานทุกคน แยกตามประเภทการลา) =====
-   async function loadAnnualSummaryReport() {
-  const yearInput = document.getElementById('summaryReportYearBE');
+
+// ---------- รายงานสรุปประจำปี + กราฟ ----------
+async function fetchAnnualReportRows(calendarYear) {
+  const [empRes, reqRes] = await Promise.all([
+    supabaseClient.from('employees').select(EMP_COLS),
+    supabaseClient.from('leave_requests')
+      .select('applicant_email,employee_id,start_date,leave_duration,leave_category,status')
+      .eq('status', 'Approved')
+      .gte('start_date', calendarYear + '-01-01')
+      .lte('start_date', calendarYear + '-12-31')
+  ]);
+  if (empRes.error) throw empRes.error;
+  if (reqRes.error) throw reqRes.error;
+  const requests = reqRes.data || [];
+
+  return (empRes.data || []).map(function (emp) {
+    let kit = 0, puay = 0, vac = 0;
+    requests.forEach(function (r) {
+      if (!((r.employee_id && r.employee_id === emp.employee_id) || (r.applicant_email && r.applicant_email === emp.email))) return;
+      const dur = parseFloat(r.leave_duration) || 0;
+      const cat = r.leave_category || '';
+      if (cat.indexOf('ลากิจ') !== -1) kit += dur;
+      else if (cat.indexOf('ลาป่วย') !== -1) puay += dur;
+      else if (cat.indexOf('ลาพักผ่อน') !== -1) vac += dur;
+    });
+    return {
+      name: fullName(emp), position: emp.position || '-', active: isEmployeeActive(emp),
+      kitDays: round1(kit), puayDays: round1(puay), vacationDays: round1(vac), totalDays: round1(kit + puay + vac)
+    };
+  }).filter(function (r) { return r.active || r.totalDays > 0; }); // ซ่อนพนักงานที่ระงับแล้วและไม่มีวันลาในปีนั้น
+}
+
+async function loadAnnualSummaryReport() {
+  const yearInput = $('summaryReportYearBE');
   if (!yearInput.value) yearInput.value = new Date().getFullYear() + 543;
   const yearBE = parseInt(yearInput.value, 10);
-  const calendarYear = yearBE - 543;
 
-  showLoading("กำลังสร้างรายงานสรุปประจำปี...");
-
+  showLoading('กำลังสร้างรายงานสรุปประจำปี...');
   try {
-    // 1. ดึงข้อมูลพนักงานทั้งหมด และข้อมูลคำขอลาทั้งหมดจาก Supabase พร้อมกัน
-    const [empRes, reqRes] = await Promise.all([
-      supabaseClient.from('employees').select('*'),
-      supabaseClient.from('leave_requests').select('*')
-    ]);
-
+    const rows = await fetchAnnualReportRows(yearBE - 543);
     hideLoading();
-
-    if (empRes.error) throw empRes.error;
-    if (reqRes.error) throw reqRes.error;
-
-    const employees = empRes.data || [];
-    const requests = reqRes.data || [];
-
-    // 2. คำนวณวันลาแยกตามพนักงานและประเภทการลาในปีที่เลือก
-    const rows = employees.map(emp => {
-      // กรองเฉพาะคำขอของพนักงานคนนี้ (เทียบด้วยอีเมลหรือชื่อ) และในปี พ.ศ. / ค.ศ. นั้นๆ ที่สถานะอนุมัติแล้ว
-      const empReqs = requests.filter(r => {
-        const matchesUser = (r.applicant_email === emp.email) || (r.name === emp.name);
-        const matchesStatus = r.status === 'Approved'; // นับเฉพาะที่อนุมัติแล้ว
-        
-        let matchesYear = false;
-        if (r.start_date) {
-          const reqYear = new Date(r.start_date).getFullYear();
-          matchesYear = (reqYear === calendarYear);
-        }
-        return matchesUser && matchesStatus && matchesYear;
-      });
-
-      let kitDays = 0;
-      let puayDays = 0;
-      let vacationDays = 0;
-
-      empReqs.forEach(r => {
-        const dur = parseFloat(r.leave_duration || r.leaveDuration) || 0;
-        const cat = r.leave_category || r.leaveCategory || '';
-        
-        if (cat.includes('ลากิจ')) {
-          kitDays += dur;
-        } else if (cat.includes('ลาป่วย')) {
-          puayDays += dur;
-        } else if (cat.includes('ลาพักผ่อน')) {
-          vacationDays += dur;
-        }
-      });
-
-      return {
-        name: (emp.prefix || '') + (emp.name || ''),
-        position: emp.position || '-',
-        status: emp.status || 'Active',
-        kitDays: kitDays,
-        puayDays: puayDays,
-        vacationDays: vacationDays,
-        totalDays: kitDays + puayDays + vacationDays
-      };
-    });
-
-    const report = {
-      yearBE: yearBE,
-      rows: rows
-    };
-
-    cachedSummaryReport = report;
-    renderAnnualSummaryTable(report);
-
+    cachedSummaryReport = { yearBE: yearBE, rows: rows };
+    renderAnnualSummaryTable(cachedSummaryReport);
   } catch (err) {
     hideLoading();
     console.error(err);
-    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
   }
 }
 
-	  function renderAnnualSummaryTable(report) {
-  const tbody = document.getElementById('summaryReportTableBody');
-  const tfoot = document.getElementById('summaryReportTableFoot');
-
+function renderAnnualSummaryTable(report) {
+  const tbody = $('summaryReportTableBody');
+  const tfoot = $('summaryReportTableFoot');
   if (!report || !report.rows || !report.rows.length) {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลพนักงานในระบบ</td></tr>';
-    if (tfoot) tfoot.innerHTML = '';
+    tfoot.innerHTML = '';
     return;
   }
-
-  tbody.innerHTML = report.rows.map(r => `
-    <tr>
-      <td><b>${r.name}</b>${r.status !== 'Active' ? ' <span class="badge bg-secondary">พ้นสภาพ</span>' : ''}</td>
-      <td>${r.position || '-'}</td>
+  tbody.innerHTML = report.rows.map(function (r) {
+    return `<tr>
+      <td><b>${esc(r.name)}</b>${r.active ? '' : ' <span class="badge bg-secondary">พ้นสภาพ</span>'}</td>
+      <td>${esc(r.position)}</td>
       <td class="text-center">${r.kitDays}</td>
       <td class="text-center">${r.puayDays}</td>
       <td class="text-center">${r.vacationDays}</td>
-      <td class="text-center fw-bold">${r.totalDays}</td>
-    </tr>
-  `).join('');
-
-  const sumKit = report.rows.reduce((s, r) => s + r.kitDays, 0);
-  const sumPuay = report.rows.reduce((s, r) => s + r.puayDays, 0);
-  const sumVacation = report.rows.reduce((s, r) => s + r.vacationDays, 0);
-  const sumTotal = report.rows.reduce((s, r) => s + r.totalDays, 0);
-
-  if (tfoot) {
-    tfoot.innerHTML = `
-      <tr class="table-light fw-bold">
-        <td colspan="2">รวมทั้งหมด (ปี ${report.yearBE})</td>
-        <td class="text-center">${sumKit}</td>
-        <td class="text-center">${sumPuay}</td>
-        <td class="text-center">${sumVacation}</td>
-        <td class="text-center">${sumTotal}</td>
-      </tr>
-    `;
-  }
+      <td class="text-center fw-bold">${r.totalDays}</td></tr>`;
+  }).join('');
+  const sum = function (k) { return round1(report.rows.reduce(function (s, r) { return s + r[k]; }, 0)); };
+  tfoot.innerHTML = `<tr class="table-light fw-bold">
+    <td colspan="2">รวมทั้งหมด (ปี ${report.yearBE})</td>
+    <td class="text-center">${sum('kitDays')}</td><td class="text-center">${sum('puayDays')}</td>
+    <td class="text-center">${sum('vacationDays')}</td><td class="text-center">${sum('totalDays')}</td></tr>`;
 }
-	  
-    // ===== กราฟสถิติการลา แยกตามประเภท =====
-   // 1. ฟังก์ชันโหลดข้อมูลกราฟ
-async function loadLeaveCharts() {
-  const yearInput = document.getElementById('chartsYearBE');
-  if (!yearInput.value) yearInput.value = new Date().getFullYear() + 543;
-  const yearBE = parseInt(yearInput.value, 10);
-  const calendarYear = yearBE - 543;
 
-  showLoading("กำลังสร้างกราฟสถิติการลา...");
-
+function exportAnnualSummaryToExcel() {
   try {
-    const [empRes, reqRes] = await Promise.all([
-      supabaseClient.from('employees').select('*'),
-      supabaseClient.from('leave_requests').select('*')
-    ]);
-
-    hideLoading();
-
-    if (empRes.error) throw empRes.error;
-    if (reqRes.error) throw reqRes.error;
-
-    const employees = empRes.data || [];
-    const requests = reqRes.data || [];
-
-    const rows = employees.map(emp => {
-      const empReqs = requests.filter(r => {
-        const matchesUser = (r.applicant_email === emp.email) || (r.name === emp.name);
-        const matchesStatus = r.status === 'Approved';
-        
-        let matchesYear = false;
-        if (r.start_date) {
-          const reqYear = new Date(r.start_date).getFullYear();
-          matchesYear = (reqYear === calendarYear);
-        }
-        return matchesUser && matchesStatus && matchesYear;
-      });
-
-      let kitDays = 0;
-      let puayDays = 0;
-      let vacationDays = 0;
-
-      empReqs.forEach(r => {
-        const dur = parseFloat(r.leave_duration || r.leaveDuration) || 0;
-        const cat = r.leave_category || r.leaveCategory || '';
-        
-        if (cat.includes('ลากิจ')) {
-          kitDays += dur;
-        } else if (cat.includes('ลาป่วย')) {
-          puayDays += dur;
-        } else if (cat.includes('ลาพักผ่อน')) {
-          vacationDays += dur;
-        }
-      });
-
-      return {
-        name: (emp.prefix || '') + (emp.name || ''),
-        position: emp.position || '-',
-        kitDays: kitDays,
-        puayDays: puayDays,
-        vacationDays: vacationDays
-      };
-    });
-
-    const report = {
-      yearBE: yearBE,
-      rows: rows
-    };
-
-    (report);
-
-  } catch (err) {
-    hideLoading();
-    console.error(err);
-    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-  }
-}
-
-
-// ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)	  
-function renderLeaveCharts(report) {
-	
-  // 1. ประกาศตัวแปร labels ไว้บรรทัดแรกสุดเสมอก่อนใช้งาน
-  const rows = (report && report.rows) ? report.rows : [];
-  const labels = rows.map(r => r.name || '-');
-
-  // 2. ตามด้วยคำสั่งคำนวณความสูงของกราฟ (ที่เคยอยู่ผิดที่)
-  const chartHeight = Math.max(320, labels.length * 28);
-  ['chartKit', 'chartPuay', 'chartVacation'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && el.parentElement) {
-      el.parentElement.style.height = chartHeight + 'px';
-    }
-  });
-
-
-  // 3. กำหนดค่าคอนฟิกกราฟ
-  const chartConfig = (data, color, labelText) => ({
-    type: 'bar',
-    data: {
-      labels: labels, // เรียกใช้งาน labels ตรงนี้ได้อย่างปลอดภัย
-      datasets: [{
-        label: labelText,
-        data: data,
-        backgroundColor: color,
-        borderRadius: 4
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { beginAtZero: true, title: { display: true, text: 'จำนวนวัน' } },
-        y: { ticks: { autoSkip: false } }
-      }
-    }
-  });
-
-  ['kit', 'puay', 'vacation'].forEach(key => {
-    if (typeof chartInstances !== 'undefined' && chartInstances[key]) {
-      chartInstances[key].destroy();
-    }
-  });
-
-  if (typeof chartInstances === 'undefined') {
-    window.chartInstances = { kit: null, puay: null, vacation: null };
-  }
-
-  const ctxKit = document.getElementById('chartKit');
-  const ctxPuay = document.getElementById('chartPuay');
-  const ctxVacation = document.getElementById('chartVacation');
-
-  if (ctxKit) {
-    chartInstances.kit = new Chart(ctxKit.getContext('2d'), chartConfig(rows.map(r => r.kitDays), '#48A1E5', 'ลากิจ'));
-  }
-  if (ctxPuay) {
-    chartInstances.puay = new Chart(ctxPuay.getContext('2d'), chartConfig(rows.map(r => r.puayDays), '#E5484D', 'ลาป่วย'));
-  }
-  if (ctxVacation) {
-    chartInstances.vacation = new Chart(ctxVacation.getContext('2d'), chartConfig(rows.map(r => r.vacationDays), '#2E7D32', 'ลาพักผ่อน'));
-  }
-}
-
-// ==========================================
-async function loadLeaveReport() {
-  showLoading("กำลังโหลดข้อมูลรายงาน...");
-  try {
-    const { data: requests, error } = await supabaseClient
-      .from('leave_requests')
-      .select('*')
-      .eq('status', 'ผ่าน HR แล้ว'); // ปรับสถานะให้ตรงกับฐานข้อมูลของคุณ
-
-    hideLoading();
-
-    if (error) {
-      console.error('Error loading report:', error);
-      showAppAlert("ข้อผิดพลาด", error.message, "danger");
+    const table = document.querySelector('#hrSummaryReportPane table');
+    if (!table || !cachedSummaryReport) {
+      showAppAlert('แจ้งเตือน', 'กรุณากด "โหลดรายงาน" ก่อนส่งออก', 'warning');
       return;
     }
+    const wb = XLSX.utils.table_to_book(table, { sheet: 'สรุปประจำปี' });
+    XLSX.writeFile(wb, 'leave_summary_report_' + cachedSummaryReport.yearBE + '.xlsx');
+  } catch (err) {
+    console.error(err);
+    showAppAlert('ข้อผิดพลาด', 'ไม่สามารถส่งออกไฟล์ Excel ได้: ' + esc(err.message || err.toString()), 'danger');
+  }
+}
 
-    const reportMap = {};
-    
-    (requests || []).forEach(req => {
-      const empId = req.employee_id;
-      if (!reportMap[empId]) {
-        reportMap[empId] = {
-          name: req.employee_name || empId,
-          kitDays: 0,
-          puayDays: 0,
-          vacationDays: 0
-        };
-      }
-      
-      const days = parseFloat(req.total_days || req.number_of_days || 0);
-      if (req.leave_type === 'ลากิจ') reportMap[empId].kitDays += days;
-      if (req.leave_type === 'ลาป่วย') reportMap[empId].puayDays += days;
-      if (req.leave_type === 'ลาพักผ่อน') reportMap[empId].vacationDays += days;
-    });
+async function loadLeaveCharts() {
+  const yearInput = $('chartsYearBE');
+  if (!yearInput.value) yearInput.value = new Date().getFullYear() + 543;
+  const yearBE = parseInt(yearInput.value, 10);
 
-    const reportRows = Object.values(reportMap);
-    ({ rows: reportRows });
-
+  showLoading('กำลังสร้างกราฟสถิติการลา...');
+  try {
+    const rows = await fetchAnnualReportRows(yearBE - 543);
+    hideLoading();
+    renderLeaveCharts({ yearBE: yearBE, rows: rows });
   } catch (err) {
     hideLoading();
     console.error(err);
-    showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
   }
 }
-	  
-	  
-    // ===== ปฏิทินการลา: ใช้ร่วมกันทั้งพื้นที่ HR และผู้จัดการ =====
 
-    function shiftCalendarMonth(area, delta) {
-      const st = calState[area];
-      st.month += delta;
-      if (st.month < 0) { st.month = 11; st.year -= 1; }
-      if (st.month > 11) { st.month = 0; st.year += 1; }
-      renderLeaveCalendar(area);
-    }
-
-    // สร้างปฏิทินรายเดือน แสดงชื่อพนักงานที่ลาในแต่ละวัน (area: "hr" | "manager")
-    function renderLeaveCalendar(area) {
-      const st = calState[area];
-      const year = st.year, month = st.month;
-
-      document.getElementById(area + 'CalendarLabel').innerText = thaiMonthNames[month] + " " + (year + 543);
-
-      const firstDayOffset = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const today = new Date();
-
-      // จัดกลุ่มคำขอที่มีช่วงวันคาบเกี่ยวกับเดือนนี้ ลงในแต่ละวัน (ข้ามคำขอที่ไม่อนุมัติแล้วเพราะไม่ได้เกิดขึ้นจริง)
-      const dayMap = {};
-      (allCachedRequests || []).forEach(req => {
-        if (isRejectedStatusClient(req.Status)) return;
-        const start = new Date(req.StartDate);
-        const end = new Date(req.EndDate);
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
-
-        const startOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-        const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-
-        for (let d = 1; d <= daysInMonth; d++) {
-          const cur = new Date(year, month, d);
-          if (cur >= startOnly && cur <= endOnly) {
-            if (!dayMap[d]) dayMap[d] = [];
-            dayMap[d].push({ name: req.Prefix + req.Name, status: req.Status });
-          }
-        }
-      });
-
-      let html = '<div class="calendar-grid">';
-      thaiWeekDays.forEach(d => { html += `<div class="calendar-day-header">${d}</div>`; });
-
-      for (let i = 0; i < firstDayOffset; i++) {
-        html += `<div class="calendar-cell calendar-cell-empty"></div>`;
-      }
-
-      const holidayMap = {};
-      (cachedHolidays || []).forEach(h => { holidayMap[h.date] = h.description; });
-
-      for (let d = 1; d <= daysInMonth; d++) {
-        const entries = dayMap[d] || [];
-        const cellDate = new Date(year, month, d);
-        const dow = cellDate.getDay();
-        const dateStr = toYMD(cellDate);
-        const isWeekend = (dow === 0 || dow === 6);
-        const holidayDesc = holidayMap[dateStr];
-        const isToday = (today.getFullYear() === year && today.getMonth() === month && today.getDate() === d);
-
-        let chips = entries.map(e => {
-          const cls = e.status === 'Approved' ? 'bg-success' : (e.status === 'SendBack' ? 'bg-secondary' : 'bg-warning text-dark');
-          return `<span class="calendar-chip ${cls}" title="${e.name}">${e.name}</span>`;
-        }).join('');
-
-        let cellClasses = 'calendar-cell';
-        if (isWeekend || holidayDesc) cellClasses += ' calendar-cell-holiday';
-        if (isToday) cellClasses += ' calendar-cell-today';
-
-        const holidayLabel = holidayDesc ? `<span class="calendar-holiday-label" title="${holidayDesc}">${holidayDesc}</span>` : '';
-
-        html += `<div class="${cellClasses}">
-          <div class="calendar-day-num">${d}</div>
-          ${holidayLabel}
-          ${chips}
-        </div>`;
-      }
-
-      html += '</div>';
-      document.getElementById(area + 'CalendarContainer').innerHTML = html;
-    }
-
-
-   // ลงชื่อเข้าใช้งานพื้นที่ผู้บริหาร (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=Manager)
-    async function loginAsManager() {
-      if (!loggedInEmployee) return;
-      showLoading("กำลังโหลดข้อมูลคำขอทั้งหมดสำหรับผู้บริหาร...");
-      
-      try {
-        // ดึงข้อมูลคำขอลาทั้งหมดจาก Supabase (เรียงตามเวลาล่าสุด)
-        const { data: requests, error } = await supabaseClient
-          .from('leave_requests')
-          .select('*')
-          .order('timestamp', { ascending: false });
-
-        hideLoading();
-
-        if (error) {
-          console.error('Error fetching manager requests:', error);
-          showAppAlert("เกิดข้อผิดพลาดในการโหลดข้อมูล", error.message, "danger");
-          return;
-        }
-
-        isManagerAuthorized = true;
-        allCachedRequests = requests || [];
-        
-        // อัปเดตหน้าจอแดชบอร์ดผู้บริหาร
-        updateManagerMetrics(allCachedRequests);
-        renderRequestsTable(allCachedRequests, 'managerTableBody', 'manager');
-        renderHistoryTable('manager');
-        renderLeaveCalendar('manager');
-        loadHolidays(true);
-
-      } catch (err) {
-        hideLoading();
-        console.error(err);
-        showAppAlert("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", err.toString(), "danger");
-      }
-    }
-	  
-    function updateManagerMetrics(data) {
-      if (!data) data = [];
-      document.getElementById('metricAll').innerText = data.length;
-      document.getElementById('metricPending').innerText = data.filter(r => r.Status === "PendingManager").length;
-      document.getElementById('metricApproved').innerText = data.filter(r => r.Status === "Approved").length;
-      document.getElementById('metricRejected').innerText = data.filter(r => r.Status === "RejectedByManager").length;
-    }
-
-    // ลงชื่อเข้าใช้งานพื้นที่ HR (เรียกอัตโนมัติหลัง Login ด้วยบัญชี Role=HR)
-    async function loginAsHR() {
-      if (!loggedInEmployee) return;
-      showLoading("กำลังโหลดข้อมูลคำขอทั้งหมดสำหรับ HR...");
-
-      try {
-        // ดึงข้อมูลคำขอลาทั้งหมดจาก Supabase
-        const { data: requests, error } = await supabaseClient
-          .from('leave_requests')
-          .select('*')
-          .order('timestamp', { ascending: false });
-
-        hideLoading();
-
-        if (error) {
-          console.error('Error fetching HR requests:', error);
-          showAppAlert("เกิดข้อผิดพลาดในการโหลดข้อมูล", error.message, "danger");
-          return;
-        }
-
-        allCachedRequests = requests || [];
-
-        // อัปเดตหน้าจอแดชบอร์ด HR
-        updateHRMetrics(allCachedRequests);
-        renderRequestsTable(allCachedRequests, 'hrTableBody', 'hr');
-        renderHistoryTable('hr');
-        renderLeaveCalendar('hr');
-        loadHolidays();
-
-      } catch (err) {
-        hideLoading();
-        console.error(err);
-        showAppAlert("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", err.toString(), "danger");
-      }
-    }
-
-    function updateHRMetrics(data) {
-      if (!data) data = [];
-      document.getElementById('hrMetricAll').innerText = data.length;
-      document.getElementById('hrMetricPending').innerText = data.filter(r => r.Status === "PendingHR").length;
-      document.getElementById('hrMetricPassed').innerText = data.filter(r => r.Status === "PendingManager" || r.Status === "Approved" || r.Status === "RejectedByManager").length;
-      document.getElementById('hrMetricRejected').innerText = data.filter(r => r.Status === "RejectedByHR").length;
-    }
-
-    // เปิดหน้าต่างตัดสินใจของฝ่าย HR
-    function openHRDecisionDialog(id) {
-      document.getElementById('hrActionRequestId').value = id;
-      document.getElementById('hrActionRequestIdLabel').innerText = id;
-      document.getElementById('hrActionComment').value = '';
-      document.getElementById('hrSignatureFile').value = '';
-
-      new bootstrap.Modal(document.getElementById('hrDecisionModal')).show();
-    }
-
-    // บันทึกผลการตรวจสอบของฝ่าย HR
-    function submitHRDecision(decision) {
-      const id = document.getElementById('hrActionRequestId').value;
-      const comment = document.getElementById('hrActionComment').value;
-
-      if (!id) return;
-      if ((decision === 'RejectedByHR' || decision === 'SendBack') && !comment.trim()) {
-        alert("กรุณาระบุความเห็น / สาเหตุ หรือเหตุผลการส่งคืนแก้ไขด้วยครับ");
-        return;
-      }
-
-      bootstrap.Modal.getInstance(document.getElementById('hrDecisionModal')).hide();
-      showLoading("กำลังบันทึกผลการตรวจสอบ...");
-
-      readFileAsBase64('hrSignatureFile').then(function (hrSignatureData) {
-        google.script.run
-          .withSuccessHandler(function (res) {
-            hideLoading();
-            if (res.success) {
-              showAppAlert("บันทึกผลแล้ว", res.message, "success");
-              loginAsHR();
-            } else {
-              showAppAlert("ข้อผิดพลาด", res.message, "danger");
-            }
-          })
-          .withFailureHandler(function (err) {
-            hideLoading();
-            showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-          })
-          .processHRApproval(id, decision, comment, hrSignatureData, loggedInEmployee.employeeId, loggedInEmployee.password);
-      });
-    }
-
-    // นำประวัติคำขอที่ผู้จัดส่งกลับ (SendBack) หรือยังคงค้างพิจารณามาเขียนทับแก้ไข
-    function loadRequestBackToForm(id) {
-      const req = allCachedRequests.find(r => r.ID === id);
-      if (!req) return;
-
-      document.getElementById('editRequestId').value = req.ID;
-      document.getElementById('prefix').value = req.Prefix;
-      document.getElementById('name').value = req.Name;
-      document.getElementById('position').value = req.Position;
-      document.getElementById('applicantEmail').value = req.ApplicantEmail;
-      document.getElementById('phone').value = req.phone;
-      
-      document.getElementById('leaveCategory').value = req.LeaveCategory;
-      syncCategoryDropdown(req.LeaveCategory, true);
-      document.getElementById('leaveType').value = req.LeaveType;
-      
-      clearOverlapState(); // ล้างสถานะวันซ้ำของฟอร์มเดิมก่อนโหลดข้อมูลคำขอที่จะแก้ไข
-      document.getElementById('startDate').value = formatStringToDateTimeInput(req.StartDate);
-      document.getElementById('endDate').value = formatStringToDateTimeInput(req.EndDate);
-      document.getElementById('lastLeaveDate').value = req.LastLeaveDate !== '-' ? formatStringToDateTimeInput(req.LastLeaveDate) : '';
-      
-      document.getElementById('leaveDuration').value = req.LeaveDuration;
-      updateDelegateRequirement();
-      document.getElementById('reason').value = req.Reason;
-      document.getElementById('delegateName').value = req.DelegateName !== '-' ? req.DelegateName : '';
-      document.getElementById('delegatePosition').value = req.DelegatePosition !== '-' ? req.DelegatePosition : '';
-      document.getElementById('contactAddress').value = req.ContactAddress;
-
-      document.getElementById('editLabel').style.display = 'inline-block';
-      document.getElementById('cancelEditBtn').style.display = 'inline-block';
-      
-      const tabTrigger = new bootstrap.Tab(document.getElementById('apply-tab'));
-      tabTrigger.show();
-
-      showAppAlert("โหมดแก้ไข", "ระบบได้ดึงข้อมูลใบลารหัส " + id + " กลับมาเตรียมปรับแก้ไขแล้ว โปรดตรวจสอบและส่งคำขอใหม่อีกครั้ง", "info");
-      fetchAccumulatedOnEmailChange(true);
-    }
-
-    // เปิดหน้าต่าง Modal แสดงรายละเอียดและ Timeline
-    function openDetailsModal(id) {
-      const req = allCachedRequests.find(r => r.ID === id) || cachedDelegateTasks.find(r => r.ID === id);
-      if (!req) return;
-
-      document.getElementById('timelineModalTitle').innerHTML = `<i class="fa-solid fa-circle-info me-2"></i>ข้อมูลใบลาพักเลขที่: ${req.ID}`;
-      
-      let startFormatted = formatStringToDateTimeInput(req.StartDate);
-      let endFormatted = formatStringToDateTimeInput(req.EndDate);
-
-      let detailsHtml = `
-        <table class="table table-sm table-borderless">
-          <tr><td><b>ผู้ขออนุมัติ:</b></td><td>${req.Prefix}${req.Name}</td></tr>
-          <tr><td><b>ตำแหน่ง:</b></td><td>${req.Position}</td></tr>
-          <tr><td><b>ประเภทลา:</b></td><td>${req.LeaveCategory} (${req.LeaveType})</td></tr>
-          <tr><td><b>ตั้งแต่วันที่:</b></td><td>${startFormatted}</td></tr>
-          <tr><td><b>ถึงวันที่:</b></td><td>${endFormatted}</td></tr>
-          <tr><td><b>เวลารวม:</b></td><td><span class="text-danger fw-bold">${req.LeaveDuration} วัน</span></td></tr>
-          <tr><td><b>เหตุผลการลา:</b></td><td>${req.Reason}</td></tr>
-          <tr><td><b>ส่งเอกสารแนบ:</b></td><td>${req.AttachmentUrl ? `<a href="${req.AttachmentUrl}" target="_blank" class="btn btn-xs btn-primary py-0 px-2 fw-bold small"><i class="fa-solid fa-paperclip"></i> ดูเอกสารแนบ</a>` : '<span class="text-muted">ไม่มีเอกสาร</span>'}</td></tr>
-          <tr><td><b>เบอร์โทร:</b></td><td>${req.Telephone}</td></tr>
-          <tr><td><b>ผู้รับมอบหมาย:</b></td><td>${req.DelegateName} (${req.DelegatePosition})</td></tr>
-          <tr><td><b>ที่อยู่ติดต่อ:</b></td><td>${req.ContactAddress}</td></tr>
-        </table>
-      `;
-      document.getElementById('timelineCardDetails').innerHTML = detailsHtml;
-
-      // สร้างไทม์ไลน์ตามลำดับขั้นตอนการอนุมัติจริง: ยื่นคำขอ → ผู้รับมอบหมายงานแทน (ถ้ามี) → HR → ผู้จัดการ
-      const st = req.Status;
-      const hasDelegateStage = !!req.DelegateEmail;
-      const esc = (t) => (t || '').toString();
-      const noteBox = (text, color, label) => text ? `<div class="p-2 bg-light rounded mt-1 border-start border-${color} border-4"><b>${label}:</b> ${esc(text)}</div>` : '';
-
-      let timelineHtml = `
-        <div class="timeline-item approved">
-          <h6 class="mb-1 fw-bold">ยื่นเสนอขออนุมัติวันลา (Submitted)</h6>
-          <p class="text-muted small mb-0">ส่งเข้าระบบเมื่อ: ${req.Timestamp}</p>
-        </div>
-      `;
-
-      // ขั้นที่ผู้รับมอบหมายงานแทน (แสดงเฉพาะคำขอที่ระบุผู้รับมอบหมาย)
-      if (hasDelegateStage) {
-        if (st === "PendingDelegate") {
-          timelineHtml += `
-            <div class="timeline-item pending">
-              <h6 class="mb-1 fw-bold text-warning">รอผู้รับมอบหมายงานแทนรับทราบ + แนบลายเซ็น</h6>
-              <p class="text-muted small mb-0">ผู้รับมอบหมาย: ${req.DelegateName} (${req.DelegatePosition})</p>
-            </div>`;
-        } else if (st === "RejectedByDelegate") {
-          timelineHtml += `
-            <div class="timeline-item rejected">
-              <h6 class="mb-1 text-danger fw-bold">ผู้รับมอบหมายงานแทนไม่รับมอบหมาย</h6>
-              <p class="text-muted small mb-0">ผู้รับมอบหมาย: ${req.DelegateName} ${req.DelegateDecisionDate && req.DelegateDecisionDate !== '-' ? '• ' + req.DelegateDecisionDate : ''}</p>
-              ${noteBox(req.DelegateComment, 'danger', 'เหตุผล')}
-            </div>`;
-        } else {
-          timelineHtml += `
-            <div class="timeline-item approved">
-              <h6 class="mb-1 fw-bold text-success">ผู้รับมอบหมายงานแทนรับทราบและลงลายเซ็นแล้ว</h6>
-              <p class="text-muted small mb-0">ผู้รับมอบหมาย: ${req.DelegateName} ${req.DelegateDecisionDate && req.DelegateDecisionDate !== '-' ? '• ' + req.DelegateDecisionDate : ''}</p>
-              ${noteBox(req.DelegateComment, 'success', 'ความเห็น')}
-            </div>`;
-        }
-      }
-
-      // ขั้น HR
-      if (st === "PendingHR") {
-        timelineHtml += `
-          <div class="timeline-item pending">
-            <h6 class="mb-1 fw-bold text-warning">รอฝ่าย HR ตรวจสอบ</h6>
-            <p class="text-muted small mb-0">สถานะ: รอการตรวจสอบขั้นแรก</p>
-          </div>`;
-      } else if (st === "RejectedByHR") {
-        timelineHtml += `
-          <div class="timeline-item rejected">
-            <h6 class="mb-1 text-danger fw-bold">ฝ่าย HR ไม่อนุมัติ</h6>
-            <p class="text-muted small mb-0">ผู้ตรวจสอบ: ${req.HRApproverName || '-'}</p>
-            ${noteBox(req.HRComment, 'danger', 'เหตุผล')}
-          </div>`;
-      } else if (st === "SendBack") {
-        timelineHtml += `
-          <div class="timeline-item pending">
-            <h6 class="mb-1 text-info fw-bold">ส่งคำขอกลับเพื่อแก้ไขข้อมูล (Send Back)</h6>
-            ${noteBox(req.ApproverComment || req.HRComment, 'info', 'หมายเหตุ')}
-          </div>`;
-      } else if (st === "PendingManager" || st === "Approved" || st === "RejectedByManager") {
-        timelineHtml += `
-          <div class="timeline-item approved">
-            <h6 class="mb-1 fw-bold text-success">ฝ่าย HR ตรวจสอบผ่านแล้ว</h6>
-            <p class="text-muted small mb-0">ผู้ตรวจสอบ: ${req.HRApproverName || '-'} ${req.HRDecisionDate && req.HRDecisionDate !== '-' ? '• ' + req.HRDecisionDate : ''}</p>
-            ${noteBox(req.HRComment, 'success', 'ความเห็น HR')}
-          </div>`;
-      }
-
-      // ขั้นผู้จัดการ
-      if (st === "PendingManager") {
-        timelineHtml += `
-          <div class="timeline-item pending">
-            <h6 class="mb-1 fw-bold text-warning">รอผู้จัดการอนุมัติขั้นสุดท้าย</h6>
-          </div>`;
-      } else if (st === "Approved") {
-        timelineHtml += `
-          <div class="timeline-item approved">
-            <h6 class="mb-1 fw-bold text-success">ผู้จัดการอนุมัติเรียบร้อย (Approved)</h6>
-            <p class="text-muted small mb-0">ผู้อนุมัติ: ${req.ManagerApproverName || '-'}</p>
-            ${noteBox(req.ApproverComment, 'success', 'ความเห็น')}
-          </div>`;
-      } else if (st === "RejectedByManager") {
-        timelineHtml += `
-          <div class="timeline-item rejected">
-            <h6 class="mb-1 text-danger fw-bold">ผู้จัดการไม่อนุมัติ (Rejected)</h6>
-            <p class="text-muted small mb-0">ผู้อนุมัติ: ${req.ManagerApproverName || '-'}</p>
-            ${noteBox(req.ApproverComment, 'danger', 'เหตุผล')}
-          </div>`;
-      }
-
-      document.getElementById('timelineList').innerHTML = timelineHtml;
-
-      const myModal = new bootstrap.Modal(document.getElementById('timelineModal'));
-      myModal.show();
-    }
-
-    // เปิดหน้าประเมินสถานะอนุมัติของผู้จัด
-    function openDecisionDialog(id) {
-      document.getElementById('actionRequestId').value = id;
-      document.getElementById('actionRequestIdLabel').innerText = id;
-      document.getElementById('actionComment').value = '';
-      document.getElementById('approverSignatureFile').value = '';
-
-      const decisionModal = new bootstrap.Modal(document.getElementById('approvalDialogModal'));
-      decisionModal.show();
-    }
-
-    // สั่งบันทึกสิทธิ์การตัดสินใจของฝ่ายพิจารณา
-    function submitDecision(status) {
-      const id = document.getElementById('actionRequestId').value;
-      const comment = document.getElementById('actionComment').value;
-
-      if (!id) return;
-      if ((status === 'RejectedByManager' || status === 'SendBack') && !comment.trim()) {
-        alert("กรุณาระบุความเห็น / สาเหตุ หรือเหตุผลการส่งคืนแก้ไขด้วยครับ");
-        return;
-      }
-
-      bootstrap.Modal.getInstance(document.getElementById('approvalDialogModal')).hide();
-      showLoading("กำลังอัปเดตสถานะและมติการตัดสินใจ...");
-
-      readFileAsBase64('approverSignatureFile').then(function (approverSignatureData) {
-        google.script.run
-          .withSuccessHandler(function (res) {
-            hideLoading();
-            if (res.success) {
-              showAppAlert("ประเมินผลแล้ว", "บันทึกผลพิจารณาในคำขอ " + id + " เรียบร้อยแล้ว ผู้ยื่นคำขอจะได้รับการแจ้งสถานะอัปเดตผ่านอีเมล", "success");
-              loginAsManager();
-            } else {
-              showAppAlert("ข้อผิดพลาด", res.message, "danger");
-            }
-          })
-          .withFailureHandler(function (err) {
-            hideLoading();
-            showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-          })
-          .processApproval(id, status, comment, approverSignatureData, loggedInEmployee.employeeId, loggedInEmployee.password);
-      });
-    }
-
-    // ค้นหากรองตาราง
-    function filterMyRequestsTable() {
-      const searchVal = document.getElementById('historySearch').value.toLowerCase();
-      const statusFilter = document.getElementById('historyStatusFilter').value;
-      const rows = document.querySelectorAll('#historyTableBody tr');
-
-      rows.forEach(row => {
-        const idText = row.cells[0]?.innerText.toLowerCase() || "";
-        const nameText = row.cells[1]?.innerText.toLowerCase() || "";
-        const leaveTypeText = row.cells[2]?.innerText.toLowerCase() || "";
-        const statusText = row.cells[6]?.innerText || "";
-
-        const matchesSearch = idText.includes(searchVal) || nameText.includes(searchVal) || leaveTypeText.includes(searchVal);
-        const matchesStatus = !statusFilter || statusText === statusFilter;
-
-        if (matchesSearch && matchesStatus) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
-      });
-    }
-
-    // ส่งออกไฟล์ CSV
-    function exportToCSV() {
-      if (allCachedRequests.length === 0) return;
-
-      let csvContent = "\uFEFF"; 
-      csvContent += "Request ID,Timestamp,Name,Position,Leave Type,Start Date,End Date,Duration Days,Cumulative YTD,Status\n";
-
-      allCachedRequests.forEach(r => {
-        let nameClean = `${r.Prefix}${r.Name}`.replace(/,/g, " ");
-        csvContent += `"${r.ID}","${r.Timestamp}","${nameClean}","${r.Position}","${r.LeaveType}","${r.StartDate}","${r.EndDate}","${r.LeaveDuration}","${r.TotalCumulativeDays}","${r.Status}"\n`;
-      });
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `รายงานสถิติวันลา_สอ_ครูภูเก็ต_${new Date().toISOString().slice(0,10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }	
-	  
-	  function calculateDateDuration() { 
-  const startInput = document.getElementById('startDate').value;
-  const endInput = document.getElementById('endDate').value;
-  const durationInput = document.getElementById('leaveDuration');
-  const excludedNote = document.getElementById('excludedDaysNote'); 
-		  
-  // 2. เช็คการกรอกข้อมูล
-  if (!startInput || !endInput) {
-    if (durationInput) durationInput.value = 0;
-    if (typeof clearOverlapState === 'function') clearOverlapState();
-    if (excludedNote) excludedNote.innerHTML = '';
-    if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
-    return;
-  }
-
-  const start = new Date(startInput);
-  const end = new Date(endInput);
-
-  if (end < start) {
-    if (durationInput) durationInput.value = 0;
-    if (typeof clearOverlapState === 'function') clearOverlapState();
-    if (excludedNote) excludedNote.innerHTML = '';
-    if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
-    return;
-  }
-
-  // 3. Mapping วันหยุด
-  const holidayMap = {};
-  (cachedHolidays || []).forEach(h => { 
-    holidayMap[h.date] = h.description; 
+function renderLeaveCharts(report) {
+  const rows = (report && report.rows) ? report.rows : [];
+  const labels = rows.map(function (r) { return r.name || '-'; });
+  const chartHeight = Math.max(320, labels.length * 28);
+  ['chartKit', 'chartPuay', 'chartVacation'].forEach(function (id) {
+    const el = $(id);
+    if (el && el.parentElement) el.parentElement.style.height = chartHeight + 'px';
   });
 
-  // 4. ลูปคำนวณวันทำการ
-  let count = 0;
-  const excludedList = [];
-  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  const cfg = function (data, color, labelText) {
+    return {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: labelText, data: data, backgroundColor: color, borderRadius: 4 }] },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, title: { display: true, text: 'จำนวนวัน' } }, y: { ticks: { autoSkip: false } } }
+      }
+    };
+  };
 
-  while (cursor <= endOnly) {
-    const dow = cursor.getDay();
-    const dateStr = toYMD(cursor);
-    if (dow === 0 || dow === 6) {
-      excludedList.push(formatStringToDateTimeInput(dateStr) + ' (วันหยุดสุดสัปดาห์)');
-    } else if (holidayMap[dateStr]) {
-      excludedList.push(formatStringToDateTimeInput(dateStr) + ' (' + holidayMap[dateStr] + ')');
-    } else {
-      count++;
+  ['kit', 'puay', 'vacation'].forEach(function (k) { if (chartInstances[k]) { chartInstances[k].destroy(); chartInstances[k] = null; } });
+  chartInstances.kit = new Chart($('chartKit').getContext('2d'), cfg(rows.map(function (r) { return r.kitDays; }), '#48A1E5', 'ลากิจ'));
+  chartInstances.puay = new Chart($('chartPuay').getContext('2d'), cfg(rows.map(function (r) { return r.puayDays; }), '#E5484D', 'ลาป่วย'));
+  chartInstances.vacation = new Chart($('chartVacation').getContext('2d'), cfg(rows.map(function (r) { return r.vacationDays; }), '#2E7D32', 'ลาพักผ่อน'));
+}
+
+// ======================================================================
+// ปฏิทินการลา (HR / ผู้จัดการ)
+// ======================================================================
+function shiftCalendarMonth(area, delta) {
+  const st = calState[area];
+  st.month += delta;
+  if (st.month < 0) { st.month = 11; st.year -= 1; }
+  if (st.month > 11) { st.month = 0; st.year += 1; }
+  renderLeaveCalendar(area);
+}
+
+function renderLeaveCalendar(area) {
+  const st = calState[area];
+  const year = st.year, month = st.month;
+  $(area + 'CalendarLabel').innerText = thaiMonthNames[month] + ' ' + (year + 543);
+
+  const firstDayOffset = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+
+  const dayMap = {};
+  (allCachedRequests || []).forEach(function (req) {
+    if (isRejectedStatusClient(req.status)) return;
+    const s = ymdToDate(req.start_date);
+    const e = ymdToDate(req.end_date);
+    if (!s || !e) return;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cur = new Date(year, month, d);
+      if (cur >= s && cur <= e) {
+        (dayMap[d] = dayMap[d] || []).push({ name: fullName(req), status: req.status });
+      }
     }
-    cursor.setDate(cursor.getDate() + 1);
+  });
+
+  const holidayMap = {};
+  cachedHolidays.forEach(function (h) { holidayMap[String(h.date).slice(0, 10)] = h.description; });
+
+  let html = '<div class="calendar-grid">';
+  thaiWeekDays.forEach(function (d) { html += `<div class="calendar-day-header">${d}</div>`; });
+  for (let i = 0; i < firstDayOffset; i++) html += '<div class="calendar-cell calendar-cell-empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cellDate = new Date(year, month, d);
+    const dow = cellDate.getDay();
+    const holidayDesc = holidayMap[toYMD(cellDate)];
+    const isToday = (today.getFullYear() === year && today.getMonth() === month && today.getDate() === d);
+
+    const chips = (dayMap[d] || []).map(function (e) {
+      const cls = e.status === 'Approved' ? 'bg-success' : (e.status === 'SendBack' ? 'bg-secondary' : 'bg-warning text-dark');
+      return `<span class="calendar-chip ${cls}" title="${esc(e.name)}">${esc(e.name)}</span>`;
+    }).join('');
+
+    let cls = 'calendar-cell';
+    if (dow === 0 || dow === 6 || holidayDesc) cls += ' calendar-cell-holiday';
+    if (isToday) cls += ' calendar-cell-today';
+    const hLabel = holidayDesc ? `<span class="calendar-holiday-label" title="${esc(holidayDesc)}">${esc(holidayDesc)}</span>` : '';
+    html += `<div class="${cls}"><div class="calendar-day-num">${d}</div>${hLabel}${chips}</div>`;
+  }
+  html += '</div>';
+  $(area + 'CalendarContainer').innerHTML = html;
+}
+
+// ======================================================================
+// ผู้จัดการ
+// ======================================================================
+async function loginAsManager() {
+  if (!loggedInEmployee) return;
+  showLoading('กำลังโหลดข้อมูลคำขอทั้งหมดสำหรับผู้บริหาร...');
+  try {
+    const { data, error } = await supabaseClient.from('leave_requests').select(LIST_COLS).order('timestamp', { ascending: false });
+    hideLoading();
+    if (error) { console.error(error); showAppAlert('เกิดข้อผิดพลาดในการโหลดข้อมูล', esc(error.message), 'danger'); return; }
+    isManagerAuthorized = true;
+    allCachedRequests = data || [];
+    updateManagerMetrics(allCachedRequests);
+    renderRequestsTable(allCachedRequests.filter(function (r) { return r.status === 'PendingManager'; }), 'managerTableBody', 'manager');
+    renderHistoryTable('manager');
+    await loadHolidays(true);
+    renderLeaveCalendar('manager');
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+function updateManagerMetrics(data) {
+  data = data || [];
+  $('metricAll').innerText = data.length;
+  $('metricPending').innerText = data.filter(function (r) { return r.status === 'PendingManager'; }).length;
+  $('metricApproved').innerText = data.filter(function (r) { return r.status === 'Approved'; }).length;
+  $('metricRejected').innerText = data.filter(function (r) { return r.status === 'RejectedByManager'; }).length;
+}
+
+function openDecisionDialog(id) {
+  $('actionRequestId').value = id;
+  $('actionRequestIdLabel').innerText = id;
+  $('actionComment').value = '';
+  $('approverSignatureFile').value = '';
+  getModal('approvalDialogModal').show();
+}
+
+async function submitDecision(status) {
+  const id = $('actionRequestId').value;
+  const comment = $('actionComment').value.trim();
+  if (!id || !loggedInEmployee || normalizeRole(loggedInEmployee.role) !== 'Manager') return;
+
+  if ((status === 'RejectedByManager' || status === 'SendBack') && !comment) {
+    alert('กรุณาระบุความเห็น / สาเหตุ หรือเหตุผลการส่งคืนแก้ไขด้วยครับ');
+    return;
+  }
+  if (!checkFileSize('approverSignatureFile', 2, 'ไฟล์ลายเซ็น')) return;
+
+  getModal('approvalDialogModal').hide();
+  showLoading('กำลังอัปเดตสถานะและมติการตัดสินใจ...');
+  try {
+    const payload = {
+      status: status,
+      approver_comment: comment || null,
+      manager_approver_name: fullName(loggedInEmployee),
+      manager_decision_date: new Date().toISOString()
+    };
+    const sigData = await readFileAsBase64('approverSignatureFile');
+    if (sigData) payload.approver_signature_data = packFile(sigData);
+
+    const { data, error } = await supabaseClient.from('leave_requests')
+      .update(payload).eq('id', id).eq('status', 'PendingManager').select('id');
+    hideLoading();
+    if (error) throw error;
+    if (!data || !data.length) showAppAlert('ไม่สำเร็จ', 'คำขอนี้ถูกดำเนินการไปแล้วหรือสถานะเปลี่ยนไป', 'warning');
+    else showAppAlert('ประเมินผลแล้ว', 'บันทึกผลพิจารณาในคำขอ ' + esc(id) + ' เรียบร้อยแล้ว', 'success');
+    loginAsManager();
+  } catch (err) {
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// ======================================================================
+// เริ่มต้นระบบ
+// ======================================================================
+document.addEventListener('DOMContentLoaded', function () {
+  syncCategoryDropdown('ลากิจ', true);
+
+  // ลิงก์ตรงจากอีเมล/ไลน์: ?page=approve&requestId=LR-xxxx (ระบบจะเปิดหน้าพิจารณาหลังล็อกอิน)
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('page') && params.get('requestId')) {
+    pendingDirectLink = { page: params.get('page'), requestId: params.get('requestId') };
   }
 
-  // 5. แสดงผลลัพธ์
-  if (durationInput) durationInput.value = count;
-  if (excludedNote) {
-    excludedNote.innerHTML = excludedList.length
-      ? '<i class="fa-solid fa-circle-info me-1"></i>ไม่นับวันหยุดต่อไปนี้: ' + excludedList.join(', ')
-      : '';
-  }
+  $('employeeIdInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('employeePasswordInput').focus(); });
+  $('startDate').addEventListener('change', fetchLastLeaveDate);
+});
 
-  if (typeof updateDelegateRequirement === 'function') updateDelegateRequirement();
-  if (typeof updateAnnualLeaveBalanceDisplay === 'function') updateAnnualLeaveBalanceDisplay();
-  if (typeof checkDateOverlapNow === 'function') checkDateOverlapNow();
-}
-	  
-
-// 2. ฟังก์ชันเปิด Modal รับทราบ / ปฏิเสธ (ผู้รับมอบหมาย)
-function openDelegateDecisionDialog(id, decisionType) {
-    const task = cachedDelegateTasks.find(t => t.id === id);
-    if (!task) return;
-    
-    document.getElementById('delegateActionRequestId').value = id;
-    document.getElementById('delegateActionComment').value = '';
-    document.getElementById('delegateSignatureFile').value = '';
-    
-    document.getElementById('delegateRequestSummary').innerHTML = 
-        `<b>รหัสคำขอ:</b> ${task.id}<br>` +
-        `<b>ผู้ขอลา:</b> ${task.prefix || ''}${task.name || ''} (${task.position || ''})<br>` +
-        `<b>ประเภท:</b> ${task.leave_type || ''} (${task.leave_duration || 0} วัน)<br>` +
-        `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(task.start_date)} ถึง ${formatStringToDateTimeInput(task.end_date)}<br>` +
-        `<b>เหตุผลการลา:</b> ${task.reason || '-'}<br>` +
-        `<hr><span class="badge ${decisionType === 'Accepted' ? 'bg-primary' : 'bg-danger'}">กำลังดำเนินการ: ${decisionType === 'Accepted' ? 'รับมอบหมาย (ต้องแนบลายเซ็น)' : 'ปฏิเสธการรับมอบหมาย (ต้องระบุเหตุผล)'}</span>`;
-
-    window.currentDelegateDecision = decisionType;
-    new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
-}
-
-
-// 3. ฟังก์ชันยืนยันการตัดสินใจ
-function confirmDelegateAction() {
-    const decision = window.currentDelegateDecision || 'Accepted';
-}
-
-// 4. ฟังก์ชันบันทึกข้อมูลลงฐานข้อมูล Supabase
-function submitDelegateDecision(decision) {
-    const id = document.getElementById('delegateActionRequestId').value;
-    const comment = document.getElementById('delegateActionComment').value;
-    const hasSignature = document.getElementById('delegateSignatureFile').files.length > 0;
-
-    if (!id) return;
-    if (decision === 'Accepted' && !hasSignature) {
-        alert("กรุณาแนบไฟล์ลายเซ็นก่อนกด \"รับทราบ\"");
-        return;
-    }
-    if (decision === 'Declined' && !comment.trim()) {
-        alert("กรุณาระบุเหตุผลที่ไม่สามารถรับมอบหมายงานแทน");
-        return;
-    }
-
-    bootstrap.Modal.getInstance(document.getElementById('delegateDecisionModal')).hide();
-    showLoading("กำลังบันทึกการตัดสินใจของผู้รับมอบหมายงานแทน...");
-
-    async function executeUpdate(signatureData = null) {
-        try {
-            const updatePayload = {
-                status: decision === 'Accepted' ? 'PendingHR' : 'RejectedByDelegate',
-                delegate_comment: comment || null,
-                signature_data: signatureData
-            };
-
-            const { error: updateError } = await supabaseClient
-                .from('leave_requests')
-                .update(updatePayload)
-                .eq('id', id);
-
-            hideLoading();
-
-            if (updateError) {
-                throw updateError;
-            }
-
-            showAppAlert("สำเร็จ", "บันทึกการตัดสินใจเรียบร้อยแล้ว", "success");
-            loadDelegateTasks(true);
-
-        } catch (err) {
-            hideLoading();
-            showAppAlert("ข้อผิดพลาดระบบ", err.message || err.toString(), "danger");
-        }
-    }
-
-    if (decision === 'Accepted') {
-        readFileAsBase64('delegateSignatureFile').then(function (signatureData) {
-            executeUpdate(signatureData);
-        });
-    } else {
-        executeUpdate(null);
-    }
-}
-		 
   </script>
 </body>
 </html>
