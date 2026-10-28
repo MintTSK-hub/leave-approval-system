@@ -2112,7 +2112,14 @@ function routeToRolePage(userRole) {
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
   }
 }
-    
+
+	// ฟังก์ชันสำหรับเปิดหน้าต่างดูรายละเอียดคำขอ
+function openDetailsModal(requestId, type) {
+    console.log("Opening details modal for:", requestId, type);
+    // ใส่โค้ดสำหรับเปิด Modal แสดงรายละเอียดใบลาที่นี่
+}
+
+	  
 	// ฟังก์ชันสำหรับเปิดหน้าต่างจัดการงานที่ได้รับมอบหมาย (รับทราบ / ปฏิเสธ)
 function openDelegateDecisionDialog(requestId, actionType) {
     // ตรวจสอบและจัดการการเปิด Modal หรือส่งค่าสถานะรับทราบ/ปฏิเสธ
