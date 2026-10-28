@@ -1889,10 +1889,27 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       showLoading(currentLang === 'th' ? "กำลังบันทึกข้อมูลใบลา..." : "Saving leave request...");
+        
+		try {
+    // สร้างเลขรันอัตโนมัติรูปแบบ LR-ปีเดือนวัน-xxxx (เช่น LR-20261028-0001)
+    const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const prefixId = `LR-${todayStr}-`;
 
-      try {
-        // สร้างรหัสคำขอ (ถ้าเป็นการแก้ไขใช้รหัสเดิม ถ้าสร้างใหม่สร้างรหัสใหม่ LR-YYYYMMDD-XXXX)
-        const requestId = editRequestId || ("LR-" + new Date().toISOString().slice(0,10).replace(/-/g,"") + "-" + Math.floor(1000 + Math.random() * 9000));
+    let requestId = editRequestId;
+    if (!requestId) {
+        const { data: existingRequests, error: countError } = await supabaseClient
+            .from('leave_requests')
+            .select('id')
+            .like('id', `${prefixId}%`);
+
+        let runningNumber = 1;
+        if (!countError && existingRequests) {
+            runningNumber = existingRequests.length + 1;
+        }
+        
+        const runningStr = String(runningNumber).padStart(4, '0');
+        requestId = `${prefixId}${runningStr}`;
+    }
         const hasDelegate = delegateEmployeeId ? true : false;
 
         const payload = {
