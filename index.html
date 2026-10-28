@@ -2149,19 +2149,20 @@ async function doEmployeeLogin() {
 		}).join('');
 
     function openDelegateDecisionDialog(id) {
-      const task = cachedDelegateTasks.find(t => t.ID === id);
-      if (!task) return;
-      document.getElementById('delegateActionRequestId').value = id;
-      document.getElementById('delegateActionComment').value = '';
-      document.getElementById('delegateSignatureFile').value = '';
-      document.getElementById('delegateRequestSummary').innerHTML =
-        `<b>รหัสคำขอ:</b> ${task.ID}<br>` +
-        `<b>ผู้ขอลา:</b> ${task.Prefix}${task.Name} (${task.Position})<br>` +
-        `<b>ประเภท:</b> ${task.LeaveType} (${task.LeaveDuration} วัน)<br>` +
-        `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(task.StartDate)} ถึง ${formatStringToDateTimeInput(task.EndDate)}<br>` +
-        `<b>เหตุผลการลา:</b> ${task.Reason}`;
-      new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
-    }
+    const task = cachedDelegateTasks.find(t => t.id === id);
+    if (!task) return;
+    document.getElementById('delegateActionRequestId').value = id;
+    document.getElementById('delegateActionComment').value = '';
+    document.getElementById('delegateSignatureFile').value = '';
+    document.getElementById('delegateRequestSummary').innerHTML = 
+        `<b>รหัสคำขอ:</b> ${task.id}<br>` +
+        `<b>ผู้ขอลา:</b> ${task.prefix || ''}${task.name || ''} (${task.position || ''})<br>` +
+        `<b>ประเภท:</b> ${task.leave_type || ''} (${task.leave_duration || 0} วัน)<br>` +
+        `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(task.start_date)} ถึง ${formatStringToDateTimeInput(task.end_date)}<br>` +
+        `<b>เหตุผลการลา:</b> ${task.reason || '-'}`;
+
+    new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
+}
 
     function submitDelegateDecision(decision) {
       const id = document.getElementById('delegateActionRequestId').value;
@@ -2178,22 +2179,35 @@ async function doEmployeeLogin() {
         return;
       }
 
-      bootstrap.Modal.getInstance(document.getElementById('delegateDecisionModal')).hide();
-      showLoading("กำลังบันทึกการตัดสินใจของผู้รับมอบหมายงานแทน...");
+      readFileAsBase64('delegateSignatureFile').then(async function (signatureData) {
+        try {
+            // เตรียมข้อมูลอัปเดตสถานะและการตัดสินใจของผู้รับมอบหมายงาน
+            const updatePayload = {
+                status: decision === 'Accepted' ? 'PendingManager' : 'RejectedByDelegate',
+                delegate_comment: comment || null,
+                signature_data: signatureData || null
+            };
 
-      readFileAsBase64('delegateSignatureFile').then(function (signatureData) {
-        google.script.run
-          .withSuccessHandler(function (res) {
+            // อัปเดตข้อมูลลงในตาราง leave_requests ของ Supabase
+            const { error: updateError } = await supabaseClient
+                .from('leave_requests')
+                .update(updatePayload)
+                .eq('id', id);
+
             hideLoading();
-            showAppAlert(res.success ? "สำเร็จ" : "ผิดพลาด", res.message, res.success ? "success" : "danger");
+
+            if (updateError) {
+                throw updateError;
+            }
+
+            showAppAlert("สำเร็จ", "บันทึกการตัดสินใจเรียบร้อยแล้ว", "success");
             loadDelegateTasks(true);
-          })
-          .withFailureHandler(function (err) {
+
+        } catch (err) {
             hideLoading();
-            showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
-          })
-          .processDelegateDecision(id, decision, comment, signatureData, loggedInEmployee.employeeId, loggedInEmployee.password);
-      });
+            showAppAlert("ข้อผิดพลาดระบบ", err.message || err.toString(), "danger");
+        }
+    });
     }
 
     function routeToRolePage(role) {
@@ -2207,6 +2221,7 @@ async function doEmployeeLogin() {
       myReqTabLi.style.display = 'none';
       hrTabLi.style.display = 'none';
       managerTabLi.style.display = 'none';
+		
       // ทุกบทบาทสามารถถูกระบุเป็นผู้รับมอบหมายงานแทนได้ จึงแสดงแท็บนี้ให้ทุกคน (มีตัวเลขแจ้งงานที่รอรับทราบ)
       delegateTabLi.style.display = '';
       document.getElementById('employeeLatestStatusText').innerHTML = '';
@@ -2221,6 +2236,7 @@ async function doEmployeeLogin() {
         new bootstrap.Tab(document.getElementById('hr-tab')).show();
         loginAsHR();
       } else {
+		  
         // พนักงานทั่วไป: เห็นเฉพาะแท็บยื่นใบลา + ประวัติของฉัน
         applyTabLi.style.display = '';
         myReqTabLi.style.display = '';
