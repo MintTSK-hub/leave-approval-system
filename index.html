@@ -2031,7 +2031,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function doEmployeeLogin() {
   const employeeId = document.getElementById('employeeIdInput').value.trim();
   const password = document.getElementById('employeePasswordInput').value.trim();
-  
+ 
   if (!employeeId || !password) {
     showAppAlert("ข้อมูลไม่ครบถ้วน", "กรุณาระบุชื่อผู้ใช้และรหัสผ่าน", "danger");
     return;
@@ -2059,6 +2059,12 @@ async function doEmployeeLogin() {
       showAppAlert("เข้าสู่ระบบไม่สำเร็จ", "รหัสผ่านไม่ถูกต้อง", "danger");
       return;
     }
+
+	  // กำหนดสิทธิ์และซ่อน/แสดงแท็บตาม Role ของผู้ใช้งาน
+        const userRole = employee.role || 'Employee';
+        routeToRolePage(userRole);
+
+	  
 
     // 3. ล็อกอินผ่าน! บันทึกข้อมูลและสลับหน้าจอ
     loggedInEmployee = employee;
@@ -3845,6 +3851,27 @@ function formatStringDateToDateInput(dateString) {
           executeUpdate(null);
       }
     }
+
+	  // ฟังก์ชันจัดการเส้นทางและสิทธิ์การมองเห็นแท็บตาม Role ของผู้ใช้งาน
+function routeToRolePage(userRole) {
+    // ค้นหา Element ของแท็บ HR และ ผู้จัดการ (สามารถปรับ ID หรือ Class ตาม HTML ของคุณได้ครับ)
+    const hrTabElements = document.querySelectorAll('.hr-tab-area, [data-target="#hrArea"], #hrTab');
+    const managerTabElements = document.querySelectorAll('.manager-tab-area, [data-target="#managerArea"], #managerTab');
+
+    // ตรวจสอบสิทธิ์และซ่อน/แสดงแท็บ
+    if (userRole === 'HR' || userRole === 'hr') {
+        hrTabElements.forEach(el => el.style.display = '');
+        managerTabElements.forEach(el => el.style.display = 'none');
+    } else if (userRole === 'Manager' || userRole === 'manager' || userRole === ' ผู้อำนวยการ' || userRole === 'ผู้จัดการ') {
+        hrTabElements.forEach(el => el.style.display = 'none');
+        managerTabElements.forEach(el => el.style.display = '');
+    } else {
+        // สำหรับพนักงานทั่วไป / เจ้าหน้าที่เคาน์เตอร์ -> ซ่อนทั้งแท็บ HR และ ผู้จัดการ
+        hrTabElements.forEach(el => el.style.display = 'none');
+        managerTabElements.forEach(el => el.style.display = 'none');
+    }
+}
+	  
   </script>
 </body>
 </html>
