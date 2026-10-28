@@ -386,11 +386,15 @@
           <i class="fa-solid fa-history me-2"></i><span data-th="ประวัติการลาของฉัน" data-en="My Requests">ประวัติการลาของฉัน</span>
         </button>
       </li>
-      <li class="nav-item" role="presentation">
+      
+		
+		<li class="nav-item" role="presentation">
         <button class="nav-link" id="delegate-tab" data-bs-toggle="tab" data-bs-target="#delegateContent" type="button" role="tab" onclick="loadDelegateTasks()">
           <i class="fa-solid fa-handshake me-2"></i><span>งานที่ได้รับมอบหมาย</span>
           <span class="badge bg-danger ms-1" id="delegateTaskBadge" style="display:none;">0</span>
         </button>
+
+			
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="hr-tab" data-bs-toggle="tab" data-bs-target="#hrContent" type="button" role="tab">
@@ -2191,7 +2195,7 @@ async function loadDelegateTasks(silent) {
     function renderDelegateTasks() {
       const tbody = document.getElementById('delegateTableBody');
       const badge = document.getElementById('delegateTaskBadge');
-      const pendingCount = cachedDelegateTasks.filter(t => t.Status === 'PendingDelegate').length;
+      const pendingCount = cachedDelegateTasks.filter(t => t.status === 'PendingDelegate').length;
 
       if (pendingCount > 0) {
         badge.innerText = pendingCount;
@@ -2209,7 +2213,7 @@ async function loadDelegateTasks(silent) {
     const info = getStatusInfo(t.status);
     const actionable = (t.status === 'PendingDelegate');
 		  
-   // ปรับแก้ตรงนี้: เอาปุ่มปฏิเสธออก และเปลี่ยนข้อความ/ไอคอนปุ่มเป็น "รับทราบ/ลงลายเซ็น"
+   // ปุ่มเป็น "รับทราบ/ลงลายเซ็น"
     const actionBtn = actionable 
         ? `<div class="d-flex gap-1 justify-content-center align-items-center">
              <button class="btn btn-sm btn-primary fw-bold text-nowrap" onclick="openDelegateDecisionDialog('${t.id}', 'Accepted')"><i class="fa-solid fa-signature me-1"></i>รับทราบ/ลงลายเซ็น</button>
