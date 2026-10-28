@@ -2113,7 +2113,12 @@ function routeToRolePage(userRole) {
   }
 }
     
-	 // 1. ประกาศฟังก์ชันแปลงวันที่ไว้ด้านบนสุดก่อนเริ่มโหลดงาน
+	 // 1. ฟังก์ชันรองรับชื่อที่ระบบเรียกใช้งาน
+function formatStringDateToDateTimeInput(dateString) {
+    return formatStringToDateTimeInput(dateString);
+}
+
+// 2. ฟังก์ชันหลักสำหรับแปลงรูปแบบวันที่
 function formatStringToDateTimeInput(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -2126,6 +2131,7 @@ function formatStringToDateTimeInput(dateString) {
     return `${day}/${month}/${year}`;
 }
 
+	 
 // 2. ตามด้วยฟังก์ชันโหลดงาน (ที่เรียกใช้งานฟังก์ชันด้านบน)
 async function loadDelegateTasks(silent) {
     if (!loggedInEmployee) return;
