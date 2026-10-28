@@ -3753,15 +3753,15 @@ async function loadLeaveReport() {
 
 		
 
-	  function routeToRolePage(userRole) {
-    // ค้นหาแท็บทั้งหมดในแถบเมนู (Navigation Tabs) เพื่อซ่อนตามชื่อข้อความหรือตำแหน่ง
+	  // ==========================================
+// 1. ฟังก์ชันจัดการสิทธิ์และการซ่อน/แสดงแท็บตาม Role
+// ==========================================
+function routeToRolePage(userRole) {
     const navItems = document.querySelectorAll('.nav-link, .nav-item, button, a');
     
     navItems.forEach(el => {
         const text = el.textContent || '';
-        // ถ้าเป็นแท็บหรือปุ่มที่มีคำว่า "พื้นที่ HR" หรือ "พื้นที่ผู้จัดการ"
-        if (text.includes('พื้นที่ HR') || text.includes('พื้นที่ผู้จัดการ') || text.includes('แดชบอร์ดฝ่าย HR') || text.includes('พื้นที่ผู้จัดการ')) {
-            // เช็คสิทธิ์: หากไม่ใช่ HR หรือ Manager ให้ซ่อนแท็บนี้ทันที
+        if (text.includes('พื้นที่ HR') || text.includes('พื้นที่ผู้จัดการ') || text.includes('แดชบอร์ดฝ่าย HR')) {
             if (userRole === 'HR' || userRole === 'hr') {
                 if (text.includes('พื้นที่ผู้จัดการ')) {
                     el.style.display = 'none';
@@ -3782,7 +3782,9 @@ async function loadLeaveReport() {
     });
 }
 
-		// 1. ฟังก์ชันเปิด Modal รับทราบหรือปฏิเสธ (วางไว้นอกสุดระดับ Global Scope)
+// ==========================================
+// 2. ฟังก์ชันเปิด Modal รับทราบ / ปฏิเสธ (ผู้รับมอบหมาย)
+// ==========================================
 function openDelegateDecisionDialog(id, decisionType) {
     const task = cachedDelegateTasks.find(t => t.id === id);
     if (!task) return;
@@ -3803,13 +3805,17 @@ function openDelegateDecisionDialog(id, decisionType) {
     new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
 }
 
-// 2. ฟังก์ชันยืนยันการตัดสินใจเมื่อกดปุ่มบันทึกใน Modal
+// ==========================================
+// 3. ฟังก์ชันยืนยันการตัดสินใจ
+// ==========================================
 function confirmDelegateAction() {
     const decision = window.currentDelegateDecision || 'Accepted';
     submitDelegateDecision(decision);
 }
 
-// 3. ฟังก์ชันบันทึกข้อมูลลงฐานข้อมูล Supabase
+// ==========================================
+// 4. ฟังก์ชันบันทึกข้อมูลลงฐานข้อมูล Supabase
+// ==========================================
 function submitDelegateDecision(decision) {
     const id = document.getElementById('delegateActionRequestId').value;
     const comment = document.getElementById('delegateActionComment').value;
@@ -3864,8 +3870,6 @@ function submitDelegateDecision(decision) {
         executeUpdate(null);
     }
 }
-}
-		
   </script>
 </body>
 </html>
