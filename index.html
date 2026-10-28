@@ -2164,14 +2164,14 @@ async function doEmployeeLogin() {
     new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
 }
 
-    function submitDelegateDecision(decision) {
+   function submitDelegateDecision(decision) {
       const id = document.getElementById('delegateActionRequestId').value;
       const comment = document.getElementById('delegateActionComment').value;
       const hasSignature = document.getElementById('delegateSignatureFile').files.length > 0;
 
       if (!id) return;
       if (decision === 'Accepted' && !hasSignature) {
-        alert("กรุณาแนบไฟล์ลายเซ็นก่อนกด \"รับทราบ");
+        alert("กรุณาแนบไฟล์ลายเซ็นก่อนกด \"รับทราบ\"");
         return;
       }
       if (decision === 'Declined' && !comment.trim()) {
@@ -2179,35 +2179,36 @@ async function doEmployeeLogin() {
         return;
       }
 
+      bootstrap.Modal.getInstance(document.getElementById('delegateDecisionModal')).hide();
+      showLoading("กำลังบันทึกการตัดสินใจของผู้รับมอบหมายงานแทน...");
+
       readFileAsBase64('delegateSignatureFile').then(async function (signatureData) {
-        try {
-            // เตรียมข้อมูลอัปเดตสถานะและการตัดสินใจของผู้รับมอบหมายงาน
-            const updatePayload = {
-                status: decision === 'Accepted' ? 'PendingManager' : 'RejectedByDelegate',
-                delegate_comment: comment || null,
-                signature_data: signatureData || null
-            };
+          try {
+              const updatePayload = {
+                  status: decision === 'Accepted' ? 'PendingManager' : 'RejectedByDelegate',
+                  delegate_comment: comment || null,
+                  signature_data: signatureData || null
+              };
 
-            // อัปเดตข้อมูลลงในตาราง leave_requests ของ Supabase
-            const { error: updateError } = await supabaseClient
-                .from('leave_requests')
-                .update(updatePayload)
-                .eq('id', id);
+              const { error: updateError } = await supabaseClient
+                  .from('leave_requests')
+                  .update(updatePayload)
+                  .eq('id', id);
 
-            hideLoading();
+              hideLoading();
 
-            if (updateError) {
-                throw updateError;
-            }
+              if (updateError) {
+                  throw updateError;
+              }
 
-            showAppAlert("สำเร็จ", "บันทึกการตัดสินใจเรียบร้อยแล้ว", "success");
-            loadDelegateTasks(true);
+              showAppAlert("สำเร็จ", "บันทึกการตัดสินใจเรียบร้อยแล้ว", "success");
+              loadDelegateTasks(true);
 
-        } catch (err) {
-            hideLoading();
-            showAppAlert("ข้อผิดพลาดระบบ", err.message || err.toString(), "danger");
-        }
-    });
+          } catch (err) {
+              hideLoading();
+              showAppAlert("ข้อผิดพลาดระบบ", err.message || err.toString(), "danger");
+          }
+      });
     }
 
     function routeToRolePage(role) {
