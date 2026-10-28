@@ -1447,9 +1447,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-
-
-	  
     window.onload = function () {
       // ซิงค์ดร็อปดาวน์เริ่มต้น
       syncCategoryDropdown("ลากิจ");
@@ -2026,6 +2023,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+	  // ฟังก์ชันสำหรับแปลงรูปแบบวันที่ (แก้ไขปัญหา Error formatStringToDateTimeInput is not defined)
+function formatStringToDateTimeInput(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ. (หรือตัด +543 ออกหากระบบใช้ ค.ศ.)
+    
+    return `${day}/${month}/${year}`;
+}
+	  
 // เข้าสู่ระบบแบบรวมศูนย์ — ใช้บัญชีเดียวกันทั้งพนักงาน/HR/ผู้จัดการ ระบบจะพาไปหน้าที่ถูกต้องตาม Role อัตโนมัติ
  // ฟังก์ชันเข้าสู่ระบบผ่าน Supabase	  
 async function doEmployeeLogin() {
@@ -2092,8 +2102,7 @@ function routeToRolePage(userRole) {
     });
 }
 
-	  
-
+	
     // 3. ล็อกอินผ่าน! บันทึกข้อมูลและสลับหน้าจอ
     loggedInEmployee = employee;
     
@@ -3867,21 +3876,6 @@ function submitDelegateDecision(decision) {
     }
 }
 		}
-
-
-
-	  // ฟังก์ชันสำหรับแปลงรูปแบบวันที่ (แก้ไขปัญหา Error formatStringToDateTimeInput is not defined)
-function formatStringToDateTimeInput(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ. (หรือตัด +543 ออกหากระบบใช้ ค.ศ.)
-    
-    return `${day}/${month}/${year}`;
-}
 	 
   </script>
 </body>
