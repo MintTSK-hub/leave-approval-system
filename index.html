@@ -2113,7 +2113,7 @@ function routeToRolePage(userRole) {
   }
 }
     
-	  // ฟังก์ชันแปลงรูปแบบวันที่ (ต้องวางไว้ก่อนบรรทัดที่เรียกใช้งาน เช่น ก่อน loadDelegateTasks)
+	 // 1. ประกาศฟังก์ชันแปลงวันที่ไว้ด้านบนสุดก่อนเริ่มโหลดงาน
 function formatStringToDateTimeInput(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -2121,23 +2121,22 @@ function formatStringToDateTimeInput(dateString) {
     
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ.
+    const year = date.getFullYear() + 543;
     
     return `${day}/${month}/${year}`;
 }
-	  
-	  // พาไปหน้าที่ถูกต้องตาม Role ของบัญชีที่ล็อกอินเข้ามา + ซ่อนแท็บที่ไม่เกี่ยวข้องออก
-    // โหลดงานที่ได้รับมอบหมายจาก Supabase
-    async function loadDelegateTasks(silent) {
-      if (!loggedInEmployee) return;
-      if (!silent) showLoading("กำลังโหลดงานที่ได้รับมอบหมาย...");
 
+// 2. ตามด้วยฟังก์ชันโหลดงาน (ที่เรียกใช้งานฟังก์ชันด้านบน)
+async function loadDelegateTasks(silent) {
+    if (!loggedInEmployee) return;
+    if (!silent) showLoading("กำลังโหลดงานที่ได้รับมอบหมาย...");
+    
     try {
-    	const { data: tasks, error } = await supabaseClient
-    	.from('leave_requests')
-   	 	.select('*')
-   	 	.eq('delegate_name', loggedInEmployee.name) // เปลี่ยนมาเทียบจากชื่อผู้รับมอบหมาย (ปรับ delegate_name ให้ตรงกับชื่อคอลัมน์จริงในตาราง เช่น delegate_name หรือชื่อที่เก็บผู้รับมอบหมาย)
-    	.order('timestamp', { ascending: false });
+        const { data: tasks, error } = await supabaseClient
+            .from('leave_requests')
+            .select('*')
+            .eq('delegate_name', loggedInEmployee.name)
+            .order('timestamp', { ascending: false });
 
         if (!silent) hideLoading();
 
