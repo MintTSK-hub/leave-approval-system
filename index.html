@@ -2006,8 +2006,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // เพิ่มหรือปรับแก้ให้รองรับสถานะ 'PendingHR' ที่เพิ่งเปลี่ยนเมื่อสักครู่
         case 'PendingHR':
         case 'ApprovedByDelegate':
-            return { label: 'รอ HR ตรวจสอบ', badgeClass: 'bg-warning text-dark' }; // ใช้สีเหลืองตามภาพตัวอย่าง
-            
+            return { label: 'รอ HR ตรวจสอบ', badgeClass: 'bg-warning text-dark' }; // ใช้สีเหลืองตามภาพตัวอย่าง        
         case 'Approved':
             return { label: 'อนุมัติแล้ว', badgeClass: 'bg-success' };
         case 'Rejected':
