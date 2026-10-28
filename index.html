@@ -2023,18 +2023,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-	  // ฟังก์ชันสำหรับแปลงรูปแบบวันที่ (แก้ไขปัญหา Error formatStringToDateTimeInput is not defined)
-function formatStringToDateTimeInput(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ. (หรือตัด +543 ออกหากระบบใช้ ค.ศ.)
-    
-    return `${day}/${month}/${year}`;
-}
+	  
 	  
 // เข้าสู่ระบบแบบรวมศูนย์ — ใช้บัญชีเดียวกันทั้งพนักงาน/HR/ผู้จัดการ ระบบจะพาไปหน้าที่ถูกต้องตาม Role อัตโนมัติ
  // ฟังก์ชันเข้าสู่ระบบผ่าน Supabase	  
@@ -2123,7 +2112,21 @@ function routeToRolePage(userRole) {
     showAppAlert("ข้อผิดพลาดระบบ", err.toString(), "danger");
   }
 }
-    // พาไปหน้าที่ถูกต้องตาม Role ของบัญชีที่ล็อกอินเข้ามา + ซ่อนแท็บที่ไม่เกี่ยวข้องออก
+    
+	  // ฟังก์ชันแปลงรูปแบบวันที่สำหรับแสดงผล
+function formatStringToDateTimeInput(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ. (หรือปรับตามระบบเดิม)
+    
+    return `${day}/${month}/${year}`;
+}
+	  
+	  // พาไปหน้าที่ถูกต้องตาม Role ของบัญชีที่ล็อกอินเข้ามา + ซ่อนแท็บที่ไม่เกี่ยวข้องออก
     // โหลดงานที่ได้รับมอบหมายจาก Supabase
     async function loadDelegateTasks(silent) {
       if (!loggedInEmployee) return;
