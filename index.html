@@ -2113,7 +2113,7 @@ function routeToRolePage(userRole) {
   }
 }
     
-	  // ฟังก์ชันแปลงรูปแบบวันที่สำหรับแสดงผล
+	  // ฟังก์ชันแปลงรูปแบบวันที่ (ต้องวางไว้ก่อนบรรทัดที่เรียกใช้งาน เช่น ก่อน loadDelegateTasks)
 function formatStringToDateTimeInput(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -2121,7 +2121,7 @@ function formatStringToDateTimeInput(dateString) {
     
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ. (หรือปรับตามระบบเดิม)
+    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ.
     
     return `${day}/${month}/${year}`;
 }
