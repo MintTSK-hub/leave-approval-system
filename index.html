@@ -3751,14 +3751,46 @@ async function loadLeaveReport() {
   if (typeof checkDateOverlapNow === 'function') checkDateOverlapNow();
 }
 
-		function openDelegateDecisionDialog(id, decisionType) {
+		
+
+	  function routeToRolePage(userRole) {
+    // ค้นหาแท็บทั้งหมดในแถบเมนู (Navigation Tabs) เพื่อซ่อนตามชื่อข้อความหรือตำแหน่ง
+    const navItems = document.querySelectorAll('.nav-link, .nav-item, button, a');
+    
+    navItems.forEach(el => {
+        const text = el.textContent || '';
+        // ถ้าเป็นแท็บหรือปุ่มที่มีคำว่า "พื้นที่ HR" หรือ "พื้นที่ผู้จัดการ"
+        if (text.includes('พื้นที่ HR') || text.includes('พื้นที่ผู้จัดการ') || text.includes('แดชบอร์ดฝ่าย HR') || text.includes('พื้นที่ผู้จัดการ')) {
+            // เช็คสิทธิ์: หากไม่ใช่ HR หรือ Manager ให้ซ่อนแท็บนี้ทันที
+            if (userRole === 'HR' || userRole === 'hr') {
+                if (text.includes('พื้นที่ผู้จัดการ')) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = '';
+                }
+            } else if (userRole === 'Manager' || userRole === 'manager' || userRole === 'ผู้อำนวยการ' || userRole === 'ผู้จัดการ') {
+                if (text.includes('พื้นที่ HR')) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = '';
+                }
+            } else {
+                // พนักงานทั่วไป -> ซ่อนทั้งแท็บ HR และ ผู้จัดการ
+                el.style.display = 'none';
+            }
+        }
+    });
+}
+
+		// 1. ฟังก์ชันเปิด Modal รับทราบหรือปฏิเสธ (วางไว้นอกสุดระดับ Global Scope)
+function openDelegateDecisionDialog(id, decisionType) {
     const task = cachedDelegateTasks.find(t => t.id === id);
     if (!task) return;
+    
     document.getElementById('delegateActionRequestId').value = id;
     document.getElementById('delegateActionComment').value = '';
     document.getElementById('delegateSignatureFile').value = '';
     
-    // กำหนดข้อความหรือซ่อน/แสดงช่องกรอกตามปุ่มที่กด (ยอมรับ หรือ ปฏิเสธ)
     document.getElementById('delegateRequestSummary').innerHTML = 
         `<b>รหัสคำขอ:</b> ${task.id}<br>` +
         `<b>ผู้ขอลา:</b> ${task.prefix || ''}${task.name || ''} (${task.position || ''})<br>` +
@@ -3767,111 +3799,72 @@ async function loadLeaveReport() {
         `<b>เหตุผลการลา:</b> ${task.reason || '-'}<br>` +
         `<hr><span class="badge ${decisionType === 'Accepted' ? 'bg-primary' : 'bg-danger'}">กำลังดำเนินการ: ${decisionType === 'Accepted' ? 'รับมอบหมาย (ต้องแนบลายเซ็น)' : 'ปฏิเสธการรับมอบหมาย (ต้องระบุเหตุผล)'}</span>`;
 
-    // บันทึก mode การตัดสินใจไว้ที่ปุ่มยืนยันใน Modal หรือใช้เรียกฟังก์ชัน submitDelegateDecision('${decisionType}')
     window.currentDelegateDecision = decisionType;
-
     new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
 }
-}
-	  
-// 2. ฟังก์ชันยืนยันการตัดสินใจ
+
+// 2. ฟังก์ชันยืนยันการตัดสินใจเมื่อกดปุ่มบันทึกใน Modal
 function confirmDelegateAction() {
     const decision = window.currentDelegateDecision || 'Accepted';
     submitDelegateDecision(decision);
 }
 
-function formatStringDateToDateInput(dateString) {
-    if (!dateString) return '-';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear(); // หรือ + 543 หากต้องการปี พ.ศ.
-        return `${day}/${month}/${year}`;
-    } catch (e) {
-        return dateString;
-    }
-}
-	// 3. ฟังก์ชันบันทึกข้อมูลส่ง Supabase
-   function submitDelegateDecision(decision) {
-      const id = document.getElementById('delegateActionRequestId').value;
-      const comment = document.getElementById('delegateActionComment').value;
-      const hasSignature = document.getElementById('delegateSignatureFile').files.length > 0;
+// 3. ฟังก์ชันบันทึกข้อมูลลงฐานข้อมูล Supabase
+function submitDelegateDecision(decision) {
+    const id = document.getElementById('delegateActionRequestId').value;
+    const comment = document.getElementById('delegateActionComment').value;
+    const hasSignature = document.getElementById('delegateSignatureFile').files.length > 0;
 
-      if (!id) return;
-      if (decision === 'Accepted' && !hasSignature) {
+    if (!id) return;
+    if (decision === 'Accepted' && !hasSignature) {
         alert("กรุณาแนบไฟล์ลายเซ็นก่อนกด \"รับทราบ\"");
         return;
-      }
-      if (decision === 'Declined' && !comment.trim()) {
+    }
+    if (decision === 'Declined' && !comment.trim()) {
         alert("กรุณาระบุเหตุผลที่ไม่สามารถรับมอบหมายงานแทน");
         return;
-      }
-
-      bootstrap.Modal.getInstance(document.getElementById('delegateDecisionModal')).hide();
-      showLoading("กำลังบันทึกการตัดสินใจของผู้รับมอบหมายงานแทน...");
-
-      // ฟังก์ชันสำหรับส่งข้อมูลอัปเดตเข้า Supabase
-      async function executeUpdate(signatureData = null) {
-          try {
-              const updatePayload = {
-                  status: decision === 'Accepted' ? 'PendingManager' : 'RejectedByDelegate',
-                  delegate_comment: comment || null,
-                  signature_data: signatureData
-              };
-
-              const { error: updateError } = await supabaseClient
-                  .from('leave_requests')
-                  .update(updatePayload)
-                  .eq('id', id);
-
-              hideLoading();
-
-              if (updateError) {
-                  throw updateError;
-              }
-
-              showAppAlert("สำเร็จ", "บันทึกการตัดสินใจเรียบร้อยแล้ว", "success");
-              loadDelegateTasks(true);
-
-          } catch (err) {
-              hideLoading();
-              showAppAlert("ข้อผิดพลาดระบบ", err.message || err.toString(), "danger");
-          }
-      }
-
-      // หากเป็นการยอมรับ (Accepted) ให้ อ่านไฟล์ลายเซ็นก่อนอัปเดต
-      if (decision === 'Accepted') {
-          readFileAsBase64('delegateSignatureFile').then(function (signatureData) {
-              executeUpdate(signatureData);
-          });
-      } else {
-          // หากเป็นการปฏิเสธ (Declined) ไม่ต้องใช้ลายเซ็น อัปเดตข้อมูลได้เลยทันที
-          executeUpdate(null);
-      }
     }
 
-	  // ฟังก์ชันจัดการเส้นทางและสิทธิ์การมองเห็นแท็บตาม Role ของผู้ใช้งาน
-function routeToRolePage(userRole) {
-    // ค้นหา Element ของแท็บ HR และ ผู้จัดการ (สามารถปรับ ID หรือ Class ตาม HTML ของคุณได้ครับ)
-    const hrTabElements = document.querySelectorAll('.hr-tab-area, [data-target="#hrArea"], #hrTab');
-    const managerTabElements = document.querySelectorAll('.manager-tab-area, [data-target="#managerArea"], #managerTab');
+    bootstrap.Modal.getInstance(document.getElementById('delegateDecisionModal')).hide();
+    showLoading("กำลังบันทึกการตัดสินใจของผู้รับมอบหมายงานแทน...");
 
-    // ตรวจสอบสิทธิ์และซ่อน/แสดงแท็บ
-    if (userRole === 'HR' || userRole === 'hr') {
-        hrTabElements.forEach(el => el.style.display = '');
-        managerTabElements.forEach(el => el.style.display = 'none');
-    } else if (userRole === 'Manager' || userRole === 'manager' || userRole === ' ผู้อำนวยการ' || userRole === 'ผู้จัดการ') {
-        hrTabElements.forEach(el => el.style.display = 'none');
-        managerTabElements.forEach(el => el.style.display = '');
+    async function executeUpdate(signatureData = null) {
+        try {
+            const updatePayload = {
+                status: decision === 'Accepted' ? 'PendingManager' : 'RejectedByDelegate',
+                delegate_comment: comment || null,
+                signature_data: signatureData
+            };
+
+            const { error: updateError } = await supabaseClient
+                .from('leave_requests')
+                .update(updatePayload)
+                .eq('id', id);
+
+            hideLoading();
+
+            if (updateError) {
+                throw updateError;
+            }
+
+            showAppAlert("สำเร็จ", "บันทึกการตัดสินใจเรียบร้อยแล้ว", "success");
+            loadDelegateTasks(true);
+
+        } catch (err) {
+            hideLoading();
+            showAppAlert("ข้อผิดพลาดระบบ", err.message || err.toString(), "danger");
+        }
+    }
+
+    if (decision === 'Accepted') {
+        readFileAsBase64('delegateSignatureFile').then(function (signatureData) {
+            executeUpdate(signatureData);
+        });
     } else {
-        // สำหรับพนักงานทั่วไป / เจ้าหน้าที่เคาน์เตอร์ -> ซ่อนทั้งแท็บ HR และ ผู้จัดการ
-        hrTabElements.forEach(el => el.style.display = 'none');
-        managerTabElements.forEach(el => el.style.display = 'none');
+        executeUpdate(null);
     }
 }
-	  
+		
   </script>
 </body>
 </html>
