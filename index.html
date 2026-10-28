@@ -2186,7 +2186,7 @@ async function loadDelegateTasks(silent) {
         <tr>
             <td><b>${t.id}</b></td>
             <td>${t.prefix || ''}${t.name || ''}<br><span class="small text-muted">${t.position || ''}</span></td>
-            <td>${t.leave_type || '-'}<br><span class="small text-muted">${formatStringDateToDateInput(t.start_date)} ถึง ${formatStringDateToDateInput(t.end_date)}</span></td>
+            <td>${t.leave_type || '-'}<br><span class="small text-muted">${formatStringToDateTimeInput(t.start_date)} ถึง ${formatStringToDateTimeInput(t.end_date)}</span></td>
             <td>${t.leave_duration || 0} วัน</td>
             <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
             <td class="text-center">
