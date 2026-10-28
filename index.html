@@ -2129,9 +2129,12 @@ async function doEmployeeLogin() {
 
       tbody.innerHTML = cachedDelegateTasks.map(t => {
     const info = getStatusInfo(t.status);
-    const actionable = t.status === 'PendingDelegate';
+    const actionable = (t.status === 'PendingDelegate');
     const actionBtn = actionable 
-        ? `<button class="btn btn-sm btn-primary fw-bold" onclick="openDelegateDecisionDialog('${t.id}')"><i class="fa-solid fa-signature me-1"></i>รับทราบ/ลงลายเซ็น</button>`
+        ? `<div class="d-flex gap-1 justify-content-center align-items-center">
+             <button class="btn btn-sm btn-primary fw-bold text-nowrap" onclick="openDelegateDecisionDialog('${t.id}', 'Accepted')"><i class="fa-solid fa-signature me-1"></i>รับทราบ</button>
+             <button class="btn btn-sm btn-danger fw-bold text-nowrap" onclick="openDelegateDecisionDialog('${t.id}', 'Declined')"><i class="fa-solid fa-xmark me-1"></i>ปฏิเสธ</button>
+           </div>`
         : `<span class="small text-muted">${t.status === 'RejectedByDelegate' ? 'คุณไม่รับมอบหมาย' : 'รับทราบแล้ว'}</span>`;
     return `
         <tr>
@@ -2148,20 +2151,32 @@ async function doEmployeeLogin() {
  	   `;
 		}).join('');
 
-    function openDelegateDecisionDialog(id) {
+function openDelegateDecisionDialog(id, decisionType) {
     const task = cachedDelegateTasks.find(t => t.id === id);
     if (!task) return;
     document.getElementById('delegateActionRequestId').value = id;
     document.getElementById('delegateActionComment').value = '';
     document.getElementById('delegateSignatureFile').value = '';
+    
+    // กำหนดข้อความหรือซ่อน/แสดงช่องกรอกตามปุ่มที่กด (ยอมรับ หรือ ปฏิเสธ)
     document.getElementById('delegateRequestSummary').innerHTML = 
         `<b>รหัสคำขอ:</b> ${task.id}<br>` +
         `<b>ผู้ขอลา:</b> ${task.prefix || ''}${task.name || ''} (${task.position || ''})<br>` +
         `<b>ประเภท:</b> ${task.leave_type || ''} (${task.leave_duration || 0} วัน)<br>` +
         `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(task.start_date)} ถึง ${formatStringToDateTimeInput(task.end_date)}<br>` +
-        `<b>เหตุผลการลา:</b> ${task.reason || '-'}`;
+        `<b>เหตุผลการลา:</b> ${task.reason || '-'}<br>` +
+        `<hr><span class="badge ${decisionType === 'Accepted' ? 'bg-primary' : 'bg-danger'}">กำลังดำเนินการ: ${decisionType === 'Accepted' ? 'รับมอบหมาย (ต้องแนบลายเซ็น)' : 'ปฏิเสธการรับมอบหมาย (ต้องระบุเหตุผล)'}</span>`;
+
+    // บันทึก mode การตัดสินใจไว้ที่ปุ่มยืนยันใน Modal หรือใช้เรียกฟังก์ชัน submitDelegateDecision('${decisionType}')
+    window.currentDelegateDecision = decisionType;
 
     new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
+}
+
+		// ตัวอย่างตอนกดปุ่มบันทึกใน Modal
+function confirmDelegateAction() {
+    const decision = window.currentDelegateDecision || 'Accepted';
+    submitDelegateDecision(decision);
 }
 
 function formatStringDateToDateInput(dateString) {
@@ -2177,10 +2192,7 @@ function formatStringDateToDateInput(dateString) {
         return dateString;
     }
 }
-
-
-
-		
+	
    function submitDelegateDecision(decision) {
       const id = document.getElementById('delegateActionRequestId').value;
       const comment = document.getElementById('delegateActionComment').value;
@@ -2199,12 +2211,13 @@ function formatStringDateToDateInput(dateString) {
       bootstrap.Modal.getInstance(document.getElementById('delegateDecisionModal')).hide();
       showLoading("กำลังบันทึกการตัดสินใจของผู้รับมอบหมายงานแทน...");
 
-      readFileAsBase64('delegateSignatureFile').then(async function (signatureData) {
+      // ฟังก์ชันสำหรับส่งข้อมูลอัปเดตเข้า Supabase
+      async function executeUpdate(signatureData = null) {
           try {
               const updatePayload = {
                   status: decision === 'Accepted' ? 'PendingManager' : 'RejectedByDelegate',
                   delegate_comment: comment || null,
-                  signature_data: signatureData || null
+                  signature_data: signatureData
               };
 
               const { error: updateError } = await supabaseClient
@@ -2225,8 +2238,17 @@ function formatStringDateToDateInput(dateString) {
               hideLoading();
               showAppAlert("ข้อผิดพลาดระบบ", err.message || err.toString(), "danger");
           }
-      });
-    }
+      }
+
+      // หากเป็นการยอมรับ (Accepted) ให้ อ่านไฟล์ลายเซ็นก่อนอัปเดต
+      if (decision === 'Accepted') {
+          readFileAsBase64('delegateSignatureFile').then(function (signatureData) {
+              executeUpdate(signatureData);
+          });
+      } else {
+          // หากเป็นการปฏิเสธ (Declined) ไม่ต้องใช้ลายเซ็น อัปเดตข้อมูลได้เลยทันที
+          executeUpdate(null);
+      }
     }
 		
     function routeToRolePage(role) {
