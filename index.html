@@ -2208,10 +2208,11 @@ async function loadDelegateTasks(silent) {
       tbody.innerHTML = cachedDelegateTasks.map(t => {
     const info = getStatusInfo(t.status);
     const actionable = (t.status === 'PendingDelegate');
+		  
+   // ปรับแก้ตรงนี้: เอาปุ่มปฏิเสธออก และเปลี่ยนข้อความ/ไอคอนปุ่มเป็น "รับทราบ/ลงลายเซ็น"
     const actionBtn = actionable 
         ? `<div class="d-flex gap-1 justify-content-center align-items-center">
-             <button class="btn btn-sm btn-primary fw-bold text-nowrap" onclick="openDelegateDecisionDialog('${t.id}', 'Accepted')"><i class="fa-solid fa-signature me-1"></i>รับทราบ</button>
-             <button class="btn btn-sm btn-danger fw-bold text-nowrap" onclick="openDelegateDecisionDialog('${t.id}', 'Declined')"><i class="fa-solid fa-xmark me-1"></i>ปฏิเสธ</button>
+             <button class="btn btn-sm btn-primary fw-bold text-nowrap" onclick="openDelegateDecisionDialog('${t.id}', 'Accepted')"><i class="fa-solid fa-signature me-1"></i>รับทราบ/ลงลายเซ็น</button>
            </div>`
         : `<span class="small text-muted">${t.status === 'RejectedByDelegate' ? 'คุณไม่รับมอบหมาย' : 'รับทราบแล้ว'}</span>`;
     return `
@@ -2226,8 +2227,9 @@ async function loadDelegateTasks(silent) {
                 ${actionBtn}
             </td>
         </tr>
- 	   `;
+	   `;
 		}).join('');
+    }
 
 		
     function routeToRolePage(role) {
@@ -3837,17 +3839,13 @@ function openDelegateDecisionDialog(id, decisionType) {
     new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
 }
 
-// ==========================================
+
 // 3. ฟังก์ชันยืนยันการตัดสินใจ
-// ==========================================
 function confirmDelegateAction() {
     const decision = window.currentDelegateDecision || 'Accepted';
-    submitDelegateDecision(decision);
 }
 
-// ==========================================
 // 4. ฟังก์ชันบันทึกข้อมูลลงฐานข้อมูล Supabase
-// ==========================================
 function submitDelegateDecision(decision) {
     const id = document.getElementById('delegateActionRequestId').value;
     const comment = document.getElementById('delegateActionComment').value;
