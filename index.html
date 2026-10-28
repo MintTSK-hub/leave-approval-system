@@ -2113,7 +2113,16 @@ function routeToRolePage(userRole) {
   }
 }
     
-	 // 1. ฟังก์ชันรองรับชื่อที่ระบบเรียกใช้งาน
+	// ฟังก์ชันสำหรับเปิดหน้าต่างจัดการงานที่ได้รับมอบหมาย (รับทราบ / ปฏิเสธ)
+function openDelegateDecisionDialog(requestId, actionType) {
+    // ตรวจสอบและจัดการการเปิด Modal หรือส่งค่าสถานะรับทราบ/ปฏิเสธ
+    console.log("Opening delegate decision for:", requestId, actionType);
+    
+    // หากมีฟังก์ชันเปิด Modal เดิมอยู่แล้ว สามารถเรียกใช้งานผ่านชื่อนั้นได้ทันที 
+    // หรือใส่โค้ดเปิด Popup / Modal ที่นี่ครับ
+} 
+	    
+	  // 1. ฟังก์ชันรองรับชื่อที่ระบบเรียกใช้งาน
 	 function formatStringToDateTimeInput(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
