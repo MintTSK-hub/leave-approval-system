@@ -2164,6 +2164,23 @@ async function doEmployeeLogin() {
     new bootstrap.Modal(document.getElementById('delegateDecisionModal')).show();
 }
 
+function formatStringDateToDateInput(dateString) {
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear(); // หรือ + 543 หากต้องการปี พ.ศ.
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return dateString;
+    }
+}
+
+
+
+		
    function submitDelegateDecision(decision) {
       const id = document.getElementById('delegateActionRequestId').value;
       const comment = document.getElementById('delegateActionComment').value;
