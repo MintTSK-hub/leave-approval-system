@@ -2004,7 +2004,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return { label: 'รอผู้รับมอบหมายงานแทนรับทราบ', badgeClass: 'bg-info text-dark' };
             
         // เพิ่มหรือปรับแก้ให้รองรับสถานะ 'PendingHR' ที่เพิ่งเปลี่ยนเมื่อสักครู่
-        case 'PendingHR':
+        case 'PendingManager':
+		case 'PendingHR':
         case 'ApprovedByDelegate':
             return { label: 'รอ HR ตรวจสอบ', badgeClass: 'bg-warning text-dark' }; // ใช้สีเหลืองตามภาพตัวอย่าง        
         case 'Approved':
