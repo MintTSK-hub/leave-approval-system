@@ -3132,8 +3132,20 @@ async function loadLeaveCharts() {
   }
 }
 
+function formatStringDateToDateTimeInput(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear() + 543;
+    
+    return `${day}/${month}/${year}`;
+}
+		
 // ฟังก์ชันวาดกราฟ (วางต่อท้ายทันทีในบรรทัดถัดไป)	  
-function (report) {
+function renderLeaveCharts(report) {
 	
   // 1. ประกาศตัวแปร labels ไว้บรรทัดแรกสุดเสมอก่อนใช้งาน
   const rows = (report && report.rows) ? report.rows : [];
@@ -3148,17 +3160,6 @@ function (report) {
     }
   });
 
-	function formatStringDateToDateTimeInput(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear() + 543;
-    
-    return `${day}/${month}/${year}`;
-}
 
   // 3. กำหนดค่าคอนฟิกกราฟ
   const chartConfig = (data, color, labelText) => ({
