@@ -1999,18 +1999,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // แปลสถานะเป็นป้ายกำกับภาษาไทย + คลาสสี ใช้ร่วมกันทั้งตาราง/แดชบอร์ด/ป้ายสถานะพนักงาน
     function getStatusInfo(status) {
-      switch (status) {
-        case "PendingDelegate": return { label: "รอผู้รับมอบหมายงานแทนรับทราบ", badgeClass: "bg-primary" };
-        case "RejectedByDelegate": return { label: "ผู้รับมอบหมายงานแทนไม่รับ", badgeClass: "bg-danger" };
-        case "PendingHR": return { label: "รอ HR ตรวจสอบ", badgeClass: "bg-warning text-dark" };
-        case "PendingManager": return { label: "รอผู้จัดการอนุมัติ", badgeClass: "bg-info text-dark" };
-        case "Approved": return { label: "อนุมัติแล้ว", badgeClass: "bg-success" };
-        case "RejectedByHR": return { label: "ไม่อนุมัติ (โดย HR)", badgeClass: "bg-danger" };
-        case "RejectedByManager": return { label: "ไม่อนุมัติ (โดยผู้จัดการ)", badgeClass: "bg-danger" };
-        case "SendBack": return { label: "ส่งกลับแก้ไข", badgeClass: "bg-secondary" };
-        default: return { label: status || "-", badgeClass: "bg-secondary" };
-      }
+    switch (status) {
+        case 'PendingDelegate':
+            return { label: 'รอผู้รับมอบหมายงานแทนรับทราบ', badgeClass: 'bg-info text-dark' };
+            
+        // เพิ่มหรือปรับแก้ให้รองรับสถานะ 'PendingHR' ที่เพิ่งเปลี่ยนเมื่อสักครู่
+        case 'PendingHR':
+        case 'ApprovedByDelegate':
+            return { label: 'รอ HR ตรวจสอบ', badgeClass: 'bg-warning text-dark' }; // ใช้สีเหลืองตามภาพตัวอย่าง
+            
+        case 'Approved':
+            return { label: 'อนุมัติแล้ว', badgeClass: 'bg-success' };
+        case 'Rejected':
+            return { label: 'ไม่อนุมัติ', badgeClass: 'bg-danger' };
+        default:
+            return { label: status || 'รอดำเนินการ', badgeClass: 'bg-secondary' };
     }
+}
 
     // สลับการแสดง/ซ่อนรหัสผ่านในหน้า Login
     function toggleLoginPasswordVisibility() {
@@ -3871,7 +3876,7 @@ function submitDelegateDecision(decision) {
     async function executeUpdate(signatureData = null) {
         try {
             const updatePayload = {
-                status: decision === 'Accepted' ? 'PendingManager' : 'RejectedByDelegate',
+                status: decision === 'Accepted' ? 'PendingHR' : 'RejectedByDelegate',
                 delegate_comment: comment || null,
                 signature_data: signatureData
             };
