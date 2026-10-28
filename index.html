@@ -1358,6 +1358,7 @@
       </div>
     </div>
   </div>
+	
 
   <!-- JavaScript Logical Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -2122,24 +2123,42 @@ function routeToRolePage(userRole) {
   }
 }
 
+// ฟังก์ชันสำหรับอัปเดตแถบแสดงสถานะล่าสุดด้านบนหน้าจอ
+function updateTopStatusBanner(latestRequest) {
+    const bannerElement = document.getElementById('userLatestStatus'); // หรือ ID ของจุดที่แสดงสถานะใต้ชื่อผู้ใช้
+    if (bannerElement && latestRequest) {
+        const statusInfo = getStatusInfo(latestRequest.status);
+        bannerElement.innerHTML = `
+            สถานะล่าสุด (${latestRequest.id}): 
+            <span class="badge ${statusInfo.badgeClass}">${statusInfo.label}</span>
+        `;
+    }
+}
+	  
 	function openDetailsModal(requestId, type) {
     console.log("Opening details modal for:", requestId, type);
     
-    // 1. ค้นหาข้อมูลใบลาจากตัวแปรแคช (รองรับทั้งฝั่ง Delegate และฝั่งทั่วไป)
+    // 1. ค้นหาข้อมูลใบลาจากตัวแปรแคชในระบบ
     const req = (typeof cachedDelegateTasks !== 'undefined' ? cachedDelegateTasks.find(t => t.id === requestId) : null) 
              || (typeof leaveRequests !== 'undefined' ? leaveRequests.find(t => t.id === requestId) : null);
 
     if (req) {
-        // 2. เรียกฟังก์ชันเติมข้อมูลลงใน Modal (เช่น รายละเอียดใบลา และ Timeline)
-        // หากในระบบของคุณมีฟังก์ชันสำหรับแสดงข้อมูลและ Timeline อยู่แล้ว ให้เรียกใช้งานที่นี่ เช่น:
-        if (typeof renderLeaveDetails === 'function') renderLeaveDetails(req);
-        if (typeof renderTimeline === 'function') renderTimeline(req);
-    } else {
-        // หรือถ้ามีฟังก์ชันโหลดข้อมูลจากระบบเดิม ให้เรียกใช้:
-        // loadLeaveDetailsAndTimeline(requestId);
+        // 2. อัปเดตข้อความหัวข้อ Modal ให้แสดงเลขที่ใบลา เช่น "ข้อมูลใบลาพักเลขที่: LR-20261028-0002"
+        const modalTitle = document.getElementById('timelineModalLabel') || document.querySelector('.modal-title');
+        if (modalTitle) {
+            modalTitle.innerText = `ข้อมูลใบลาพักเลขที่: ${req.id}`;
+        }
+
+        // 3. เรียกฟังก์ชันแสดงข้อมูลรายละเอียดและ Timeline ที่มีอยู่เดิมในระบบ
+        if (typeof renderLeaveDetails === 'function') {
+            renderLeaveDetails(req);
+        }
+        if (typeof renderTimeline === 'function') {
+            renderTimeline(req);
+        }
     }
 
-    // 3. เปิดใช้งาน Bootstrap Modal เพื่อแสดงหน้าต่าง
+    // 4. สั่งเปิด Bootstrap Modal
     const modalElement = document.getElementById('timelineModal');
     if (modalElement) {
         const myModal = new bootstrap.Modal(modalElement);
