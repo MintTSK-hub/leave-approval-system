@@ -3867,6 +3867,20 @@ function submitDelegateDecision(decision) {
     }
 }
 		}
+
+	  // ฟังก์ชันสำหรับแปลงรูปแบบวันที่ให้ถูกต้องตามที่ระบบต้องการ
+function formatStringToDateTimeInput(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    // แปลงเป็นรูปแบบ ว/ด/ป หรือตามต้องการ (เช่น DD/MM/YYYY)
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ. หรือใช้ .getFullYear() ตามระบบเดิม
+    
+    return `${day}/${month}/${year}`;
+}
   </script>
 </body>
 </html>
