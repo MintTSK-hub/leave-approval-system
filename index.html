@@ -2122,11 +2122,16 @@ function openDetailsModal(requestId, type) {
 	  
 	// ฟังก์ชันสำหรับเปิดหน้าต่างจัดการงานที่ได้รับมอบหมาย (รับทราบ / ปฏิเสธ)
 function openDelegateDecisionDialog(requestId, actionType) {
-    // ตรวจสอบและจัดการการเปิด Modal หรือส่งค่าสถานะรับทราบ/ปฏิเสธ
     console.log("Opening delegate decision for:", requestId, actionType);
     
-    // หากมีฟังก์ชันเปิด Modal เดิมอยู่แล้ว สามารถเรียกใช้งานผ่านชื่อนั้นได้ทันที 
-    // หรือใส่โค้ดเปิด Popup / Modal ที่นี่ครับ
+    // ตรวจสอบว่าในระบบมีฟังก์ชันเปิด Modal หรือตัวแปรจัดการ Modal ตัวไหนอยู่แล้ว
+    // เช่น ถ้ามีฟังก์ชันเปิด Modal เดิมชื่อ openModal หรือ showDelegateModal ให้เรียกใช้งานตรงนี้
+    if (typeof openModal === 'function') {
+        openModal(requestId, actionType);
+    } else {
+        // หากยังไม่มีฟังก์ชันเปิด Modal สำเร็จรูป ให้ใส่โค้ดเปิดหน้าต่าง หรือ alert ชั่วคราวตรงนี้ก่อนได้ครับ
+        alert(`กำลังดำเนินการคำขอ ${requestId} ด้วยสถานะ: ${actionType}`);
+    }
 } 
 	    
 	  // 1. ฟังก์ชันรองรับชื่อที่ระบบเรียกใช้งาน
