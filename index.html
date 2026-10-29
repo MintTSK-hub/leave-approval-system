@@ -2113,11 +2113,11 @@ async function doEmployeeLogin() {
 
   showLoading('กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...');
   try {
-    const { data: employee, error } = await supabaseClient.from('employees')
-      .select(EMP_COLS)
-      .eq('employee_id', employeeId)
-      .eq('password', password)
-      .maybeSingle();
+    // ค้นหาแบบทนต่อช่องว่าง/ตัวพิมพ์เล็กใหญ่ แล้วเทียบรหัสผ่านฝั่งหน้าเว็บ
+    const likeId = employeeId.replace(/[%_\\]/g, '\$&') + '%';
+    const { data: rows, error } = await supabaseClient.from('employees')
+      .select(EMP_COLS + ',password')
+      .ilike('employee_id', likeId);
 
     if (error) {
       hideLoading();
@@ -2125,11 +2125,23 @@ async function doEmployeeLogin() {
       showAppAlert('ข้อผิดพลาดระบบ', esc(error.message), 'danger');
       return;
     }
-    if (!employee) {
+    const match = (rows || []).find(function (r) {
+      return String(r.employee_id).trim().toLowerCase() === employeeId.toLowerCase();
+    });
+    if (!match) {
       hideLoading();
-      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'danger');
+      console.warn('[login] ไม่พบ employee_id =', employeeId, '| แถวที่ได้จากฐานข้อมูล =', (rows || []).length);
+      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'ไม่พบชื่อผู้ใช้นี้ในระบบ (ถ้าแน่ใจว่ามีอยู่ อาจเป็นเพราะ RLS ของตาราง employees ไม่อนุญาตให้อ่านข้อมูล)', 'danger');
       return;
     }
+    if (String(match.password === null || match.password === undefined ? '' : match.password).trim() !== password) {
+      hideLoading();
+      console.warn('[login] รหัสผ่านไม่ตรง (ความยาวที่เก็บไว้ =', String(match.password || '').length, ')');
+      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'รหัสผ่านไม่ถูกต้อง', 'danger');
+      return;
+    }
+    const employee = Object.assign({}, match);
+    delete employee.password;
     if (!isEmployeeActive(employee)) {
       hideLoading();
       showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อ HR', 'danger');
