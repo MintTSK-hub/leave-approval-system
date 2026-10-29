@@ -2571,6 +2571,23 @@ async function printLeaveForm(id) {
     const { data: r, error } = await supabaseClient.from('leave_requests').select('*').eq('id', id).maybeSingle();
     if (error || !r) { if (w) w.close(); showAppAlert('ข้อผิดพลาด', 'ไม่พบข้อมูลคำขอ', 'danger'); return; }
 
+    // ตำแหน่งของผู้รับมอบหมาย: ใช้ค่าที่บันทึกไว้ในใบลา ถ้าไม่มี (ใบลาเก่า) ให้ดึงจากตารางพนักงาน
+    let delegatePos = r.delegate_position || '';
+    if (!delegatePos && (r.delegate_employee_id || r.delegate_name)) {
+      let eq = supabaseClient.from('employees').select('position');
+      eq = r.delegate_employee_id ? eq.eq('employee_id', r.delegate_employee_id) : eq.eq('name', r.delegate_name);
+      const { data: dEmp } = await eq.limit(1);
+      if (dEmp && dEmp[0] && dEmp[0].position) delegatePos = dEmp[0].position;
+    }
+    // ตำแหน่งของ HR / ผู้จัดการ: ค้นหาจากตารางพนักงานตามชื่อผู้ลงนาม (ชื่อที่บันทึก = คำนำหน้า + ชื่อ)
+    const { data: empList } = await supabaseClient.from('employees').select('prefix,name,position');
+    const posOf = function (nm) {
+      if (!nm) return '';
+      const key = String(nm).trim();
+      const e = (empList || []).find(function (x) { return fullName(x).trim() === key || String(x.name).trim() === key; });
+      return (e && e.position) ? e.position : '';
+    };
+    const withPos = function (nm, pos) { return nm ? nm + (pos ? ' ตำแหน่ง ' + pos : '') : ''; };
     const sig = function (v) {
       const f = unpackFile(v);
       return f && f.base64 ? `<img class="sig" src="data:${esc(f.mimeType || 'image/png')};base64,${f.base64}">` : '<div class="sig-blank"></div>';
@@ -2604,6 +2621,22 @@ async function printLeaveForm(id) {
     };
     const dOnly = function (v) { return v ? 'วันที่ ' + formatStringToDateTimeInput(toYMD(new Date(v))) : ''; };
 
+    // ช่องผู้อนุมัติ: ความเห็นของผู้บังคับบัญชา + ช่องเลือก อนุญาต / ไม่อนุญาต
+    const mgrAllow = r.status === 'Approved';
+    const mgrDeny = r.status === 'RejectedByManager';
+    const cb = function (on) {
+      return '<span class="cb">' + (on ? '<svg viewBox="0 0 10 10" width="10" height="10"><path d="M1 5.2l3 3 5-7" fill="none" stroke="#000" stroke-width="1.6"/></svg>' : '') + '</span>';
+    };
+    const mgrBox = `<div class="sigbox"><div class="t">ผู้อนุมัติ (ผู้จัดการ)</div>
+      <div class="opin">
+        <div class="oh">ความเห็นของผู้บังคับบัญชา</div>
+        <div class="oh">อนุมัติให้ลาได้ตามสิทธิ</div>
+        <div class="ck">${cb(mgrAllow)}อนุญาต<span class="gap"></span>${cb(mgrDeny)}ไม่อนุญาต</div>
+      </div>
+      ${sig(r.approver_signature_data)}
+      <div>( ${esc(withPos(r.manager_approver_name, posOf(r.manager_approver_name))) || '........................................'} )</div>
+      <div class="d">${dOnly(r.manager_decision_date) || 'วันที่ ......../......../........'}</div>
+      ${r.approver_comment ? `<div class="c">ความเห็น: ${esc(r.approver_comment)}</div>` : ''}</div>`;
     const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ใบลา ${esc(r.id)}</title>
       <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
       <style>
@@ -2615,6 +2648,9 @@ async function printLeaveForm(id) {
         .sigbox{text-align:center;border:1px solid #bbb;padding:10px;border-radius:6px;min-height:140px}
         .sigbox .t{font-weight:700;margin-bottom:6px} .sig{max-height:60px;max-width:180px}
         .sig-blank{height:60px} .d{font-size:14px;color:#444} .c{font-size:13px;text-align:left;margin-top:6px}
+        .opin{text-align:left;margin:2px 0 6px} .oh{font-weight:700} .ck{margin:4px 0 0 18px}
+        .cb{display:inline-block;width:12px;height:12px;border:1px solid #000;vertical-align:-2px;margin-right:5px;line-height:10px;text-align:center}
+        .cb svg{display:block;margin:0 auto} .gap{display:inline-block;width:34px}
         table.stat{width:100%;border-collapse:collapse;margin-top:26px}
         table.stat th,table.stat td{border:1px solid #000;padding:7px 8px;text-align:left}
         table.stat th{font-weight:700} .stat-title{font-weight:700;margin-top:26px}
@@ -2635,14 +2671,14 @@ async function printLeaveForm(id) {
         <tr><td class="k">ตั้งแต่วันที่ — ถึงวันที่</td><td>${formatStringToDateTimeInput(r.start_date)} — ${formatStringToDateTimeInput(r.end_date)}</td></tr>
         <tr><td class="k">รวมครั้งนี้</td><td>${esc(r.leave_duration)} วัน (สะสมปีนี้ ${esc(r.total_cumulative_days !== null && r.total_cumulative_days !== undefined ? r.total_cumulative_days : r.leave_duration)} วัน)</td></tr>
         <tr><td class="k">ลาครั้งล่าสุด</td><td>${r.last_leave_date ? formatStringToDateTimeInput(r.last_leave_date) : '-'}</td></tr>
-        <tr><td class="k">ผู้รับมอบหมายงานแทน</td><td>${r.delegate_name ? esc(r.delegate_name) + ' (' + (esc(r.delegate_position) || '-') + ')' : '-'}</td></tr>
+        <tr><td class="k">ผู้รับมอบหมายงานแทน</td><td>${r.delegate_name ? esc(r.delegate_name) + ' (' + (esc(delegatePos) || '-') + ')' : '-'}</td></tr>
         <tr><td class="k">ที่อยู่ที่ติดต่อได้</td><td>${esc(r.contact_address) || '-'} โทร. ${esc(r.phone) || '-'}</td></tr>
       </table>
       <div class="sigs">
         ${box('ผู้ขอลา', fullName(r), dOnly(r.timestamp), r.signature_data)}
-        ${r.delegate_name ? box('ผู้รับมอบหมายงานแทน', r.delegate_name, dOnly(r.delegate_decision_date), r.delegate_signature_data, r.delegate_comment) : '<div></div>'}
-        ${box('ผู้ตรวจสอบ (HR)', r.hr_approver_name, dOnly(r.hr_decision_date), r.hr_signature_data, r.hr_comment)}
-        ${box('ผู้อนุมัติ (ผู้จัดการ)', r.manager_approver_name, dOnly(r.manager_decision_date), r.approver_signature_data, r.approver_comment)}
+        ${r.delegate_name ? box('ผู้รับมอบหมายงานแทน', r.delegate_name + (delegatePos ? ' ตำแหน่ง ' + delegatePos : ''), dOnly(r.delegate_decision_date), r.delegate_signature_data, r.delegate_comment) : '<div></div>'}
+        ${box('ผู้ตรวจสอบ (HR)', withPos(r.hr_approver_name, posOf(r.hr_approver_name)), dOnly(r.hr_decision_date), r.hr_signature_data, r.hr_comment)}
+        ${mgrBox}
       </div>
       <div class="stat-title">สถิติการลาในปีงบประมาณนี้ (ปีงบประมาณ พ.ศ. ${fy + 543})</div>
       <table class="stat" style="margin-top:8px">
