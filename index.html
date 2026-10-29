@@ -1910,16 +1910,17 @@ async function handleFormSubmission(event) {
 }
 
 async function generateRequestId() {
-  const prefixId = 'LR-' + toYMD(new Date()).replace(/-/g, '') + '-';
+  // รูปแบบ LR-วันที่-เลขรัน โดย "เลขรัน" นับต่อเนื่องทุกคำขอ ไม่เริ่มใหม่ทุกวัน (0001, 0002, 0003, ...)
+  const datePart = toYMD(new Date()).replace(/-/g, '');
   const { data, error } = await supabaseClient.from('leave_requests')
-    .select('id').like('id', prefixId + '%').order('id', { ascending: false }).limit(1);
+    .select('id').like('id', 'LR-%').order('id', { ascending: false }).limit(1000);
   if (error) throw error;
-  let n = 1;
-  if (data && data.length) {
-    const last = parseInt(String(data[0].id).slice(prefixId.length), 10);
-    if (!isNaN(last)) n = last + 1;
-  }
-  return prefixId + String(n).padStart(4, '0');
+  let max = 0;
+  (data || []).forEach(function (r) {
+    const m = /-(\d+)$/.exec(String(r.id));
+    if (m) { const n = parseInt(m[1], 10); if (n > max) max = n; }
+  });
+  return 'LR-' + datePart + '-' + String(max + 1).padStart(4, '0');
 }
 
 async function saveLeaveRequest(fileData, signatureData) {
