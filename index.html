@@ -2581,6 +2581,27 @@ async function printLeaveForm(id) {
         <div class="d">${dateTxt || 'วันที่ ......../......../........'}</div>
         ${comment ? `<div class="c">ความเห็น: ${esc(comment)}</div>` : ''}</div>`;
     };
+    // สถิติการลาในปีงบประมาณของคำขอนี้ (1 ม.ค. – 31 ธ.ค.)
+    const sd = ymdToDate(r.start_date) || new Date();
+    const fy = sd.getFullYear();
+    const { data: fyRows } = await supabaseClient.from('leave_requests')
+      .select('id,leave_category,leave_duration,start_date,status')
+      .eq('applicant_email', r.applicant_email)
+      .gte('start_date', fy + '-01-01')
+      .lte('start_date', fy + '-12-31');
+    const prevBy = {};
+    (fyRows || []).forEach(function (x) {
+      if (x.id === r.id || NON_COUNTING_STATUSES.indexOf(x.status) !== -1) return;
+      if (String(x.start_date).slice(0, 10) >= String(r.start_date).slice(0, 10)) return; // นับเฉพาะที่ลามาก่อนหน้า
+      prevBy[x.leave_category] = (prevBy[x.leave_category] || 0) + (parseFloat(x.leave_duration) || 0);
+    });
+    const statRow = function (label, cat) {
+      const isCur = r.leave_category === cat;
+      const prev = round1(prevBy[cat] || 0);
+      const cur = isCur ? round1(parseFloat(r.leave_duration) || 0) : 0;
+      if (!isCur && prev === 0) return `<tr><td>${label}</td><td>-</td><td>-</td><td>-</td></tr>`;
+      return `<tr><td>${label}</td><td>${prev}</td><td>${isCur ? cur : '-'}</td><td>${round1(prev + cur)}</td></tr>`;
+    };
     const dOnly = function (v) { return v ? 'วันที่ ' + formatStringToDateTimeInput(toYMD(new Date(v))) : ''; };
 
     const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ใบลา ${esc(r.id)}</title>
@@ -2594,6 +2615,9 @@ async function printLeaveForm(id) {
         .sigbox{text-align:center;border:1px solid #bbb;padding:10px;border-radius:6px;min-height:140px}
         .sigbox .t{font-weight:700;margin-bottom:6px} .sig{max-height:60px;max-width:180px}
         .sig-blank{height:60px} .d{font-size:14px;color:#444} .c{font-size:13px;text-align:left;margin-top:6px}
+        table.stat{width:100%;border-collapse:collapse;margin-top:26px}
+        table.stat th,table.stat td{border:1px solid #000;padding:7px 8px;text-align:left}
+        table.stat th{font-weight:700} .stat-title{font-weight:700;margin-top:26px}
         .no-print{text-align:center;margin-bottom:12px} @media print{.no-print{display:none}}
       </style></head><body>
       <div class="no-print"><button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button></div>
@@ -2615,7 +2639,14 @@ async function printLeaveForm(id) {
         ${r.delegate_name ? box('ผู้รับมอบหมายงานแทน', r.delegate_name, dOnly(r.delegate_decision_date), r.delegate_signature_data, r.delegate_comment) : '<div></div>'}
         ${box('ผู้ตรวจสอบ (HR)', r.hr_approver_name, dOnly(r.hr_decision_date), r.hr_signature_data, r.hr_comment)}
         ${box('ผู้อนุมัติ (ผู้จัดการ)', r.manager_approver_name, dOnly(r.manager_decision_date), r.approver_signature_data, r.approver_comment)}
-      </div></body></html>`;
+      </div>
+      <div class="stat-title">สถิติการลาในปีงบประมาณนี้ (ปีงบประมาณ พ.ศ. ${fy + 543})</div>
+      <table class="stat" style="margin-top:8px">
+        <tr><th>ประเภทลา</th><th>ลามาแล้ว</th><th>ลาครั้งนี้</th><th>รวมเป็น</th></tr>
+        ${statRow('ป่วย', 'ลาป่วย')}
+        ${statRow('กิจส่วนตัว', 'ลากิจ')}
+        ${statRow('พักผ่อน', 'ลาพักผ่อน')}
+      </table></body></html>`;
 
     if (!w) { showAppAlert('ถูกบล็อก', 'เบราว์เซอร์บล็อกหน้าต่างใหม่ กรุณาอนุญาต pop-up แล้วลองอีกครั้ง', 'warning'); return; }
     w.document.open(); w.document.write(html); w.document.close();
