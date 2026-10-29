@@ -2618,10 +2618,14 @@ async function printLeaveForm(id) {
         table.stat{width:100%;border-collapse:collapse;margin-top:26px}
         table.stat th,table.stat td{border:1px solid #000;padding:7px 8px;text-align:left}
         table.stat th{font-weight:700} .stat-title{font-weight:700;margin-top:26px}
-        .no-print{text-align:center;margin-bottom:12px} @media print{.no-print{display:none}}
+        .no-print{text-align:center;margin-bottom:12px}
+        @page{size:A4;margin:10mm}
+        html,body{height:auto}
+        #page{max-width:190mm;margin:0 auto;break-after:avoid;page-break-after:avoid}
+        @media print{.no-print{display:none} body{margin:0;font-size:14px} h2,h3{margin:2px 0} .sigs{gap:10px;margin-top:16px} .sigbox{min-height:100px;padding:6px} .sig{max-height:46px} .sig-blank{height:46px} table.stat{margin-top:14px} .stat-title{margin-top:14px}}
       </style></head><body>
       <div class="no-print"><button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button></div>
-      <h2>สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</h2><h3>ใบขออนุมัติลา (${esc(r.leave_category)})</h3>
+      <div id="page"><h2>สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</h2><h3>ใบขออนุมัติลา (${esc(r.leave_category)})</h3>
       <div style="text-align:right">เลขที่: ${esc(r.id)}<br>ยื่นเมื่อ: ${formatThaiDateTime(r.timestamp)}</div>
       <table class="info">
         <tr><td class="k">ผู้ขอลา</td><td>${esc(fullName(r))}</td></tr>
@@ -2646,11 +2650,19 @@ async function printLeaveForm(id) {
         ${statRow('ป่วย', 'ลาป่วย')}
         ${statRow('กิจส่วนตัว', 'ลากิจ')}
         ${statRow('พักผ่อน', 'ลาพักผ่อน')}
-      </table></body></html>`;
+      </table></div></body></html>`;
 
     if (!w) { showAppAlert('ถูกบล็อก', 'เบราว์เซอร์บล็อกหน้าต่างใหม่ กรุณาอนุญาต pop-up แล้วลองอีกครั้ง', 'warning'); return; }
     w.document.open(); w.document.write(html); w.document.close();
-    setTimeout(function () { try { w.focus(); w.print(); } catch (e) { } }, 800);
+    setTimeout(function () {
+      try {
+        // ย่อเนื้อหาให้พอดี 1 หน้า A4 (พื้นที่พิมพ์สูง 277mm ≈ 1047px)
+        const pg = w.document.getElementById('page');
+        const maxH = 277 / 25.4 * 96;
+        if (pg && pg.scrollHeight > maxH) pg.style.zoom = String(Math.floor((maxH / pg.scrollHeight) * 96) / 100);
+        w.focus(); w.print();
+      } catch (e) { }
+    }, 800);
   } catch (err) {
     if (w) w.close();
     showAppAlert('ข้อผิดพลาด', esc(err.message || err.toString()), 'danger');
