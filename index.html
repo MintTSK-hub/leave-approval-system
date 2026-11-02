@@ -569,7 +569,7 @@
                 <option value="Approved">อนุมัติแล้ว</option>
                 <option value="RejectedByHR">ไม่อนุมัติ (โดย HR)</option>
                 <option value="RejectedByManager">ไม่อนุมัติ (โดยผู้จัดการ)</option>
-                <option value="SendBack">ส่งกลับแก้ไข</option>
+                <option value="SendBack">ส่งกลับแก้ไข</option><option value="CancelPending">รอ HR พิจารณายกเลิก</option><option value="Cancelled">ยกเลิกวันลาแล้ว</option>
               </select>
             </div>
             <div class="col-md-5 text-end">
@@ -745,7 +745,7 @@
                       <option value="Approved">อนุมัติแล้ว</option>
                       <option value="RejectedByHR">ไม่อนุมัติ (โดย HR)</option>
                       <option value="RejectedByManager">ไม่อนุมัติ (โดยผู้จัดการ)</option>
-                      <option value="SendBack">ส่งกลับแก้ไข</option>
+                      <option value="SendBack">ส่งกลับแก้ไข</option><option value="CancelPending">รอ HR พิจารณายกเลิก</option><option value="Cancelled">ยกเลิกวันลาแล้ว</option>
                     </select>
                   </div>
                   <div class="col-md-3 text-end">
@@ -1106,7 +1106,7 @@
                       <option value="Approved">อนุมัติแล้ว</option>
                       <option value="RejectedByHR">ไม่อนุมัติ (โดย HR)</option>
                       <option value="RejectedByManager">ไม่อนุมัติ (โดยผู้จัดการ)</option>
-                      <option value="SendBack">ส่งกลับแก้ไข</option>
+                      <option value="SendBack">ส่งกลับแก้ไข</option><option value="CancelPending">รอ HR พิจารณายกเลิก</option><option value="Cancelled">ยกเลิกวันลาแล้ว</option>
                     </select>
                   </div>
                   <div class="col-md-3 text-end">
@@ -1252,6 +1252,56 @@
     </div>
   </div>
 
+  <!-- MODAL: ผู้ขอลายื่นขอยกเลิกใบลาที่อนุมัติแล้ว -->
+  <div class="modal fade" id="cancelRequestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-ban me-2"></i>ขอยกเลิกใบลา</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="cancelRequestId" value="">
+          <div id="cancelRequestSummary" class="small mb-3 p-2 bg-light rounded"></div>
+          <div class="alert alert-warning small py-2">คำขอนี้จะถูกส่งให้ <b>ฝ่าย HR</b> เป็นผู้พิจารณายกเลิกให้ ใบลาจะยังนับเป็นวันลาจนกว่า HR จะกดยกเลิก</div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">เหตุผลที่ขอยกเลิกใบลา *</label>
+            <textarea class="form-control" id="cancelReason" rows="3" placeholder="เช่น ไม่ได้ลาแล้วเนื่องจาก..."></textarea>
+          </div>
+          <div class="text-end">
+            <button class="btn btn-secondary me-1" data-bs-dismiss="modal">ปิด</button>
+            <button class="btn btn-danger fw-bold" onclick="submitCancelRequest()"><i class="fa-solid fa-paper-plane me-1"></i>ส่งคำขอยกเลิกให้ HR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HR พิจารณายกเลิกใบลา -->
+  <div class="modal fade" id="hrCancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-ban me-2"></i>พิจารณายกเลิกใบลา (ฝ่าย HR)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="hrCancelRequestId" value="">
+          <div id="hrCancelSummary" class="small mb-3 p-2 bg-light rounded"></div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">ความเห็น HR (บังคับเมื่อ "ไม่อนุมัติการยกเลิก")</label>
+            <textarea class="form-control" id="hrCancelComment" rows="2" placeholder="พิมพ์ความเห็น/เหตุผล..."></textarea>
+          </div>
+          <div class="d-flex justify-content-between">
+            <button class="btn btn-outline-secondary fw-bold" onclick="submitHRCancelDecision('Approved')"><i class="fa-solid fa-rotate-left me-1"></i>ไม่อนุมัติการยกเลิก</button>
+            <button class="btn btn-danger fw-bold" onclick="submitHRCancelDecision('Cancelled')"><i class="fa-solid fa-ban me-1"></i>ยืนยันยกเลิกใบลา</button>
+          </div>
+          <div class="small text-muted mt-2">เมื่อยกเลิก วันลาของใบนี้จะไม่ถูกนับเป็นวันลา และเอกสารยังเก็บไว้ในระบบพร้อมข้อความ "ยกเลิกวันลา"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: ผู้รับมอบหมายงานแทนรับทราบ / ไม่รับ -->
   <div class="modal fade" id="delegateDecisionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -1337,7 +1387,7 @@ const LOGO_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKgAAACqCAM
 // ---------- ค่าคงที่ของระบบ ----------
 const DEFAULT_ANNUAL_ENTITLEMENT = 10;   // สิทธิลาพักผ่อนต่อปี (วัน)
 const MAX_CARRYOVER_DAYS = 10;           // ยกยอดไปปีถัดไปได้สูงสุด (วัน)
-const NON_COUNTING_STATUSES = ['RejectedByHR', 'RejectedByManager', 'RejectedByDelegate', 'SendBack'];
+const NON_COUNTING_STATUSES = ['RejectedByHR', 'RejectedByManager', 'RejectedByDelegate', 'SendBack', 'Cancelled'];
 const NON_COUNTING_IN = '(' + NON_COUNTING_STATUSES.join(',') + ')';
 const EDITABLE_STATUSES = ['SendBack', 'PendingHR', 'PendingDelegate', 'RejectedByDelegate'];
 
@@ -1349,7 +1399,8 @@ const LIST_COLS = [
   'delegate_name', 'delegate_position', 'delegate_employee_id', 'delegate_comment', 'delegate_decision_date',
   'status', 'has_attachment',
   'hr_comment', 'hr_approver_name', 'hr_decision_date',
-  'approver_comment', 'manager_approver_name', 'manager_decision_date'
+  'approver_comment', 'manager_approver_name', 'manager_decision_date',
+  'cancel_reason', 'cancel_requested_date', 'cancel_hr_name', 'cancel_decision_date', 'cancel_hr_comment'
 ].join(',');
 
 // คอลัมน์พนักงาน (ไม่รวม password)
@@ -1409,6 +1460,8 @@ const STATUS_MAP = {
   RejectedByHR:       { label: 'ไม่อนุมัติ (โดย HR)',          badgeClass: 'bg-danger' },
   RejectedByManager:  { label: 'ไม่อนุมัติ (โดยผู้จัดการ)',     badgeClass: 'bg-danger' },
   SendBack:           { label: 'ส่งกลับแก้ไข',                badgeClass: 'bg-secondary' },
+  CancelPending:      { label: 'รอ HR พิจารณายกเลิก',          badgeClass: 'bg-warning text-dark' },
+  Cancelled:          { label: 'ยกเลิกวันลาแล้ว',             badgeClass: 'bg-dark' },
   // สถานะรุ่นเก่า (เผื่อมีข้อมูลเดิมในตาราง)
   ApprovedByDelegate: { label: 'รอ HR ตรวจสอบ',               badgeClass: 'bg-warning text-dark' },
   Rejected:           { label: 'ไม่อนุมัติ',                   badgeClass: 'bg-danger' }
@@ -1430,7 +1483,7 @@ function getStatusInfo(status) {
 }
 
 function isRejectedStatusClient(status) {
-  return status === 'RejectedByHR' || status === 'RejectedByManager' || status === 'RejectedByDelegate' || status === 'Rejected';
+  return status === 'RejectedByHR' || status === 'RejectedByManager' || status === 'RejectedByDelegate' || status === 'Rejected' || status === 'Cancelled';
 }
 
 function normalizeRole(r) {
@@ -2221,6 +2274,7 @@ function handleDirectLink() {
     else showAppAlert('แจ้งเตือน', 'คำขอ ' + esc(link.requestId) + ' ไม่อยู่ในสถานะรอผู้จัดการอนุมัติ', 'warning');
   } else if (role === 'HR') {
     if (req && req.status === 'PendingHR') openHRDecisionDialog(link.requestId);
+    else if (req && req.status === 'CancelPending') openHRCancelDialog(link.requestId);
     else showAppAlert('แจ้งเตือน', 'คำขอ ' + esc(link.requestId) + ' ไม่อยู่ในสถานะรอ HR ตรวจสอบ', 'warning');
   }
 }
@@ -2363,15 +2417,18 @@ function renderRequestsTable(data, elementId, viewMode) {
     const rejected = isRejectedStatusClient(req.status);
     const idAttr = `data-id="${esc(req.id)}"`;
     const viewBtn = `<button class="btn btn-sm btn-outline-primary me-1" ${idAttr} onclick="openDetailsModal(this.dataset.id)" title="ดูรายละเอียด"><i class="fa-solid fa-eye"></i></button>`;
-    const printBtn = req.status === 'Approved'
+    const printBtn = ['Approved', 'CancelPending', 'Cancelled'].indexOf(req.status) !== -1
       ? `<button class="btn btn-sm btn-outline-success ms-1" ${idAttr} onclick="printLeaveForm(this.dataset.id)" title="พิมพ์ใบลา / บันทึก PDF"><i class="fa-solid fa-file-pdf"></i></button>` : '';
 
     if (isReview) {
-      const actionable = (viewMode === 'hr' && req.status === 'PendingHR') || (viewMode === 'manager' && req.status === 'PendingManager');
-      const decisionFn = viewMode === 'hr' ? 'openHRDecisionDialog' : 'openDecisionDialog';
+      const isCancelReq = req.status === 'CancelPending';
+      const actionable = (viewMode === 'hr' && (req.status === 'PendingHR' || isCancelReq)) || (viewMode === 'manager' && req.status === 'PendingManager');
+      const decisionFn = viewMode === 'hr' ? (isCancelReq ? 'openHRCancelDialog' : 'openHRDecisionDialog') : 'openDecisionDialog';
       let note;
       if (req.status === 'PendingDelegate') note = 'รอผู้รับมอบหมายงานแทนรับทราบก่อน';
       else if (viewMode === 'manager' && req.status === 'PendingHR') note = 'รอ HR ตรวจสอบก่อน';
+      else if (req.status === 'CancelPending') note = 'รอ HR พิจารณายกเลิก';
+      else if (req.status === 'Cancelled') note = 'ยกเลิกแล้ว';
       else note = 'ดำเนินการแล้ว';
       const decisionBtn = actionable
         ? `<button class="btn btn-sm btn-dark" ${idAttr} onclick="${decisionFn}(this.dataset.id)" title="พิจารณา"><i class="fa-solid fa-gavel"></i></button>`
@@ -2390,6 +2447,8 @@ function renderRequestsTable(data, elementId, viewMode) {
 
     const editBtn = EDITABLE_STATUSES.indexOf(req.status) !== -1
       ? `<button class="btn btn-sm btn-outline-warning ms-1" ${idAttr} onclick="loadRequestBackToForm(this.dataset.id)" title="แก้ไข"><i class="fa-solid fa-edit"></i></button>` : '';
+    const cancelBtn = req.status === 'Approved'
+      ? `<button class="btn btn-sm btn-outline-danger ms-1" ${idAttr} onclick="openCancelRequestDialog(this.dataset.id)" title="ขอยกเลิกใบลา"><i class="fa-solid fa-ban"></i></button>` : '';
     return `<tr>
       <td><b>${esc(req.id)}</b></td>
       <td>${esc(fullName(req))}</td>
@@ -2398,7 +2457,7 @@ function renderRequestsTable(data, elementId, viewMode) {
       <td>${formatStringToDateTimeInput(req.end_date)}</td>
       <td>${esc(req.leave_duration)} วัน</td>
       <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
-      <td class="text-center">${viewBtn.replace('me-1', '')}${editBtn}${printBtn}</td>
+      <td class="text-center">${viewBtn.replace('me-1', '')}${editBtn}${cancelBtn}${printBtn}</td>
     </tr>`;
   }).join('');
 }
@@ -2483,7 +2542,7 @@ function openDetailsModal(id) {
       <tr><td><b>ที่อยู่ติดต่อ:</b></td><td>${esc(req.contact_address) || '-'}</td></tr>
     </table>`;
 
-  const st = req.status;
+  const st = (req.status === 'CancelPending' || req.status === 'Cancelled') ? 'Approved' : req.status;
   const hasDelegateStage = !!(req.delegate_employee_id || req.delegate_name);
   const noteBox = function (text, color, label) {
     return text ? `<div class="p-2 bg-light rounded mt-1 border-start border-${color} border-4"><b>${label}:</b> ${esc(text)}</div>` : '';
@@ -2540,6 +2599,26 @@ function openDetailsModal(id) {
     h += `<div class="timeline-item rejected"><h6 class="mb-1 text-danger fw-bold">ผู้จัดการไม่อนุมัติ (Rejected)</h6>
       <p class="text-muted small mb-0">ผู้อนุมัติ: ${esc(req.manager_approver_name) || '-'} ${dt(req.manager_decision_date)}</p>
       ${noteBox(req.approver_comment, 'danger', 'เหตุผล')}</div>`;
+  }
+
+  // ---- ขั้นตอนขอยกเลิกใบลา ----
+  const cancelRejected = req.status === 'Approved' && req.cancel_reason && req.cancel_decision_date;
+  if (req.status === 'CancelPending' || req.status === 'Cancelled' || cancelRejected) {
+    h += `<div class="timeline-item rejected"><h6 class="mb-1 text-danger fw-bold">ผู้ขอลายื่นขอยกเลิกใบลา</h6>
+      <p class="text-muted small mb-0">ขอเมื่อ ${formatThaiDateTime(req.cancel_requested_date)}</p>
+      ${noteBox(req.cancel_reason, 'danger', 'เหตุผล')}</div>`;
+    if (req.status === 'CancelPending') {
+      h += `<div class="timeline-item pending"><h6 class="mb-1 fw-bold text-warning">รอฝ่าย HR พิจารณายกเลิก</h6>
+        <p class="text-muted small mb-0">ใบลานี้ยังนับเป็นวันลาจนกว่า HR จะยกเลิกให้</p></div>`;
+    } else if (req.status === 'Cancelled') {
+      h += `<div class="timeline-item rejected"><h6 class="mb-1 text-danger fw-bold">ฝ่าย HR ยกเลิกวันลาแล้ว (ไม่นับเป็นวันลา)</h6>
+        <p class="text-muted small mb-0">ผู้ยกเลิก: ${esc(req.cancel_hr_name) || '-'} ${dt(req.cancel_decision_date)}</p>
+        ${noteBox(req.cancel_hr_comment, 'danger', 'ความเห็น HR')}</div>`;
+    } else {
+      h += `<div class="timeline-item approved"><h6 class="mb-1 fw-bold text-success">ฝ่าย HR ไม่อนุมัติการยกเลิก (ใบลายังมีผลตามเดิม)</h6>
+        <p class="text-muted small mb-0">ผู้พิจารณา: ${esc(req.cancel_hr_name) || '-'} ${dt(req.cancel_decision_date)}</p>
+        ${noteBox(req.cancel_hr_comment, 'success', 'ความเห็น HR')}</div>`;
+    }
   }
 
   $('timelineList').innerHTML = h;
@@ -2621,7 +2700,7 @@ async function buildLeaveFormHtml(id) {
       prevBy[x.leave_category] = (prevBy[x.leave_category] || 0) + (parseFloat(x.leave_duration) || 0);
     });
     const statRow = function (label, cat) {
-      const isCur = r.leave_category === cat;
+      const isCur = r.leave_category === cat && r.status !== 'Cancelled';
       const prev = round1(prevBy[cat] || 0);
       const cur = isCur ? round1(parseFloat(r.leave_duration) || 0) : 0;
       if (!isCur && prev === 0) return `<tr><td>${label}</td><td>-</td><td>-</td><td>-</td></tr>`;
@@ -2664,6 +2743,19 @@ async function buildLeaveFormHtml(id) {
       ? fmtBox('ผู้รับมอบหมายงานแทน', '', r.delegate_comment, r.delegate_signature_data,
           r.delegate_name, delegatePos, dOnly(r.delegate_decision_date))
       : '<div></div>';
+    // ---- ใบลาที่ถูกยกเลิก: แสดงข้อความ "ยกเลิกวันลา" ในเอกสาร ----
+    const isCancelled = r.status === 'Cancelled';
+    const watermark = isCancelled ? '<div class="wm">ยกเลิกวันลา</div>' : '';
+    let cancelBanner = '';
+    if (isCancelled) {
+      cancelBanner = `<div class="cancel-banner"><div class="cb-t">ยกเลิกวันลา</div>
+        <div>ใบลาฉบับนี้ถูกยกเลิกแล้ว วันลาตามเอกสารนี้ไม่นับเป็นวันลา</div>
+        <div>เหตุผลการยกเลิก: ${esc(r.cancel_reason) || '-'}</div>
+        <div>ผู้อนุมัติการยกเลิก (HR): ${esc(r.cancel_hr_name) || '-'}${r.cancel_decision_date ? ' ' + dOnly(r.cancel_decision_date) : ''}</div>
+        ${r.cancel_hr_comment ? `<div>ความเห็น HR: ${esc(r.cancel_hr_comment)}</div>` : ''}</div>`;
+    } else if (r.status === 'CancelPending') {
+      cancelBanner = '<div class="cancel-banner pend"><div>ผู้ขอลายื่นขอยกเลิกใบลานี้ (อยู่ระหว่างฝ่าย HR พิจารณา)</div></div>';
+    }
     const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ใบลา ${esc(r.id)}</title>
       <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
       <style>
@@ -2682,6 +2774,10 @@ async function buildLeaveFormHtml(id) {
         .mgr .ck2{margin:6px 0 4px} .mgr .cb{width:20px;height:20px;line-height:18px;vertical-align:-5px;margin-right:4px}
         .mgr .cb svg{width:14px;height:14px;margin-top:2px}
         .hdr{display:flex;align-items:center;justify-content:center;gap:14px} .ht{text-align:center} .logo{height:72px;width:auto}
+        #page{position:relative;overflow:hidden}
+        .wm{position:absolute;top:34%;left:0;right:0;text-align:center;font-size:96px;font-weight:700;color:rgba(200,0,0,.14);transform:rotate(-24deg);pointer-events:none;z-index:0;white-space:nowrap}
+        .cancel-banner{border:2px solid #c00;color:#c00;padding:8px 10px;margin:10px 0;text-align:center;border-radius:4px;line-height:1.5}
+        .cancel-banner .cb-t{font-size:24px;font-weight:700} .cancel-banner.pend{border-style:dashed;color:#b45309;border-color:#b45309}
         table.stat{width:100%;border-collapse:collapse;margin-top:26px}
         table.stat th,table.stat td{border:1px solid #000;padding:7px 8px;text-align:left}
         table.stat th{font-weight:700} .stat-title{font-weight:700;margin-top:26px}
@@ -2692,7 +2788,7 @@ async function buildLeaveFormHtml(id) {
         @media print{.no-print{display:none} body{margin:0;font-size:14px} h2,h3{margin:2px 0} .sigs{gap:10px;margin-top:16px} .sigbox{min-height:100px;padding:6px} .sig{max-height:46px} .sig-blank{height:46px} table.stat{margin-top:14px} .stat-title{margin-top:14px}}
       </style></head><body>
       <div class="no-print"><button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button></div>
-      <div id="page"><div class="hdr"><img class="logo" src="${LOGO_DATA_URI}" alt="logo"><div class="ht"><h2>สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</h2><h3>ใบขออนุมัติลาป่วย ลากิจ ลาพักผ่อน</h3></div></div>
+      <div id="page">${watermark}<div class="hdr"><img class="logo" src="${LOGO_DATA_URI}" alt="logo"><div class="ht"><h2>สหกรณ์ออมทรัพย์ครูภูเก็ต จำกัด</h2><h3>ใบขออนุมัติลาป่วย ลากิจ ลาพักผ่อน</h3></div></div>${cancelBanner}
       <div style="text-align:right">เลขที่: ${esc(r.id)}<br>ยื่นเมื่อ: ${formatThaiDateTime(r.timestamp)}</div>
       <table class="info">
         <tr><td class="k">ผู้ขอลา</td><td>${esc(fullName(r))}</td></tr>
@@ -2700,7 +2796,7 @@ async function buildLeaveFormHtml(id) {
         <tr><td class="k">ประเภทการลา</td><td>${esc(r.leave_type)}</td></tr>
         <tr><td class="k">เหตุผล</td><td>${esc(r.reason)}</td></tr>
         <tr><td class="k">ตั้งแต่วันที่ — ถึงวันที่</td><td>${formatStringToDateTimeInput(r.start_date)} — ${formatStringToDateTimeInput(r.end_date)}</td></tr>
-        <tr><td class="k">รวมครั้งนี้</td><td>${esc(r.leave_duration)} วัน (สะสมปีนี้ ${esc(r.total_cumulative_days !== null && r.total_cumulative_days !== undefined ? r.total_cumulative_days : r.leave_duration)} วัน)</td></tr>
+        <tr><td class="k">รวมครั้งนี้</td><td>${esc(r.leave_duration)} วัน (สะสมปีนี้ ${esc(r.total_cumulative_days !== null && r.total_cumulative_days !== undefined ? r.total_cumulative_days : r.leave_duration)} วัน)${isCancelled ? ' — <b style="color:#c00">ยกเลิกแล้ว ไม่นับเป็นวันลา</b>' : ''}</td></tr>
         <tr><td class="k">ลาครั้งล่าสุด</td><td>${r.last_leave_date ? formatStringToDateTimeInput(r.last_leave_date) : '-'}</td></tr>
         <tr><td class="k">ผู้รับมอบหมายงานแทน</td><td>${r.delegate_name ? esc(r.delegate_name) + ' (' + (esc(delegatePos) || '-') + ')' : '-'}</td></tr>
         <tr><td class="k">ที่อยู่ที่ติดต่อได้</td><td>${esc(r.contact_address) || '-'} โทร. ${esc(r.phone) || '-'}</td></tr>
@@ -2942,7 +3038,7 @@ async function loginAsHR() {
     if (error) { console.error(error); showAppAlert('เกิดข้อผิดพลาดในการโหลดข้อมูล', esc(error.message), 'danger'); return; }
     allCachedRequests = data || [];
     updateHRMetrics(allCachedRequests);
-    renderRequestsTable(allCachedRequests.filter(function (r) { return r.status === 'PendingHR'; }), 'hrTableBody', 'hr');
+    renderRequestsTable(allCachedRequests.filter(function (r) { return r.status === 'PendingHR' || r.status === 'CancelPending'; }), 'hrTableBody', 'hr');
     renderHistoryTable('hr');
     await loadHolidays(true);
     renderLeaveCalendar('hr');
@@ -2956,8 +3052,8 @@ async function loginAsHR() {
 function updateHRMetrics(data) {
   data = data || [];
   $('hrMetricAll').innerText = data.length;
-  $('hrMetricPending').innerText = data.filter(function (r) { return r.status === 'PendingHR'; }).length;
-  $('hrMetricPassed').innerText = data.filter(function (r) { return r.status === 'PendingManager' || r.status === 'Approved' || r.status === 'RejectedByManager'; }).length;
+  $('hrMetricPending').innerText = data.filter(function (r) { return r.status === 'PendingHR' || r.status === 'CancelPending'; }).length;
+  $('hrMetricPassed').innerText = data.filter(function (r) { return ['PendingManager', 'Approved', 'RejectedByManager', 'CancelPending', 'Cancelled'].indexOf(r.status) !== -1; }).length;
   $('hrMetricRejected').innerText = data.filter(function (r) { return r.status === 'RejectedByHR'; }).length;
 }
 
@@ -3004,6 +3100,114 @@ async function submitHRDecision(decision) {
       const mail = await notifyEmail(id, 'hr_decided');
       hideLoading();
       showAppAlert('บันทึกผลแล้ว', 'บันทึกผลการตรวจสอบคำขอ ' + esc(id) + ' เรียบร้อยแล้ว' + mailNote(mail), mail.ok ? 'success' : 'warning');
+    }
+    loginAsHR();
+  } catch (err) {
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// ======================================================================
+// ยกเลิกใบลาที่อนุมัติแล้ว: ผู้ขอลาขอยกเลิก → ฝ่าย HR เป็นผู้กดยกเลิก
+// ======================================================================
+function openCancelRequestDialog(id) {
+  const req = myRequestsCache.find(function (r) { return r.id === id; });
+  if (!req || req.status !== 'Approved') {
+    showAppAlert('ไม่สามารถทำได้', 'ขอยกเลิกได้เฉพาะใบลาที่อนุมัติแล้วเท่านั้น', 'warning');
+    return;
+  }
+  $('cancelRequestId').value = id;
+  $('cancelReason').value = '';
+  $('cancelRequestSummary').innerHTML =
+    `<b>รหัสคำขอ:</b> ${esc(req.id)}<br>` +
+    `<b>ประเภท:</b> ${esc(req.leave_type)} (${esc(req.leave_duration)} วัน)<br>` +
+    `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(req.start_date)} ถึง ${formatStringToDateTimeInput(req.end_date)}`;
+  getModal('cancelRequestModal').show();
+}
+
+async function submitCancelRequest() {
+  const id = $('cancelRequestId').value;
+  const reason = $('cancelReason').value.trim();
+  if (!id || !loggedInEmployee) return;
+  if (!reason) { alert('กรุณาระบุเหตุผลที่ขอยกเลิกใบลา'); return; }
+
+  getModal('cancelRequestModal').hide();
+  showLoading('กำลังส่งคำขอยกเลิกใบลาไปยังฝ่าย HR...');
+  try {
+    const { data, error } = await supabaseClient.from('leave_requests')
+      .update({
+        status: 'CancelPending',
+        cancel_reason: reason,
+        cancel_requested_date: new Date().toISOString(),
+        cancel_hr_name: null, cancel_decision_date: null, cancel_hr_comment: null
+      })
+      .eq('id', id).eq('status', 'Approved').eq('applicant_email', loggedInEmployee.email)
+      .select('id');
+    if (error) throw error;
+    if (!data || !data.length) {
+      hideLoading();
+      showAppAlert('ไม่สำเร็จ', 'ไม่พบใบลาที่อนุมัติแล้วของคุณ หรือสถานะเปลี่ยนไปแล้ว', 'warning');
+    } else {
+      showLoading('กำลังส่งอีเมลแจ้งฝ่าย HR...');
+      const mail = await notifyEmail(id, 'cancel_requested');
+      hideLoading();
+      showAppAlert('ส่งคำขอยกเลิกแล้ว',
+        'ส่งคำขอยกเลิกใบลา ' + esc(id) + ' ให้ฝ่าย HR พิจารณาแล้ว (ใบลานี้ยังนับเป็นวันลาจนกว่า HR จะกดยกเลิกให้)' + mailNote(mail),
+        mail.ok ? 'success' : 'warning');
+    }
+    loadMyRequests(true);
+  } catch (err) {
+    hideLoading();
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+function openHRCancelDialog(id) {
+  const req = allCachedRequests.find(function (r) { return r.id === id; });
+  if (!req) return;
+  $('hrCancelRequestId').value = id;
+  $('hrCancelComment').value = '';
+  $('hrCancelSummary').innerHTML =
+    `<b>รหัสคำขอ:</b> ${esc(req.id)}<br>` +
+    `<b>ผู้ขอลา:</b> ${esc(fullName(req))} (${esc(req.position) || '-'})<br>` +
+    `<b>ประเภท:</b> ${esc(req.leave_type)} (${esc(req.leave_duration)} วัน)<br>` +
+    `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(req.start_date)} ถึง ${formatStringToDateTimeInput(req.end_date)}<br>` +
+    `<b>ขอยกเลิกเมื่อ:</b> ${formatThaiDateTime(req.cancel_requested_date)}<br>` +
+    `<b class="text-danger">เหตุผลที่ขอยกเลิก:</b> ${esc(req.cancel_reason) || '-'}`;
+  getModal('hrCancelModal').show();
+}
+
+// decision: 'Cancelled' = ยกเลิกใบลา (วันลาไม่ถูกนับ) | 'Approved' = ไม่อนุมัติการยกเลิก (ใบลายังมีผลตามเดิม)
+async function submitHRCancelDecision(decision) {
+  const id = $('hrCancelRequestId').value;
+  const comment = $('hrCancelComment').value.trim();
+  if (!id || !loggedInEmployee || normalizeRole(loggedInEmployee.role) !== 'HR') return;
+  if (decision === 'Approved' && !comment) { alert('กรุณาระบุเหตุผลที่ไม่อนุมัติการยกเลิก'); return; }
+  if (decision === 'Cancelled' && !confirm('ยืนยันยกเลิกใบลา ' + id + ' ?\nวันลาของใบนี้จะไม่ถูกนับเป็นวันลา และเอกสารจะมีข้อความ "ยกเลิกวันลา"')) return;
+
+  getModal('hrCancelModal').hide();
+  showLoading('กำลังบันทึกการพิจารณายกเลิกใบลา...');
+  try {
+    const { data, error } = await supabaseClient.from('leave_requests')
+      .update({
+        status: decision,
+        cancel_hr_name: fullName(loggedInEmployee),
+        cancel_decision_date: new Date().toISOString(),
+        cancel_hr_comment: comment || null
+      })
+      .eq('id', id).eq('status', 'CancelPending').select('id');
+    if (error) throw error;
+    if (!data || !data.length) {
+      hideLoading();
+      showAppAlert('ไม่สำเร็จ', 'คำขอนี้ถูกดำเนินการไปแล้วหรือสถานะเปลี่ยนไป', 'warning');
+    } else {
+      showLoading('กำลังส่งอีเมลแจ้งผู้ขอลา...');
+      const mail = await notifyEmail(id, 'cancel_decided');
+      hideLoading();
+      showAppAlert('บันทึกผลแล้ว',
+        (decision === 'Cancelled' ? 'ยกเลิกใบลา ' + esc(id) + ' เรียบร้อยแล้ว วันลานี้จะไม่ถูกนับ' : 'บันทึกการไม่อนุมัติการยกเลิกใบลา ' + esc(id) + ' แล้ว ใบลายังมีผลตามเดิม') + mailNote(mail),
+        mail.ok ? 'success' : 'warning');
     }
     loginAsHR();
   } catch (err) {
@@ -3255,7 +3459,7 @@ async function fetchAnnualReportRows(calendarYear) {
     supabaseClient.from('employees').select(EMP_COLS),
     supabaseClient.from('leave_requests')
       .select('applicant_email,employee_id,start_date,leave_duration,leave_category,status')
-      .eq('status', 'Approved')
+      .in('status', ['Approved', 'CancelPending'])
       .gte('start_date', calendarYear + '-01-01')
       .lte('start_date', calendarYear + '-12-31')
   ]);
