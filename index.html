@@ -1347,7 +1347,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">รหัสผ่านใหม่</label>
-            <input type="password" class="form-control" id="newPasswordInput" placeholder="อย่างน้อย 4 ตัวอักษร">
+            <input type="password" class="form-control" id="newPasswordInput" placeholder="อย่างน้อย 6 ตัวอักษร">
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">ยืนยันรหัสผ่านใหม่</label>
@@ -1384,6 +1384,18 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // โลโก้สหกรณ์ (ฝังในไฟล์ เพื่อให้หน้าพิมพ์แสดงได้โดยไม่ต้องพึ่งไฟล์ภายนอก)
 const LOGO_DATA_URI = 'data:image/png;base64,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';
 
+// ---------- ความปลอดภัย: บัญชีล็อกอิน ----------
+// รหัสผู้ใช้ถูกแปลงเป็น "อีเมลสำหรับล็อกอิน" (ไม่มีการส่งอีเมลจริง) — ต้องตรงกับค่า AUTH_EMAIL_DOMAIN ของ Edge Function admin-users
+const AUTH_EMAIL_DOMAIN = 'pktcoop-leave.com';
+const MIN_PASSWORD_LENGTH = 6;   // ขั้นต่ำของ Supabase Auth
+
+function authEmailFor(employeeId) {
+  const id = String(employeeId || '').trim().toLowerCase();
+  if (/^[a-z0-9._-]+$/.test(id) && id.length <= 40) return id + '@' + AUTH_EMAIL_DOMAIN;
+  const hex = Array.from(new TextEncoder().encode(id)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+  return 'u' + hex + '@' + AUTH_EMAIL_DOMAIN;
+}
+
 // ---------- ค่าคงที่ของระบบ ----------
 const DEFAULT_ANNUAL_ENTITLEMENT = 10;   // สิทธิลาพักผ่อนต่อปี (วัน)
 const MAX_CARRYOVER_DAYS = 10;           // ยกยอดไปปีถัดไปได้สูงสุด (วัน)
@@ -1404,7 +1416,7 @@ const LIST_COLS = [
 ].join(',');
 
 // คอลัมน์พนักงาน (ไม่รวม password)
-const EMP_COLS = 'employee_id,prefix,name,position,email,phone,role,status';
+const EMP_COLS = 'employee_id,prefix,name,position,email,phone,role,status,is_admin';
 
 // ---------- Global state ----------
 let currentLang = 'th';
@@ -1492,6 +1504,10 @@ function normalizeRole(r) {
   if (v === 'manager' || v === 'ผู้จัดการ' || v === 'ผู้อำนวยการ') return 'Manager';
   return 'Employee';
 }
+
+function isAdminUser() { return !!(loggedInEmployee && loggedInEmployee.is_admin); }
+function isManagerUser() { return !!(loggedInEmployee && (loggedInEmployee.is_admin || normalizeRole(loggedInEmployee.role) === 'Manager')); }
+function isHRUser() { return !!(loggedInEmployee && (loggedInEmployee.is_admin || normalizeRole(loggedInEmployee.role) === 'HR')); }
 
 function isEmployeeActive(emp) {
   const s = (emp.status || '').toString().trim().toLowerCase();
@@ -1963,23 +1979,23 @@ async function handleFormSubmission(event) {
 }
 
 async function generateRequestId() {
-  // รูปแบบ LR-วันที่-เลขรัน โดย "เลขรัน" นับต่อเนื่องทุกคำขอ ไม่เริ่มใหม่ทุกวัน (0001, 0002, 0003, ...)
+  // รูปแบบ LR-วันที่-เลขรัน โดย "เลขรัน" นับต่อเนื่องทุกคำขอ ไม่เริ่มใหม่ทุกวัน (0001, 0002, ...)
+  // ใช้ sequence ในฐานข้อมูล เพื่อให้เลขไม่ซ้ำแม้พนักงานแต่ละคนเห็นใบลาของคนอื่นไม่ได้
   const datePart = toYMD(new Date()).replace(/-/g, '');
-  const { data, error } = await supabaseClient.from('leave_requests')
-    .select('id').like('id', 'LR-%').order('id', { ascending: false }).limit(1000);
+  const { data, error } = await supabaseClient.rpc('next_leave_request_no');
   if (error) throw error;
-  let max = 0;
-  (data || []).forEach(function (r) {
-    const m = /-(\d+)$/.exec(String(r.id));
-    if (m) { const n = parseInt(m[1], 10); if (n > max) max = n; }
-  });
-  return 'LR-' + datePart + '-' + String(max + 1).padStart(4, '0');
+  return 'LR-' + datePart + '-' + String(data).padStart(4, '0');
 }
 
 async function saveLeaveRequest(fileData, signatureData) {
   const editId = $('editRequestId').value;
   const emp = loggedInEmployee;
 
+  if (!emp.email) {
+    hideLoading();
+    showAppAlert('ไม่มีอีเมลในระบบ', 'บัญชีของคุณยังไม่มีอีเมลในข้อมูลพนักงาน จึงยื่นใบลาไม่ได้ กรุณาให้ผู้ดูแลระบบเพิ่มอีเมลให้ก่อน', 'danger');
+    return;
+  }
   const startDate = $('startDate').value;
   const endDate = $('endDate').value;
   const reason = $('reason').value.trim();
@@ -2077,7 +2093,8 @@ async function saveLeaveRequest(fileData, signatureData) {
       : `Successfully submitted leave request (ID: ${esc(requestId)})`) + mailNote(mail),
     mail.ok ? 'success' : 'warning');
   resetRequestForm();
-  loadMyRequests(true);
+  await loadMyRequests(true);
+  refreshReviewerPanels();
 }
 
 function fillApplicantFields() {
@@ -2174,41 +2191,25 @@ async function doEmployeeLogin() {
 
   showLoading('กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...');
   try {
-    // ค้นหาแบบทนต่อช่องว่าง/ตัวพิมพ์เล็กใหญ่ แล้วเทียบรหัสผ่านฝั่งหน้าเว็บ
-    const likeId = employeeId.replace(/[%_\\]/g, '\$&') + '%';
-    const { data: rows, error } = await supabaseClient.from('employees')
-      .select(EMP_COLS + ',password')
-      .ilike('employee_id', likeId);
-
-    if (error) {
-      hideLoading();
-      console.error(error);
-      showAppAlert('ข้อผิดพลาดระบบ', esc(error.message), 'danger');
-      return;
-    }
-    const match = (rows || []).find(function (r) {
-      return String(r.employee_id).trim().toLowerCase() === employeeId.toLowerCase();
+    // เข้าสู่ระบบด้วย Supabase Auth (รหัสผ่านถูกเข้ารหัส ตรวจที่เซิร์ฟเวอร์ ไม่ถูกส่งกลับมาที่หน้าเว็บ)
+    const { data: authData, error: authErr } = await supabaseClient.auth.signInWithPassword({
+      email: authEmailFor(employeeId),
+      password: password
     });
-    if (!match) {
+    if (authErr || !authData || !authData.user) {
       hideLoading();
-      console.warn('[login] ไม่พบ employee_id =', employeeId, '| แถวที่ได้จากฐานข้อมูล =', (rows || []).length);
-      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'ไม่พบชื่อผู้ใช้นี้ในระบบ (ถ้าแน่ใจว่ามีอยู่ อาจเป็นเพราะ RLS ของตาราง employees ไม่อนุญาตให้อ่านข้อมูล)', 'danger');
+      console.warn('[login]', authErr && authErr.message);
+      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'danger');
       return;
     }
-    if (String(match.password === null || match.password === undefined ? '' : match.password).trim() !== password) {
+    const { data: employee, error: profErr } = await supabaseClient.from('employees')
+      .select(EMP_COLS).eq('auth_id', authData.user.id).maybeSingle();
+    if (profErr || !employee || !isEmployeeActive(employee)) {
+      await supabaseClient.auth.signOut();
       hideLoading();
-      console.warn('[login] รหัสผ่านไม่ตรง (ความยาวที่เก็บไว้ =', String(match.password || '').length, ')');
-      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'รหัสผ่านไม่ถูกต้อง', 'danger');
+      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'บัญชีนี้ถูกระงับการใช้งานหรือไม่พบข้อมูลพนักงาน กรุณาติดต่อผู้ดูแลระบบ', 'danger');
       return;
     }
-    const employee = Object.assign({}, match);
-    delete employee.password;
-    if (!isEmployeeActive(employee)) {
-      hideLoading();
-      showAppAlert('เข้าสู่ระบบไม่สำเร็จ', 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อ HR', 'danger');
-      return;
-    }
-
     loggedInEmployee = employee;
     $('loginGate').style.display = 'none';
     $('userTopBar').style.display = 'block';
@@ -2216,7 +2217,7 @@ async function doEmployeeLogin() {
     $('employeeWelcomeText').innerText = 'สวัสดีคุณ ' + fullName(employee) + (employee.position ? ' (' + employee.position + ')' : '');
 
     await loadEmployeeListForDelegate();
-    await routeToRolePage(normalizeRole(employee.role));
+    await routeToRolePage(employee.is_admin ? 'Admin' : normalizeRole(employee.role));
     hideLoading();
     showAppAlert('เข้าสู่ระบบสำเร็จ', 'ยินดีต้อนรับคุณ ' + esc(fullName(employee)), 'success');
     handleDirectLink();
@@ -2241,16 +2242,40 @@ async function routeToRolePage(role) {
   delegateLi.style.display = '';   // ทุก Role อาจถูกระบุเป็นผู้รับมอบหมายงานแทนได้
   $('employeeLatestStatusText').innerHTML = '';
 
+  // แท็บ "จัดการพนักงาน" (รวมการตั้งรหัสผ่าน) เห็นได้เฉพาะผู้ดูแลระบบ
+  const empPill = document.querySelector('[data-bs-target="#hrEmployeePane"]');
+  if (empPill) empPill.closest('li').style.display = (role === 'Admin') ? '' : 'none';
+
   loadDelegateTasks(true);
 
-  if (role === 'Manager') {
+  if (role === 'Admin') {
+    // ผู้ดูแลระบบ: เข้าได้ทุกระบบและใช้ได้ทุกฟังก์ชัน (พนักงาน / HR / ผู้จัดการ / ผู้รับมอบหมาย / จัดการพนักงาน)
+    applyLi.style.display = '';
+    myReqLi.style.display = '';
+    hrLi.style.display = '';
+    managerLi.style.display = '';
+    showTab('hr-tab');
+    resetRequestForm();
+    $('searchEmail').value = loggedInEmployee.email || '';
+    $('searchEmail').readOnly = true;
+    await loginAsHR();
+    await loginAsManager();
+    await loadMyRequests(true);
+  } else if (role === 'Manager') {
     managerLi.style.display = '';
     showTab('manager-tab');
     await loginAsManager();
   } else if (role === 'HR') {
+    // HR ยื่นใบลาของตัวเองได้เช่นกัน และผ่านขั้นตอนปกติ: ผู้รับมอบหมายงานแทน → HR (พิจารณาเอง) → ผู้จัดการ
     hrLi.style.display = '';
+    applyLi.style.display = '';
+    myReqLi.style.display = '';
     showTab('hr-tab');
+    resetRequestForm();
+    $('searchEmail').value = loggedInEmployee.email || '';
+    $('searchEmail').readOnly = true;
     await loginAsHR();
+    await loadMyRequests(true);
   } else {
     applyLi.style.display = '';
     myReqLi.style.display = '';
@@ -2267,19 +2292,16 @@ function handleDirectLink() {
   const link = pendingDirectLink;
   pendingDirectLink = null;
   if (link.page !== 'approve' || !link.requestId) return;
-  const role = normalizeRole(loggedInEmployee.role);
   const req = allCachedRequests.find(function (r) { return r.id === link.requestId; });
-  if (role === 'Manager') {
-    if (req && req.status === 'PendingManager') openDecisionDialog(link.requestId);
-    else showAppAlert('แจ้งเตือน', 'คำขอ ' + esc(link.requestId) + ' ไม่อยู่ในสถานะรอผู้จัดการอนุมัติ', 'warning');
-  } else if (role === 'HR') {
-    if (req && req.status === 'PendingHR') openHRDecisionDialog(link.requestId);
-    else if (req && req.status === 'CancelPending') openHRCancelDialog(link.requestId);
-    else showAppAlert('แจ้งเตือน', 'คำขอ ' + esc(link.requestId) + ' ไม่อยู่ในสถานะรอ HR ตรวจสอบ', 'warning');
-  }
+  if (!req) { showAppAlert('แจ้งเตือน', 'ไม่พบคำขอ ' + esc(link.requestId) + ' หรือคุณไม่มีสิทธิ์พิจารณา', 'warning'); return; }
+  if (isHRUser() && req.status === 'PendingHR') openHRDecisionDialog(link.requestId);
+  else if (isHRUser() && req.status === 'CancelPending') openHRCancelDialog(link.requestId);
+  else if (isManagerUser() && req.status === 'PendingManager') openDecisionDialog(link.requestId);
+  else showAppAlert('แจ้งเตือน', 'คำขอ ' + esc(link.requestId) + ' ไม่อยู่ในสถานะที่คุณต้องพิจารณา', 'warning');
 }
 
 function doEmployeeLogout() {
+  supabaseClient.auth.signOut();   // ล้างเซสชันออกจากเบราว์เซอร์
   loggedInEmployee = null;
   allCachedRequests = [];
   myRequestsCache = [];
@@ -2317,25 +2339,27 @@ async function submitChangePassword() {
 
   if (!oldPass || !newPass || !confirmPass) { showAppAlert('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกข้อมูลให้ครบทุกช่อง', 'danger'); return; }
   if (newPass !== confirmPass) { showAppAlert('ข้อมูลไม่ตรงกัน', 'รหัสผ่านใหม่และการยืนยันไม่ตรงกัน', 'danger'); return; }
-  if (newPass.length < 4) { showAppAlert('รหัสผ่านสั้นเกินไป', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร', 'danger'); return; }
+  if (newPass.length < MIN_PASSWORD_LENGTH) { showAppAlert('รหัสผ่านสั้นเกินไป', 'รหัสผ่านใหม่ต้องมีอย่างน้อย ' + MIN_PASSWORD_LENGTH + ' ตัวอักษร', 'danger'); return; }
 
   getModal('changePasswordModal').hide();
   showLoading('กำลังบันทึกรหัสผ่านใหม่...');
   try {
-    const { data, error } = await supabaseClient.from('employees')
-      .update({ password: newPass })
-      .eq('employee_id', loggedInEmployee.employee_id)
-      .eq('password', oldPass)
-      .select('employee_id');
+    // ยืนยันรหัสผ่านเดิมก่อน แล้วจึงเปลี่ยนเป็นรหัสใหม่
+    const { error: verifyErr } = await supabaseClient.auth.signInWithPassword({
+      email: authEmailFor(loggedInEmployee.employee_id),
+      password: oldPass
+    });
+    if (verifyErr) { hideLoading(); showAppAlert('ไม่สำเร็จ', 'รหัสผ่านเดิมไม่ถูกต้อง', 'danger'); return; }
+    const { error } = await supabaseClient.auth.updateUser({ password: newPass });
     hideLoading();
     if (error) { showAppAlert('ข้อผิดพลาดระบบ', esc(error.message), 'danger'); return; }
-    if (!data || !data.length) { showAppAlert('ไม่สำเร็จ', 'รหัสผ่านเดิมไม่ถูกต้อง', 'danger'); return; }
     showAppAlert('สำเร็จ', 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว', 'success');
   } catch (err) {
     hideLoading();
     showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
   }
 }
+
 
 // ======================================================================
 // ประวัติของฉัน
@@ -3029,6 +3053,15 @@ async function submitDelegateDecision(decision) {
 // ======================================================================
 // HR
 // ======================================================================
+// รีเฟรชหน้าพิจารณาของผู้ที่เป็นทั้งผู้ยื่นและผู้พิจารณา (HR / ผู้ดูแลระบบ) ให้เห็นรายการล่าสุดทันที
+async function refreshReviewerPanels() {
+  if (!loggedInEmployee) return;
+  try {
+    if (isHRUser()) await loginAsHR();
+    if (isManagerUser()) await loginAsManager();
+  } catch (err) { console.warn('[refresh]', err); }
+}
+
 async function loginAsHR() {
   if (!loggedInEmployee) return;
   showLoading('กำลังโหลดข้อมูลคำขอทั้งหมดสำหรับ HR...');
@@ -3068,7 +3101,7 @@ function openHRDecisionDialog(id) {
 async function submitHRDecision(decision) {
   const id = $('hrActionRequestId').value;
   const comment = $('hrActionComment').value.trim();
-  if (!id || !loggedInEmployee || normalizeRole(loggedInEmployee.role) !== 'HR') return;
+  if (!id || !isHRUser()) return;
 
   if ((decision === 'RejectedByHR' || decision === 'SendBack') && !comment) {
     alert('กรุณาระบุความเห็น / สาเหตุ หรือเหตุผลการส่งคืนแก้ไขด้วยครับ');
@@ -3101,7 +3134,7 @@ async function submitHRDecision(decision) {
       hideLoading();
       showAppAlert('บันทึกผลแล้ว', 'บันทึกผลการตรวจสอบคำขอ ' + esc(id) + ' เรียบร้อยแล้ว' + mailNote(mail), mail.ok ? 'success' : 'warning');
     }
-    loginAsHR();
+    refreshReviewerPanels();
   } catch (err) {
     hideLoading();
     showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
@@ -3156,7 +3189,8 @@ async function submitCancelRequest() {
         'ส่งคำขอยกเลิกใบลา ' + esc(id) + ' ให้ฝ่าย HR พิจารณาแล้ว (ใบลานี้ยังนับเป็นวันลาจนกว่า HR จะกดยกเลิกให้)' + mailNote(mail),
         mail.ok ? 'success' : 'warning');
     }
-    loadMyRequests(true);
+    await loadMyRequests(true);
+    refreshReviewerPanels();
   } catch (err) {
     hideLoading();
     showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
@@ -3182,7 +3216,7 @@ function openHRCancelDialog(id) {
 async function submitHRCancelDecision(decision) {
   const id = $('hrCancelRequestId').value;
   const comment = $('hrCancelComment').value.trim();
-  if (!id || !loggedInEmployee || normalizeRole(loggedInEmployee.role) !== 'HR') return;
+  if (!id || !isHRUser()) return;
   if (decision === 'Approved' && !comment) { alert('กรุณาระบุเหตุผลที่ไม่อนุมัติการยกเลิก'); return; }
   if (decision === 'Cancelled' && !confirm('ยืนยันยกเลิกใบลา ' + id + ' ?\nวันลาของใบนี้จะไม่ถูกนับเป็นวันลา และเอกสารจะมีข้อความ "ยกเลิกวันลา"')) return;
 
@@ -3209,7 +3243,7 @@ async function submitHRCancelDecision(decision) {
         (decision === 'Cancelled' ? 'ยกเลิกใบลา ' + esc(id) + ' เรียบร้อยแล้ว วันลานี้จะไม่ถูกนับ' : 'บันทึกการไม่อนุมัติการยกเลิกใบลา ' + esc(id) + ' แล้ว ใบลายังมีผลตามเดิม') + mailNote(mail),
         mail.ok ? 'success' : 'warning');
     }
-    loginAsHR();
+    refreshReviewerPanels();
   } catch (err) {
     hideLoading();
     showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
@@ -3393,22 +3427,46 @@ function renderEmployeeManagerTable() {
       <td>${esc(fullName(emp))}</td>
       <td>${esc(emp.position) || '-'}</td>
       <td>${esc(emp.email) || '-'}</td>
-      <td>${roleLabel[normalizeRole(emp.role)] || 'พนักงาน'}</td>
+      <td>${roleLabel[normalizeRole(emp.role)] || 'พนักงาน'}${emp.is_admin ? ' <span class="badge bg-danger">ผู้ดูแลระบบ</span>' : ''}</td>
       <td>${badge}</td>
-      <td class="text-center">${btn}</td></tr>`;
+      <td class="text-center text-nowrap">${btn} <button class="btn btn-sm btn-outline-secondary" data-id="${esc(emp.employee_id)}" onclick="resetEmployeePassword(this.dataset.id)" title="ตั้งรหัสผ่านใหม่"><i class="fa-solid fa-key me-1"></i>ตั้งรหัสผ่านใหม่</button></td></tr>`;
   }).join('');
 }
 
+// เรียก Edge Function admin-users (เฉพาะผู้ดูแลระบบ) — คืนค่า { ok, error }
+async function callAdminUsers(payload) {
+  try {
+    const res = await supabaseClient.functions.invoke('admin-users', { body: payload });
+    if (res.error) {
+      let msg = res.error.message || String(res.error);
+      try {
+        if (res.error.context && typeof res.error.context.json === 'function') {
+          const j = await res.error.context.json();
+          if (j && j.error) msg = j.error;
+        }
+      } catch (e) { /* ใช้ข้อความเดิม */ }
+      return { ok: false, error: msg };
+    }
+    if (res.data && res.data.ok === false) return { ok: false, error: res.data.error || 'ไม่สำเร็จ' };
+    return { ok: true, data: res.data };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+}
+
 async function toggleEmployeeStatus(employeeId, newStatus) {
+  if (!isAdminUser()) { showAppAlert('ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบเท่านั้น', 'danger'); return; }
   if (loggedInEmployee && employeeId === loggedInEmployee.employee_id && newStatus === 'Inactive') {
     showAppAlert('ไม่สามารถทำได้', 'ไม่สามารถระงับบัญชีของตัวเองได้', 'danger');
     return;
   }
   showLoading('กำลังเปลี่ยนสถานะบัญชี...');
   try {
-    const { error } = await supabaseClient.from('employees').update({ status: newStatus }).eq('employee_id', employeeId);
+    const { data, error } = await supabaseClient.from('employees')
+      .update({ status: newStatus }).eq('employee_id', employeeId).select('employee_id');
     hideLoading();
     if (error) throw error;
+    if (!data || !data.length) { showAppAlert('ไม่สำเร็จ', 'ไม่มีสิทธิ์แก้ไขข้อมูลพนักงาน', 'danger'); return; }
     showAppAlert('สำเร็จ', 'เปลี่ยนสถานะพนักงานเรียบร้อยแล้ว', 'success');
     loadEmployeeManager();
     loadEmployeeListForDelegate();
@@ -3419,38 +3477,47 @@ async function toggleEmployeeStatus(employeeId, newStatus) {
 }
 
 async function addEmployeeEntry() {
+  if (!isAdminUser()) { showAppAlert('ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบเท่านั้น', 'danger'); return; }
   const emp = {
     employee_id: $('newEmpId').value.trim(),
-    password: $('newEmpPassword').value.trim(),
     prefix: $('newEmpPrefix').value,
     name: $('newEmpName').value.trim(),
     position: $('newEmpPosition').value.trim(),
     email: $('newEmpEmail').value.trim(),
     phone: $('newEmpTelephone').value.trim(),
-    role: $('newEmpRole').value,
-    status: 'Active'
+    role: $('newEmpRole').value
   };
-  if (!emp.employee_id || !emp.password || !emp.name || !emp.email) {
+  const password = $('newEmpPassword').value.trim();
+  if (!emp.employee_id || !password || !emp.name || !emp.email) {
     showAppAlert('ข้อมูลไม่ครบ', 'กรุณากรอกรหัสผู้ใช้ รหัสผ่าน ชื่อ และอีเมล ให้ครบถ้วน', 'danger');
     return;
   }
-  showLoading('กำลังเพิ่มพนักงานใหม่...');
-  try {
-    const { data: dup, error: e1 } = await supabaseClient.from('employees').select('employee_id').eq('employee_id', emp.employee_id).limit(1);
-    if (e1) throw e1;
-    if (dup && dup.length) { hideLoading(); showAppAlert('รหัสซ้ำ', 'รหัสผู้ใช้ ' + esc(emp.employee_id) + ' มีอยู่ในระบบแล้ว', 'danger'); return; }
-
-    const { error } = await supabaseClient.from('employees').insert([emp]);
-    hideLoading();
-    if (error) throw error;
-    showAppAlert('สำเร็จ', 'เพิ่มพนักงานใหม่เรียบร้อยแล้ว', 'success');
-    ['newEmpId', 'newEmpPassword', 'newEmpName', 'newEmpPosition', 'newEmpEmail', 'newEmpTelephone'].forEach(function (id) { $(id).value = ''; });
-    loadEmployeeManager();
-    loadEmployeeListForDelegate();
-  } catch (err) {
-    hideLoading();
-    showAppAlert('ผิดพลาด', esc(err.message || err.toString()), 'danger');
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    showAppAlert('รหัสผ่านสั้นเกินไป', 'รหัสผ่านต้องมีอย่างน้อย ' + MIN_PASSWORD_LENGTH + ' ตัวอักษร', 'danger');
+    return;
   }
+  showLoading('กำลังเพิ่มพนักงานใหม่...');
+  const res = await callAdminUsers({ action: 'create', employee: emp, password: password });
+  hideLoading();
+  if (!res.ok) { showAppAlert('ผิดพลาด', esc(res.error), 'danger'); return; }
+  showAppAlert('สำเร็จ', 'เพิ่มพนักงานใหม่เรียบร้อยแล้ว', 'success');
+  ['newEmpId', 'newEmpPassword', 'newEmpName', 'newEmpPosition', 'newEmpEmail', 'newEmpTelephone'].forEach(function (id) { $(id).value = ''; });
+  loadEmployeeManager();
+  loadEmployeeListForDelegate();
+}
+
+// ผู้ดูแลระบบตั้งรหัสผ่านใหม่ให้พนักงาน (ดูรหัสเดิมไม่ได้ — ระบบเก็บแบบเข้ารหัสถาวร)
+async function resetEmployeePassword(employeeId) {
+  if (!isAdminUser()) { showAppAlert('ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบเท่านั้น', 'danger'); return; }
+  const pw = prompt('ตั้งรหัสผ่านใหม่ให้ "' + employeeId + '"\n(อย่างน้อย ' + MIN_PASSWORD_LENGTH + ' ตัวอักษร — แจ้งรหัสนี้ให้พนักงาน แล้วให้เขาเปลี่ยนเองภายหลัง)');
+  if (pw === null) return;
+  const newPw = pw.trim();
+  if (newPw.length < MIN_PASSWORD_LENGTH) { showAppAlert('รหัสผ่านสั้นเกินไป', 'ต้องมีอย่างน้อย ' + MIN_PASSWORD_LENGTH + ' ตัวอักษร', 'danger'); return; }
+  showLoading('กำลังตั้งรหัสผ่านใหม่...');
+  const res = await callAdminUsers({ action: 'reset_password', employee_id: employeeId, password: newPw });
+  hideLoading();
+  if (!res.ok) { showAppAlert('ผิดพลาด', esc(res.error), 'danger'); return; }
+  showAppAlert('สำเร็จ', 'ตั้งรหัสผ่านใหม่ให้ ' + esc(employeeId) + ' เรียบร้อยแล้ว', 'success');
 }
 
 // ---------- รายงานสรุปประจำปี + กราฟ ----------
@@ -3690,7 +3757,7 @@ function openDecisionDialog(id) {
 async function submitDecision(status) {
   const id = $('actionRequestId').value;
   const comment = $('actionComment').value.trim();
-  if (!id || !loggedInEmployee || normalizeRole(loggedInEmployee.role) !== 'Manager') return;
+  if (!id || !isManagerUser()) return;
 
   if ((status === 'RejectedByManager' || status === 'SendBack') && !comment) {
     alert('กรุณาระบุความเห็น / สาเหตุ หรือเหตุผลการส่งคืนแก้ไขด้วยครับ');
@@ -3727,7 +3794,7 @@ async function submitDecision(status) {
       hideLoading();
       showAppAlert('ประเมินผลแล้ว', 'บันทึกผลพิจารณาในคำขอ ' + esc(id) + ' เรียบร้อยแล้ว' + mailNote(mail), mail.ok ? 'success' : 'warning');
     }
-    loginAsManager();
+    refreshReviewerPanels();
   } catch (err) {
     hideLoading();
     showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
