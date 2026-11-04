@@ -346,6 +346,11 @@
           <i class="fa-solid fa-history me-2"></i><span data-th="ประวัติการลาของฉัน" data-en="My Requests">ประวัติการลาของฉัน</span>
         </button>
       </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="entitlement-tab" data-bs-toggle="tab" data-bs-target="#entitlementContent" type="button" role="tab" onclick="loadMyEntitlements()">
+          <i class="fa-solid fa-scale-balanced me-2"></i><span data-th="สิทธิวันลาของฉัน" data-en="My Leave Entitlement">สิทธิวันลาของฉัน</span>
+        </button>
+      </li>
       
 		
 		<li class="nav-item" role="presentation">
@@ -599,6 +604,29 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- TAB: สิทธิวันลาของฉัน -->
+      <div class="tab-pane fade" id="entitlementContent" role="tabpanel">
+        <div class="card p-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 border-bottom pb-3">
+            <h4 class="text-primary mb-0 fw-bold"><i class="fa-solid fa-scale-balanced me-2"></i><span id="entitlementTitle">สิทธิวันลาของฉัน</span></h4>
+            <div class="d-flex gap-2 align-items-center">
+              <label for="entitlementYear" class="small fw-bold mb-0">ปี พ.ศ.</label>
+              <select id="entitlementYear" class="form-select form-select-sm" style="width:auto" onchange="loadMyEntitlements()"></select>
+              <button class="btn btn-primary-custom btn-sm" onclick="loadMyEntitlements()" title="รีเฟรช"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+          </div>
+          <div id="entitlementCards"></div>
+          <h6 class="fw-bold mt-4 mb-2"><i class="fa-solid fa-list me-2"></i>รายการลาในปีนี้</h6>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead><tr class="text-muted small"><th>#</th><th>ประเภท</th><th>ช่วงวัน</th><th class="text-center">วัน</th><th>สถานะ</th></tr></thead>
+              <tbody id="entitlementTableBody"></tbody>
+            </table>
+          </div>
+          <div class="small text-muted mt-2" id="entitlementNote"></div>
         </div>
       </div>
 
@@ -1398,7 +1426,11 @@ function authEmailFor(employeeId) {
 
 // ---------- ค่าคงที่ของระบบ ----------
 const DEFAULT_ANNUAL_ENTITLEMENT = 10;   // สิทธิลาพักผ่อนต่อปี (วัน)
-const MAX_CARRYOVER_DAYS = 10;           // ยกยอดไปปีถัดไปได้สูงสุด (วัน)
+const MAX_ANNUAL_TOTAL_DAYS = 20;        // สิทธิลาพักผ่อนรวม (ยกมา + สิทธิปีนี้) ไม่เกิน 20 วัน
+const MAX_CARRYOVER_DAYS = MAX_ANNUAL_TOTAL_DAYS - DEFAULT_ANNUAL_ENTITLEMENT;   // ยกยอดได้สูงสุด (วัน)
+const PERSONAL_ENTITLEMENT_DAYS = 30;    // ลากิจ: สิทธิ 30 วัน/ปี
+const PERSONAL_MAX_TIMES = 12;           // ลากิจ: ลาได้ไม่เกิน 12 ครั้ง/ปี
+const SICK_ENTITLEMENT_DAYS = 60;        // ลาป่วย: สิทธิ 60 วัน/ปี
 const NON_COUNTING_STATUSES = ['RejectedByHR', 'RejectedByManager', 'RejectedByDelegate', 'SendBack', 'Cancelled'];
 const NON_COUNTING_IN = '(' + NON_COUNTING_STATUSES.join(',') + ')';
 const EDITABLE_STATUSES = ['SendBack', 'PendingHR', 'PendingDelegate', 'RejectedByDelegate'];
@@ -1687,7 +1719,7 @@ async function getAnnualLeaveBalance(email, year, excludeId) {
     const entitlement = (row && row.entitlement !== null && row.entitlement !== undefined) ? Number(row.entitlement) : DEFAULT_ANNUAL_ENTITLEMENT;
     let carried;
     if (row && row.carried_over !== null && row.carried_over !== undefined) carried = Number(row.carried_over);
-    else if (y > earliest) carried = Math.min(MAX_CARRYOVER_DAYS, Math.max(0, calc(y - 1).remaining));
+    else if (y > earliest) carried = Math.max(0, Math.min(MAX_ANNUAL_TOTAL_DAYS - entitlement, calc(y - 1).remaining));
     else carried = 0;
     const used = usedByYear[y] || 0;
     const total = carried + entitlement;
@@ -2234,9 +2266,11 @@ async function routeToRolePage(role) {
   const hrLi = $('hr-tab').closest('li');
   const managerLi = $('manager-tab').closest('li');
   const delegateLi = $('delegate-tab').closest('li');
+  const entLi = $('entitlement-tab').closest('li');
 
   applyLi.style.display = 'none';
   myReqLi.style.display = 'none';
+  entLi.style.display = 'none';
   hrLi.style.display = 'none';
   managerLi.style.display = 'none';
   delegateLi.style.display = '';   // ทุก Role อาจถูกระบุเป็นผู้รับมอบหมายงานแทนได้
@@ -2252,6 +2286,7 @@ async function routeToRolePage(role) {
     // ผู้ดูแลระบบ: เข้าได้ทุกระบบและใช้ได้ทุกฟังก์ชัน (พนักงาน / HR / ผู้จัดการ / ผู้รับมอบหมาย / จัดการพนักงาน)
     applyLi.style.display = '';
     myReqLi.style.display = '';
+    entLi.style.display = '';
     hrLi.style.display = '';
     managerLi.style.display = '';
     showTab('hr-tab');
@@ -2270,6 +2305,7 @@ async function routeToRolePage(role) {
     hrLi.style.display = '';
     applyLi.style.display = '';
     myReqLi.style.display = '';
+    entLi.style.display = '';
     showTab('hr-tab');
     resetRequestForm();
     $('searchEmail').value = loggedInEmployee.email || '';
@@ -2279,6 +2315,7 @@ async function routeToRolePage(role) {
   } else {
     applyLi.style.display = '';
     myReqLi.style.display = '';
+    entLi.style.display = '';
     showTab('apply-tab');
     resetRequestForm();
     $('searchEmail').value = loggedInEmployee.email || '';
@@ -2301,6 +2338,7 @@ function handleDirectLink() {
 }
 
 function doEmployeeLogout() {
+  if ($('entitlementYear')) $('entitlementYear').innerHTML = '';
   supabaseClient.auth.signOut();   // ล้างเซสชันออกจากเบราว์เซอร์
   loggedInEmployee = null;
   allCachedRequests = [];
@@ -2360,6 +2398,120 @@ async function submitChangePassword() {
   }
 }
 
+
+// ======================================================================
+// สิทธิวันลาของฉัน (พนักงานตรวจสอบสิทธิของตัวเอง)
+// ======================================================================
+const thaiMonthShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+function formatShortThaiRange(a, b) {
+  const da = ymdToDate(a), db2 = ymdToDate(b);
+  if (!da) return '-';
+  const f = function (d) { return d.getDate() + ' ' + thaiMonthShort[d.getMonth()]; };
+  if (!db2 || toYMD(da) === toYMD(db2)) return f(da);
+  return f(da) + '–' + f(db2);
+}
+
+function entitlementRow(icon, label, usedTxt, totalTxt, remainTxt, pct, over, extraHtml) {
+  const color = over ? 'bg-danger' : (pct >= 90 ? 'bg-danger' : (pct >= 70 ? 'bg-warning' : 'bg-success'));
+  return `<div class="py-3 border-bottom">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+      <div class="fw-bold"><i class="fa-solid ${icon} me-2 text-primary"></i>${label}</div>
+      <div><b>${usedTxt} / ${totalTxt}</b> <span class="${over ? 'text-danger fw-bold' : 'text-muted'}">${remainTxt}</span></div>
+    </div>
+    <div class="progress my-2" style="height:8px"><div class="progress-bar ${color}" style="width:${Math.max(0, Math.min(100, pct))}%"></div></div>
+    <div class="small text-muted">${extraHtml || ''}</div>
+  </div>`;
+}
+
+async function loadMyEntitlements() {
+  if (!loggedInEmployee) return;
+  const sel = $('entitlementYear');
+  const nowYear = new Date().getFullYear();
+  if (!sel.options.length) {
+    for (let y = nowYear + 1; y >= nowYear - 3; y--) {
+      const o = document.createElement('option');
+      o.value = y + 543; o.textContent = y + 543;
+      sel.appendChild(o);
+    }
+    sel.value = nowYear + 543;
+  }
+  const yearBE = parseInt(sel.value, 10);
+  const year = yearBE - 543;
+  const email = loggedInEmployee.email;
+  $('entitlementTitle').textContent = 'สิทธิ์วันลา ปี ' + yearBE;
+  if (!email) {
+    $('entitlementCards').innerHTML = '<div class="alert alert-warning">บัญชีของคุณยังไม่มีอีเมลในข้อมูลพนักงาน จึงตรวจสอบสิทธิไม่ได้ กรุณาติดต่อผู้ดูแลระบบ</div>';
+    return;
+  }
+
+  showLoading('กำลังตรวจสอบสิทธิวันลา...');
+  try {
+    const [bal, reqRes] = await Promise.all([
+      getAnnualLeaveBalance(email, year),
+      supabaseClient.from('leave_requests')
+        .select('id,leave_category,leave_type,start_date,end_date,leave_duration,status')
+        .eq('applicant_email', email)
+        .gte('start_date', year + '-01-01').lte('start_date', year + '-12-31')
+        .order('start_date', { ascending: false })
+    ]);
+    hideLoading();
+    if (reqRes.error) throw reqRes.error;
+    const rows = reqRes.data || [];
+    const counted = rows.filter(function (r) { return NON_COUNTING_STATUSES.indexOf(r.status) === -1; });
+    const PENDING = ['PendingDelegate', 'PendingHR', 'PendingManager'];
+    const sum = function (arr) { return round1(arr.reduce(function (s, r) { return s + (parseFloat(r.leave_duration) || 0); }, 0)); };
+    const byCat = function (c) { return counted.filter(function (r) { return r.leave_category === c; }); };
+    const pendNote = function (arr) {
+      const p = sum(arr.filter(function (r) { return PENDING.indexOf(r.status) !== -1; }));
+      return p > 0 ? ' • รวมใบที่รออนุมัติ ' + p + ' วัน' : '';
+    };
+
+    // ลาพักผ่อน: ยกมาจากปีก่อน + สิทธิปีนี้ (รวมไม่เกิน 20 วัน)
+    const annualRows = byCat('ลาพักผ่อน');
+    let html = entitlementRow('fa-umbrella-beach', 'ลาพักผ่อน',
+      bal.used + ' วัน', bal.totalAvailable + ' วัน', 'เหลือ ' + bal.remaining + ' วัน',
+      bal.totalAvailable > 0 ? bal.used / bal.totalAvailable * 100 : 0, bal.remaining < 0,
+      'ยกมาจากปีก่อน ' + bal.carriedOver + ' วัน + สิทธิปีนี้ ' + bal.entitlement + ' วัน = ' + bal.totalAvailable + ' วัน (รวมไม่เกิน ' + MAX_ANNUAL_TOTAL_DAYS + ' วัน)' + pendNote(annualRows));
+
+    // ลากิจ: 30 วัน/ปี และลาได้ไม่เกิน 12 ครั้ง/ปี
+    const personalRows = byCat('ลากิจ');
+    const pDays = sum(personalRows), pTimes = personalRows.length;
+    const pRemain = round1(PERSONAL_ENTITLEMENT_DAYS - pDays);
+    const pTimesLeft = PERSONAL_MAX_TIMES - pTimes;
+    const pOver = pRemain < 0 || pTimesLeft < 0;
+    html += entitlementRow('fa-briefcase', 'ลากิจ',
+      pDays + ' วัน', PERSONAL_ENTITLEMENT_DAYS + ' วัน', 'เหลือ ' + pRemain + ' วัน', pDays / PERSONAL_ENTITLEMENT_DAYS * 100, pOver,
+      'ลาไปแล้ว <b class="' + (pTimesLeft < 0 ? 'text-danger' : '') + '">' + pTimes + ' / ' + PERSONAL_MAX_TIMES + ' ครั้ง</b> (เหลือ ' + pTimesLeft + ' ครั้ง) — ลาได้ไม่เกิน ' + PERSONAL_MAX_TIMES + ' ครั้งต่อปี' + pendNote(personalRows));
+
+    // ลาป่วย: 60 วัน/ปี
+    const sickRows = byCat('ลาป่วย');
+    const sDays = sum(sickRows);
+    const sRemain = round1(SICK_ENTITLEMENT_DAYS - sDays);
+    html += entitlementRow('fa-notes-medical', 'ลาป่วย',
+      sDays + ' วัน', SICK_ENTITLEMENT_DAYS + ' วัน', 'เหลือ ' + sRemain + ' วัน', sDays / SICK_ENTITLEMENT_DAYS * 100, sRemain < 0,
+      'ลาไปแล้ว ' + sickRows.length + ' ครั้ง' + pendNote(sickRows));
+
+    $('entitlementCards').innerHTML = html;
+
+    const icons = { 'ลาพักผ่อน': 'fa-umbrella-beach', 'ลากิจ': 'fa-briefcase', 'ลาป่วย': 'fa-notes-medical' };
+    $('entitlementTableBody').innerHTML = rows.length ? rows.map(function (r, i) {
+      const info = getStatusInfo(r.status);
+      const muted = NON_COUNTING_STATUSES.indexOf(r.status) !== -1 ? ' class="text-muted"' : '';
+      return `<tr${muted}><td>${rows.length - i}</td>
+        <td><i class="fa-solid ${icons[r.leave_category] || 'fa-file'} me-2 text-primary"></i>${esc(r.leave_category)}</td>
+        <td>${formatShortThaiRange(r.start_date, r.end_date)}</td>
+        <td class="text-center fw-bold">${esc(r.leave_duration)}</td>
+        <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td></tr>`;
+    }).join('') : '<tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีการลาในปีนี้</td></tr>';
+
+    $('entitlementNote').textContent = 'ตัวเลขนับรวมใบลาที่อนุมัติแล้วและที่อยู่ระหว่างพิจารณา ไม่นับใบที่ถูกปฏิเสธ ส่งกลับแก้ไข หรือยกเลิกแล้ว • สิทธิลาพักผ่อนปีนี้คำนวณจากวันคงเหลือของปีก่อน บวกสิทธิปีนี้ ' + DEFAULT_ANNUAL_ENTITLEMENT + ' วัน รวมกันไม่เกิน ' + MAX_ANNUAL_TOTAL_DAYS + ' วัน';
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
+  }
+}
 
 // ======================================================================
 // ประวัติของฉัน
