@@ -891,6 +891,60 @@
                   เมื่อพนักงานพ้นสภาพ ลาออก หรือเกษียณอายุ ให้กด "ระงับการใช้งาน" ที่บัญชีนั้น — บัญชีจะเข้าสู่ระบบไม่ได้อีก แต่ประวัติคำขอวันลาเดิมจะยังอยู่ครบ ไม่ถูกลบ
                 </div>
 
+                <!-- สำรองข้อมูล (เฉพาะผู้ดูแลระบบ) -->
+                <div class="card border-primary mb-4">
+                  <div class="card-body">
+                    <h6 class="fw-bold text-primary mb-1"><i class="fa-solid fa-database me-2"></i>สำรองข้อมูลระบบ</h6>
+                    <div class="small text-muted mb-3">ส่งออกข้อมูลทั้งหมด (พนักงาน ใบลา วันหยุด สิทธิลาพักผ่อน) เก็บไว้เป็นไฟล์ในเครื่องของคุณ ควรทำเป็นประจำ เช่น เดือนละครั้ง <span id="backupLastInfo" class="fw-bold"></span></div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <button class="btn btn-primary fw-bold" onclick="exportBackupJson()"><i class="fa-solid fa-file-arrow-down me-1"></i>ส่งออกข้อมูลทั้งหมด (ไฟล์สำรอง .json)</button>
+                      <button class="btn btn-outline-success fw-bold" onclick="exportBackupExcel()"><i class="fa-solid fa-file-excel me-1"></i>ส่งออกเป็น Excel (อ่านง่าย)</button>
+                    </div>
+                    <div class="small text-muted mt-3">
+                      <i class="fa-solid fa-lock me-1"></i>ไฟล์ .json มีลายเซ็นและเอกสารแนบของพนักงานครบถ้วน จึงเป็นข้อมูลสำคัญ ควรเก็บในที่ปลอดภัยและไม่ส่งต่อให้ผู้อื่น ·
+                      รหัสผ่านพนักงานไม่รวมอยู่ในไฟล์ (ระบบเก็บแบบเข้ารหัสและส่งออกไม่ได้ หากต้องกู้คืนต้องตั้งรหัสผ่านใหม่ให้พนักงาน) ·
+                      ไฟล์ Excel ไม่รวมลายเซ็นและเอกสารแนบ
+                    </div>
+                  </div>
+                </div>
+
+                <!-- กู้คืนข้อมูลจากไฟล์สำรอง (เฉพาะผู้ดูแลระบบ) -->
+                <div class="card border-danger mb-4">
+                  <div class="card-body">
+                    <h6 class="fw-bold text-danger mb-1"><i class="fa-solid fa-clock-rotate-left me-2"></i>กู้คืนข้อมูลจากไฟล์สำรอง</h6>
+                    <div class="small text-muted mb-3">เลือกไฟล์สำรอง (.json) ที่ได้จากปุ่ม "ส่งออกข้อมูลทั้งหมด" ระบบจะตรวจไฟล์และแสดงสรุปให้ดูก่อน <b>ยังไม่มีการเปลี่ยนแปลงข้อมูลจนกว่าคุณจะยืนยัน</b></div>
+                    <input type="file" class="form-control mb-2" id="restoreFile" accept=".json,application/json" onchange="previewRestore()">
+                    <div id="restorePreview"></div>
+
+                    <div id="restoreOptions" style="display:none">
+                      <div class="fw-bold small mt-3 mb-1">1) เลือกข้อมูลที่ต้องการกู้คืน</div>
+                      <div class="d-flex flex-wrap gap-3 small">
+                        <label><input type="checkbox" id="restoreEmployees" checked> พนักงาน</label>
+                        <label><input type="checkbox" id="restoreRequests" checked> ใบลา</label>
+                        <label><input type="checkbox" id="restoreHolidays" checked> วันหยุด</label>
+                        <label><input type="checkbox" id="restoreLedger" checked> สิทธิลาพักผ่อน</label>
+                      </div>
+
+                      <div class="fw-bold small mt-3 mb-1">2) เลือกวิธีกู้คืน</div>
+                      <div class="form-check small">
+                        <input class="form-check-input" type="radio" name="restoreMode" id="restoreModeAdd" value="add" checked>
+                        <label class="form-check-label" for="restoreModeAdd"><b>เพิ่มเฉพาะรายการที่ขาดหายไป</b> (ปลอดภัย แนะนำ) — ไม่แตะต้องรายการที่มีอยู่แล้ว</label>
+                      </div>
+                      <div class="form-check small">
+                        <input class="form-check-input" type="radio" name="restoreMode" id="restoreModeOverwrite" value="overwrite">
+                        <label class="form-check-label" for="restoreModeOverwrite">เพิ่มรายการที่ขาดหาย และ <b class="text-danger">เขียนทับรายการที่มีอยู่แล้ว</b> ด้วยข้อมูลในไฟล์สำรอง — ใช้เมื่อข้อมูลปัจจุบันเสียหายหรือถูกแก้ผิด ระบบจะดาวน์โหลดไฟล์สำรองของข้อมูลปัจจุบันให้ก่อนอัตโนมัติ</label>
+                      </div>
+
+                      <div class="fw-bold small mt-3 mb-1">3) ยืนยัน</div>
+                      <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <input type="text" class="form-control form-control-sm" id="restoreConfirm" style="max-width:220px" placeholder='พิมพ์คำว่า  กู้คืน'>
+                        <button class="btn btn-danger fw-bold" onclick="runRestore()"><i class="fa-solid fa-clock-rotate-left me-1"></i>เริ่มกู้คืนข้อมูล</button>
+                      </div>
+                    </div>
+                    <div id="restoreResult" class="mt-3"></div>
+                  </div>
+                </div>
+
                 <div class="row g-3 mb-4">
                   <div class="col-md-8">
                     <input type="text" class="form-control" id="employeeManagerSearch" placeholder="ค้นหารหัสผู้ใช้ ชื่อ หรืออีเมล..." oninput="renderEmployeeManagerTable()">
@@ -3539,8 +3593,431 @@ async function saveAnnualLeaveLedger() {
   }
 }
 
+// ======================================================================
+// สำรองข้อมูล: ส่งออกข้อมูลทั้งหมด (เฉพาะผู้ดูแลระบบ)
+// ======================================================================
+async function fetchAllRows(table, cols, orderCols, pageSize, label) {
+  const out = [];
+  let from = 0;
+  for (;;) {
+    let q = supabaseClient.from(table).select(cols);
+    orderCols.forEach(function (c) { q = q.order(c, { ascending: true }); });
+    const { data, error } = await q.range(from, from + pageSize - 1);
+    if (error) throw error;
+    out.push.apply(out, data || []);
+    showLoading('กำลังดึงข้อมูล' + label + '... ' + out.length + ' รายการ');
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+  return out;
+}
+
+async function collectBackupData() {
+  // รหัสผ่านไม่อยู่ในข้อมูลนี้: employees ดึงเฉพาะคอลัมน์ที่ไม่ใช่ความลับ
+  const employees = await fetchAllRows('employees', EMP_COLS, ['employee_id'], 500, 'พนักงาน');
+  const requests = await fetchAllRows('leave_requests', '*', ['id'], 100, 'ใบลา');
+  const holidays = await fetchAllRows('holidays', '*', ['date'], 500, 'วันหยุด');
+  const ledger = await fetchAllRows('annual_leave_ledger', '*', ['email', 'year'], 500, 'สิทธิลาพักผ่อน');
+  return { employees: employees, leave_requests: requests, holidays: holidays, annual_leave_ledger: ledger };
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+}
+
+function backupStamp() {
+  const d = new Date();
+  return toYMD(d) + '_' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0');
+}
+
+function markBackupDone() {
+  try { localStorage.setItem('leaveSystemLastBackup', new Date().toISOString()); } catch (e) { /* ไม่เป็นไร */ }
+  showBackupLastInfo();
+}
+
+function showBackupLastInfo() {
+  const el = $('backupLastInfo');
+  if (!el) return;
+  let iso = null;
+  try { iso = localStorage.getItem('leaveSystemLastBackup'); } catch (e) { /* ไม่เป็นไร */ }
+  if (!iso) { el.textContent = '— ยังไม่เคยสำรองจากเครื่องนี้'; el.className = 'fw-bold text-danger'; return; }
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  el.textContent = '— สำรองล่าสุดจากเครื่องนี้: ' + formatThaiDateTime(iso) + (days >= 30 ? ' (เกิน 30 วันแล้ว ควรสำรองใหม่)' : '');
+  el.className = 'fw-bold ' + (days >= 30 ? 'text-danger' : 'text-success');
+}
+
+async function exportBackupJson() {
+  if (!isAdminUser()) { showAppAlert('ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบเท่านั้น', 'danger'); return; }
+  showLoading('กำลังเตรียมไฟล์สำรองข้อมูล...');
+  try {
+    const data = await collectBackupData();
+    const payload = {
+      app: 'leave-system-pktcoop',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      exportedBy: loggedInEmployee.employee_id,
+      counts: {
+        employees: data.employees.length, leave_requests: data.leave_requests.length,
+        holidays: data.holidays.length, annual_leave_ledger: data.annual_leave_ledger.length
+      },
+      employees: data.employees,
+      leave_requests: data.leave_requests,
+      holidays: data.holidays,
+      annual_leave_ledger: data.annual_leave_ledger
+    };
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    downloadBlob(blob, 'สำรองข้อมูลระบบลา_' + backupStamp() + '.json');
+    hideLoading();
+    markBackupDone();
+    showAppAlert('ส่งออกสำเร็จ',
+      'พนักงาน ' + payload.counts.employees + ' คน • ใบลา ' + payload.counts.leave_requests + ' ใบ • วันหยุด ' + payload.counts.holidays +
+      ' วัน • สิทธิลาพักผ่อน ' + payload.counts.annual_leave_ledger + ' รายการ (ขนาดไฟล์ ' + (blob.size / 1048576).toFixed(2) + ' MB) — กรุณาเก็บไฟล์ไว้ในที่ปลอดภัย',
+      'success');
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert('ส่งออกไม่สำเร็จ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+async function exportBackupExcel() {
+  if (!isAdminUser()) { showAppAlert('ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบเท่านั้น', 'danger'); return; }
+  showLoading('กำลังเตรียมไฟล์ Excel...');
+  try {
+    const data = await collectBackupData();
+    const heads = {
+      id: 'รหัสคำขอ', timestamp: 'วันที่ยื่น', applicant_email: 'อีเมลผู้ขอ', employee_id: 'รหัสผู้ใช้', prefix: 'คำนำหน้า', name: 'ชื่อ',
+      position: 'ตำแหน่ง', phone: 'โทรศัพท์', leave_category: 'ประเภทลาหลัก', leave_type: 'ประเภทการลา', start_date: 'ตั้งแต่วันที่',
+      end_date: 'ถึงวันที่', last_leave_date: 'ลาครั้งล่าสุด', leave_duration: 'จำนวนวัน', total_cumulative_days: 'สะสมปีนี้', reason: 'เหตุผล',
+      contact_address: 'ที่อยู่ติดต่อ', delegate_name: 'ผู้รับมอบหมาย', delegate_position: 'ตำแหน่งผู้รับมอบหมาย', delegate_employee_id: 'รหัสผู้รับมอบหมาย',
+      delegate_comment: 'ความเห็นผู้รับมอบหมาย', delegate_decision_date: 'วันที่ผู้รับมอบหมายตัดสินใจ', status: 'สถานะ', has_attachment: 'มีเอกสารแนบ',
+      hr_comment: 'ความเห็น HR', hr_approver_name: 'ผู้ตรวจสอบ HR', hr_decision_date: 'วันที่ HR ตัดสินใจ', approver_comment: 'ความเห็นผู้จัดการ',
+      manager_approver_name: 'ผู้จัดการ', manager_decision_date: 'วันที่ผู้จัดการตัดสินใจ', cancel_reason: 'เหตุผลที่ขอยกเลิก',
+      cancel_requested_date: 'วันที่ขอยกเลิก', cancel_hr_name: 'HR ผู้ยกเลิก', cancel_decision_date: 'วันที่ HR ยกเลิก', cancel_hr_comment: 'ความเห็น HR (ยกเลิก)',
+      created_at: 'สร้างเมื่อ'
+    };
+    const skip = { file_data: 1, signature_data: 1, delegate_signature_data: 1, hr_signature_data: 1, approver_signature_data: 1 };
+    const reqRows = data.leave_requests.map(function (r) {
+      const o = {};
+      Object.keys(r).forEach(function (k) {
+        if (skip[k]) return;
+        let v = r[k];
+        if (k === 'status') v = getStatusInfo(v).label;
+        if (k === 'has_attachment') v = v ? 'มี' : 'ไม่มี';
+        o[heads[k] || k] = v;
+      });
+      return o;
+    });
+    const empRows = data.employees.map(function (e) {
+      return { 'รหัสผู้ใช้': e.employee_id, 'คำนำหน้า': e.prefix, 'ชื่อ': e.name, 'ตำแหน่ง': e.position, 'อีเมล': e.email, 'โทรศัพท์': e.phone,
+        'บทบาท': e.role, 'สถานะ': isEmployeeActive(e) ? 'ใช้งาน' : 'ระงับ', 'ผู้ดูแลระบบ': e.is_admin ? 'ใช่' : '' };
+    });
+    const holRows = data.holidays.map(function (h) { return { 'วันที่': String(h.date).slice(0, 10), 'รายละเอียด': h.description }; });
+    const ledRows = data.annual_leave_ledger.map(function (l) {
+      return { 'อีเมล': l.email, 'ปี (ค.ศ.)': l.year, 'ยอดยกมา': l.carried_over, 'สิทธิปีนี้': l.entitlement };
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empRows), 'พนักงาน');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reqRows), 'ใบลา');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(holRows), 'วันหยุด');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ledRows), 'สิทธิลาพักผ่อน');
+    XLSX.writeFile(wb, 'ข้อมูลระบบลา_' + backupStamp() + '.xlsx');
+    hideLoading();
+    markBackupDone();
+    showAppAlert('ส่งออกสำเร็จ', 'ส่งออกไฟล์ Excel แล้ว (ใบลา ' + reqRows.length + ' ใบ) — ไฟล์นี้ไม่รวมลายเซ็นและเอกสารแนบ ใช้ไฟล์ .json เป็นไฟล์สำรองหลัก', 'success');
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert('ส่งออกไม่สำเร็จ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+// ======================================================================
+// กู้คืนข้อมูลจากไฟล์สำรอง (เฉพาะผู้ดูแลระบบ)
+// ======================================================================
+const LEAVE_REQUEST_COLUMNS = [
+  'id', 'timestamp', 'created_at', 'applicant_email', 'employee_id', 'prefix', 'name', 'position', 'phone',
+  'leave_category', 'leave_type', 'start_date', 'end_date', 'last_leave_date', 'leave_duration', 'total_cumulative_days',
+  'reason', 'contact_address', 'delegate_name', 'delegate_position', 'delegate_employee_id', 'delegate_comment',
+  'delegate_decision_date', 'delegate_signature_data', 'status', 'has_attachment', 'file_data', 'signature_data',
+  'hr_comment', 'hr_approver_name', 'hr_decision_date', 'hr_signature_data', 'approver_comment', 'manager_approver_name',
+  'manager_decision_date', 'approver_signature_data', 'cancel_reason', 'cancel_requested_date', 'cancel_hr_name',
+  'cancel_decision_date', 'cancel_hr_comment'
+];
+const EMPLOYEE_PROFILE_COLUMNS = ['prefix', 'name', 'position', 'email', 'phone', 'role', 'status'];
+let restoreFileData = null;     // ข้อมูลที่ตรวจสอบแล้วจากไฟล์สำรอง
+let restoreExisting = null;     // รายการที่มีอยู่แล้วในระบบปัจจุบัน
+
+const restoreKeys = {
+  employee: function (r) { return String(r.employee_id || '').trim().toLowerCase(); },
+  request: function (r) { return String(r.id || '').trim(); },
+  holiday: function (r) { return String(r.date || '').slice(0, 10); },
+  ledger: function (r) { return String(r.email || '').trim().toLowerCase() + '|' + parseInt(r.year, 10); }
+};
+
+function restoreRowValid(kind, r) {
+  if (!r || typeof r !== 'object') return false;
+  if (kind === 'employee') return !!String(r.employee_id || '').trim() && !!String(r.name || '').trim();
+  if (kind === 'request') return !!String(r.id || '').trim();   // ไม่เข้มงวดเรื่องสถานะ เพื่อไม่ให้ใบลาเก่าตกหล่นตอนกู้คืน
+  if (kind === 'holiday') return /^\d{4}-\d{2}-\d{2}/.test(String(r.date || ''));
+  if (kind === 'ledger') return !!String(r.email || '').trim() && Number.isInteger(parseInt(r.year, 10));
+  return false;
+}
+
+function restoreClassify(kind, rows, existingSet) {
+  const byKey = new Map();
+  let invalid = 0;
+  (rows || []).forEach(function (r) {
+    if (!restoreRowValid(kind, r)) { invalid++; return; }
+    byKey.set(restoreKeys[kind](r), r);          // ซ้ำในไฟล์ → ใช้รายการหลังสุด
+  });
+  const valid = Array.from(byKey.values());
+  const present = valid.filter(function (r) { return existingSet.has(restoreKeys[kind](r)); });
+  const missing = valid.filter(function (r) { return !existingSet.has(restoreKeys[kind](r)); });
+  return { total: (rows || []).length, valid: valid, present: present, missing: missing, invalid: invalid };
+}
+
+async function previewRestore() {
+  restoreFileData = null;
+  $('restorePreview').innerHTML = '';
+  $('restoreResult').innerHTML = '';
+  $('restoreOptions').style.display = 'none';
+  $('restoreConfirm').value = '';
+  const file = $('restoreFile').files[0];
+  if (!file) return;
+  if (!isAdminUser()) { showAppAlert('ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบเท่านั้น', 'danger'); return; }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch (e) {
+    $('restorePreview').innerHTML = '<div class="alert alert-danger small mb-0">อ่านไฟล์ไม่ได้ — ไฟล์นี้ไม่ใช่ไฟล์สำรอง (.json) ที่ถูกต้อง</div>';
+    return;
+  }
+  if (!parsed || parsed.app !== 'leave-system-pktcoop' || parsed.version !== 1 ||
+      !Array.isArray(parsed.employees) || !Array.isArray(parsed.leave_requests) ||
+      !Array.isArray(parsed.holidays) || !Array.isArray(parsed.annual_leave_ledger)) {
+    $('restorePreview').innerHTML = '<div class="alert alert-danger small mb-0">ไฟล์นี้ไม่ใช่ไฟล์สำรองของระบบนี้ หรือเป็นรุ่นที่ไม่รองรับ</div>';
+    return;
+  }
+
+  showLoading('กำลังเทียบไฟล์สำรองกับข้อมูลปัจจุบัน...');
+  try {
+    const sets = {
+      employee: new Set((await fetchAllRows('employees', 'employee_id', ['employee_id'], 1000, 'พนักงาน')).map(restoreKeys.employee)),
+      request: new Set((await fetchAllRows('leave_requests', 'id', ['id'], 1000, 'ใบลา')).map(restoreKeys.request)),
+      holiday: new Set((await fetchAllRows('holidays', 'date', ['date'], 1000, 'วันหยุด')).map(restoreKeys.holiday)),
+      ledger: new Set((await fetchAllRows('annual_leave_ledger', 'email,year', ['email', 'year'], 1000, 'สิทธิลาพักผ่อน')).map(restoreKeys.ledger))
+    };
+    hideLoading();
+    restoreExisting = sets;
+    restoreFileData = {
+      employee: restoreClassify('employee', parsed.employees, sets.employee),
+      request: restoreClassify('request', parsed.leave_requests, sets.request),
+      holiday: restoreClassify('holiday', parsed.holidays, sets.holiday),
+      ledger: restoreClassify('ledger', parsed.annual_leave_ledger, sets.ledger),
+      meta: { exportedAt: parsed.exportedAt, exportedBy: parsed.exportedBy }
+    };
+    const d = restoreFileData;
+    const row = function (label, c) {
+      return '<tr><td>' + label + '</td><td class="text-center">' + c.total + '</td><td class="text-center">' + c.present.length +
+        '</td><td class="text-center fw-bold ' + (c.missing.length ? 'text-success' : '') + '">' + c.missing.length +
+        '</td><td class="text-center ' + (c.invalid ? 'text-danger fw-bold' : '') + '">' + c.invalid + '</td></tr>';
+    };
+    $('restorePreview').innerHTML =
+      '<div class="alert alert-info small py-2 mb-2">ไฟล์สำรองสร้างเมื่อ <b>' + formatThaiDateTime(d.meta.exportedAt) + '</b> โดย <b>' + esc(d.meta.exportedBy || '-') + '</b></div>' +
+      '<div class="table-responsive"><table class="table table-sm table-bordered small mb-0"><thead class="table-light"><tr>' +
+      '<th>ชุดข้อมูล</th><th class="text-center">ในไฟล์</th><th class="text-center">มีอยู่แล้ว</th><th class="text-center">ขาดหาย (จะเพิ่ม)</th><th class="text-center">ข้าม (ข้อมูลไม่ถูกต้อง)</th></tr></thead><tbody>' +
+      row('พนักงาน', d.employee) + row('ใบลา', d.request) + row('วันหยุด', d.holiday) + row('สิทธิลาพักผ่อน', d.ledger) + '</tbody></table></div>';
+    $('restoreOptions').style.display = 'block';
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showAppAlert('ตรวจสอบไฟล์ไม่สำเร็จ', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+function chunkRows(rows, maxCount, maxBytes) {
+  const chunks = [];
+  let cur = [], bytes = 0;
+  rows.forEach(function (r) {
+    const sz = JSON.stringify(r).length;
+    if (cur.length && (cur.length >= maxCount || bytes + sz > maxBytes)) { chunks.push(cur); cur = []; bytes = 0; }
+    cur.push(r); bytes += sz;
+  });
+  if (cur.length) chunks.push(cur);
+  return chunks;
+}
+
+// เพิ่มแถวเป็นชุด ถ้าชุดไหนพังให้ลองทีละแถวเพื่อรู้ว่าแถวไหนมีปัญหา
+async function restoreInsertRows(table, rows, keyOf, stat, label) {
+  for (const chunk of chunkRows(rows, 50, 1500000)) {
+    showLoading('กำลังกู้คืน' + label + '... เพิ่มแล้ว ' + stat.added + ' / ' + rows.length);
+    const first = await supabaseClient.from(table).insert(chunk);
+    if (!first.error) { stat.added += chunk.length; continue; }
+    for (const row of chunk) {
+      const r = await supabaseClient.from(table).insert([row]);
+      if (r.error) stat.failed.push({ key: keyOf(row), error: r.error.message }); else stat.added++;
+    }
+  }
+}
+
+async function runRestore() {
+  if (!isAdminUser()) { showAppAlert('ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบเท่านั้น', 'danger'); return; }
+  if (!restoreFileData) { showAppAlert('ยังไม่ได้เลือกไฟล์', 'กรุณาเลือกไฟล์สำรองก่อน', 'warning'); return; }
+  if ($('restoreConfirm').value.trim() !== 'กู้คืน') { showAppAlert('ยังไม่ได้ยืนยัน', 'กรุณาพิมพ์คำว่า "กู้คืน" ในช่องยืนยันก่อน', 'warning'); return; }
+  const want = {
+    employee: $('restoreEmployees').checked, request: $('restoreRequests').checked,
+    holiday: $('restoreHolidays').checked, ledger: $('restoreLedger').checked
+  };
+  if (!want.employee && !want.request && !want.holiday && !want.ledger) { showAppAlert('ไม่ได้เลือกข้อมูล', 'กรุณาเลือกข้อมูลที่จะกู้คืนอย่างน้อย 1 ชุด', 'warning'); return; }
+  const overwrite = $('restoreModeOverwrite').checked;
+  const d = restoreFileData;
+  const stats = {
+    employee: { added: 0, updated: 0, failed: [] }, request: { added: 0, updated: 0, failed: [] },
+    holiday: { added: 0, updated: 0, failed: [] }, ledger: { added: 0, updated: 0, failed: [] }
+  };
+  let tempPasswords = [];
+  const notes = [];
+
+  try {
+    // โหมดเขียนทับ: ดาวน์โหลดไฟล์สำรองของข้อมูลปัจจุบันให้ก่อน (เผื่อกู้คืนแล้วไม่ถูกใจ)
+    if (overwrite) await exportBackupJson();
+
+    // ---- พนักงาน ----
+    if (want.employee) {
+      if (d.employee.missing.length) {
+        showLoading('กำลังกู้คืนพนักงาน (สร้างบัญชีล็อกอิน)...');
+        const res = await callAdminUsers({ action: 'restore_employees', employees: d.employee.missing });
+        if (!res.ok) stats.employee.failed.push({ key: '(พนักงานที่ขาดหายทั้งหมด)', error: res.error });
+        else {
+          stats.employee.added = (res.data.created || []).length;
+          tempPasswords = res.data.tempPasswords || [];
+          (res.data.failed || []).forEach(function (f) { stats.employee.failed.push({ key: f.employee_id, error: f.error }); });
+        }
+      }
+      if (overwrite) {
+        // อัปเดตข้อมูลทั่วไปของพนักงานที่มีอยู่ (ไม่แตะบัญชีผู้ดูแลระบบ และไม่แตะรหัสผ่าน/บัญชีล็อกอิน)
+        for (const e of d.employee.present) {
+          if (e.is_admin || String(e.employee_id).trim() === String(loggedInEmployee.employee_id).trim()) continue;
+          const patch = {};
+          EMPLOYEE_PROFILE_COLUMNS.forEach(function (c) { if (e[c] !== undefined) patch[c] = e[c]; });
+          const r = await supabaseClient.from('employees').update(patch).eq('employee_id', e.employee_id).select('employee_id');
+          if (r.error) stats.employee.failed.push({ key: e.employee_id, error: r.error.message });
+          else if (r.data && r.data.length) stats.employee.updated++;
+        }
+      }
+    }
+
+    // ---- วันหยุด ----
+    if (want.holiday) {
+      const rows = d.holiday.missing.map(function (h) { return { date: String(h.date).slice(0, 10), description: h.description || null }; });
+      await restoreInsertRows('holidays', rows, function (r) { return r.date; }, stats.holiday, 'วันหยุด');
+      if (overwrite) {
+        for (const h of d.holiday.present) {
+          const r = await supabaseClient.from('holidays').update({ description: h.description || null }).eq('date', String(h.date).slice(0, 10));
+          if (r.error) stats.holiday.failed.push({ key: String(h.date).slice(0, 10), error: r.error.message }); else stats.holiday.updated++;
+        }
+      }
+    }
+
+    // ---- สิทธิลาพักผ่อน ----
+    if (want.ledger) {
+      const clean = function (l) { return { email: l.email, year: parseInt(l.year, 10), carried_over: l.carried_over, entitlement: l.entitlement }; };
+      await restoreInsertRows('annual_leave_ledger', d.ledger.missing.map(clean), function (r) { return r.email + '/' + r.year; }, stats.ledger, 'สิทธิลาพักผ่อน');
+      if (overwrite) {
+        for (const l of d.ledger.present) {
+          const c = clean(l);
+          const r = await supabaseClient.from('annual_leave_ledger').update({ carried_over: c.carried_over, entitlement: c.entitlement }).eq('email', c.email).eq('year', c.year);
+          if (r.error) stats.ledger.failed.push({ key: c.email + '/' + c.year, error: r.error.message }); else stats.ledger.updated++;
+        }
+      }
+    }
+
+    // ---- ใบลา ----
+    if (want.request) {
+      let droppedCols = {};
+      const sanitize = function (r) {
+        const o = {};
+        Object.keys(r).forEach(function (k) {
+          if (LEAVE_REQUEST_COLUMNS.indexOf(k) !== -1) o[k] = r[k]; else droppedCols[k] = true;
+        });
+        return o;
+      };
+      await restoreInsertRows('leave_requests', d.request.missing.map(sanitize), function (r) { return r.id; }, stats.request, 'ใบลา');
+      if (overwrite) {
+        let n = 0;
+        for (const r0 of d.request.present) {
+          const row = sanitize(r0);
+          const id = row.id; delete row.id;
+          n++;
+          showLoading('กำลังเขียนทับใบลา... ' + n + ' / ' + d.request.present.length);
+          const r = await supabaseClient.from('leave_requests').update(row).eq('id', id);
+          if (r.error) stats.request.failed.push({ key: id, error: r.error.message }); else stats.request.updated++;
+        }
+      }
+      const skippedCols = Object.keys(droppedCols);
+      if (skippedCols.length) notes.push('คอลัมน์ที่ระบบนี้ไม่รู้จักและถูกข้าม: ' + skippedCols.map(esc).join(', '));
+      // ปรับเลขรันรหัสคำขอให้ต่อจากเลขสูงสุดหลังกู้คืน
+      if (stats.request.added || stats.request.updated) {
+        const sync = await supabaseClient.rpc('sync_leave_request_seq');
+        if (sync.error) notes.push('ปรับเลขรันรหัสคำขอไม่สำเร็จ (' + esc(sync.error.message) + ') — ให้รัน restore_support.sql ใน SQL Editor แล้วกู้คืนใหม่ หรือแจ้งผู้พัฒนา มิฉะนั้นเลขใบลาใหม่อาจซ้ำ');
+      }
+    }
+
+    hideLoading();
+    renderRestoreResult(stats, want, overwrite, tempPasswords, notes);
+    $('restoreFile').value = '';
+    restoreFileData = null;
+    $('restoreOptions').style.display = 'none';
+    $('restorePreview').innerHTML = '';
+    $('restoreConfirm').value = '';
+    // โหลดรายการล่าสุดกลับมาแสดง
+    loadEmployeeManager();
+    loadEmployeeListForDelegate();
+    refreshReviewerPanels();
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    renderRestoreResult(stats, want, overwrite, tempPasswords, notes.concat(['หยุดกลางคันเพราะเกิดข้อผิดพลาด: ' + esc(err.message || String(err))]));
+    showAppAlert('กู้คืนไม่สำเร็จทั้งหมด', esc(err.message || err.toString()), 'danger');
+  }
+}
+
+function renderRestoreResult(stats, want, overwrite, tempPasswords, notes) {
+  const labels = { employee: 'พนักงาน', request: 'ใบลา', holiday: 'วันหยุด', ledger: 'สิทธิลาพักผ่อน' };
+  let rows = '', failList = '';
+  ['employee', 'request', 'holiday', 'ledger'].forEach(function (k) {
+    if (!want[k]) return;
+    const s = stats[k];
+    rows += '<tr><td>' + labels[k] + '</td><td class="text-center text-success fw-bold">' + s.added + '</td><td class="text-center">' + (overwrite ? s.updated : '-') +
+      '</td><td class="text-center ' + (s.failed.length ? 'text-danger fw-bold' : '') + '">' + s.failed.length + '</td></tr>';
+    s.failed.slice(0, 10).forEach(function (f) { failList += '<li>' + labels[k] + ' <b>' + esc(f.key) + '</b>: ' + esc(f.error) + '</li>'; });
+    if (s.failed.length > 10) failList += '<li>...และอีก ' + (s.failed.length - 10) + ' รายการ</li>';
+  });
+  const anyFail = ['employee', 'request', 'holiday', 'ledger'].some(function (k) { return want[k] && stats[k].failed.length; });
+  let html = '<div class="alert ' + (anyFail || notes.length ? 'alert-warning' : 'alert-success') + ' small mb-2"><b>ผลการกู้คืน</b>' +
+    '<table class="table table-sm table-bordered bg-white mt-2 mb-0"><thead class="table-light"><tr><th>ชุดข้อมูล</th><th class="text-center">เพิ่มใหม่</th><th class="text-center">เขียนทับ</th><th class="text-center">ล้มเหลว</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  if (failList) html += '<div class="alert alert-danger small"><b>รายการที่กู้คืนไม่สำเร็จ</b><ul class="mb-0">' + failList + '</ul></div>';
+  notes.forEach(function (n) { html += '<div class="alert alert-warning small">' + n + '</div>'; });
+  if (tempPasswords.length) {
+    html += '<div class="alert alert-warning small"><b>รหัสผ่านชั่วคราวของพนักงานที่กู้คืน</b> — ระบบกู้คืนรหัสผ่านเดิมไม่ได้ (เก็บแบบเข้ารหัส) จึงตั้งรหัสชั่วคราวให้ แจ้งพนักงานให้ล็อกอินแล้วเปลี่ยนรหัสเอง ' +
+      '<b>รหัสนี้จะแสดงเพียงครั้งเดียว กรุณาจดหรือพิมพ์เก็บไว้ตอนนี้</b>' +
+      '<table class="table table-sm table-bordered bg-white mt-2 mb-2"><thead class="table-light"><tr><th>รหัสผู้ใช้</th><th>ชื่อ</th><th>รหัสผ่านชั่วคราว</th></tr></thead><tbody>' +
+      tempPasswords.map(function (t) { return '<tr><td>' + esc(t.employee_id) + '</td><td>' + esc(t.name) + '</td><td class="fw-bold" style="font-family:Consolas,monospace">' + esc(t.password) + '</td></tr>'; }).join('') +
+      '</tbody></table><button class="btn btn-sm btn-outline-dark" onclick="window.print()"><i class="fa-solid fa-print me-1"></i>พิมพ์ตารางนี้</button></div>';
+  }
+  $('restoreResult').innerHTML = html;
+  if ($('restoreResult').scrollIntoView) $('restoreResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // ---------- จัดการพนักงาน ----------
 async function loadEmployeeManager() {
+  showBackupLastInfo();
   showLoading('กำลังโหลดรายชื่อพนักงาน...');
   try {
     const { data, error } = await supabaseClient.from('employees').select(EMP_COLS).order('employee_id', { ascending: true });
