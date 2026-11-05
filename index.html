@@ -458,7 +458,9 @@
               <!-- Last leave date -->
               <div class="col-md-4">
                 <label class="form-label" data-th="ลาพักครั้งล่าสุดเมื่อวันที่" data-en="Last Leave Date">ลาพักครั้งล่าสุดเมื่อวันที่</label>
-                <input type="date" class="form-control" id="lastLeaveDate" name="lastLeaveDate">
+                <input type="text" class="form-control bg-light" id="lastLeaveDateText" readonly tabindex="-1" placeholder="ยังไม่เคยลาประเภทนี้" style="cursor:not-allowed">
+                <input type="hidden" id="lastLeaveDate" name="lastLeaveDate">
+                <div class="form-text" data-th="ระบบแสดงให้อัตโนมัติจากประวัติการลาประเภทเดียวกัน" data-en="Filled automatically from your previous leave of the same type">ระบบแสดงให้อัตโนมัติจากประวัติการลาประเภทเดียวกัน</div>
               </div>
 
               <!-- แจ้งเตือนเมื่อเลือกวันที่ซ้ำกับวันที่เคยลามาแล้ว -->
@@ -1719,13 +1721,23 @@ function syncCategoryDropdown(cat, skipLastLeaveFetch) {
   refreshCumulativePreview();
 }
 
-// ดึงวันที่ลาครั้งล่าสุด (ประเภทเดียวกัน ก่อนวันที่เริ่มลาปัจจุบัน) มาเติมในฟอร์ม
+// ช่อง "ลาพักครั้งล่าสุดเมื่อวันที่" ถูกล็อก (ผู้ใช้เลือกเองไม่ได้): ระบบคำนวณจากประวัติการลาประเภทเดียวกัน
+// เก็บค่าจริงรูปแบบ YYYY-MM-DD ไว้ในช่องซ่อน และแสดงเป็นวันที่ไทย (พ.ศ.) ในช่องที่ผู้ใช้เห็น
+let lastLeaveFetchToken = 0;
+function setLastLeaveDate(iso) {
+  const v = iso ? String(iso).slice(0, 10) : '';
+  $('lastLeaveDate').value = v;
+  $('lastLeaveDateText').value = v ? formatStringToDateTimeInput(v) : '';
+}
+
+// ดึงวันที่ลาครั้งล่าสุด (ประเภทเดียวกัน ก่อนวันที่เริ่มลาปัจจุบัน) มาแสดงในฟอร์ม
 async function fetchLastLeaveDate() {
   const email = $('applicantEmail').value;
   const cat = $('leaveCategory').value;
   const start = $('startDate').value;
   const editId = $('editRequestId').value;
   if (!email || !cat) return;
+  const token = ++lastLeaveFetchToken;
   try {
     let q = supabaseClient.from('leave_requests')
       .select('end_date')
@@ -1737,8 +1749,9 @@ async function fetchLastLeaveDate() {
     if (start) q = q.lt('start_date', start);
     if (editId) q = q.neq('id', editId);
     const { data, error } = await q;
+    if (token !== lastLeaveFetchToken) return;   // มีการเปลี่ยนประเภท/วันที่ใหม่ระหว่างรอ
     if (error) { console.error('fetchLastLeaveDate:', error); return; }
-    $('lastLeaveDate').value = (data && data[0] && data[0].end_date) ? String(data[0].end_date).slice(0, 10) : '';
+    setLastLeaveDate((data && data[0] && data[0].end_date) ? data[0].end_date : '');
   } catch (err) { console.error(err); }
 }
 
@@ -2208,7 +2221,9 @@ function resetRequestForm() {
   $('annualLeaveBalanceBox').style.display = 'none';
   clearOverlapState();
   fillApplicantFields();
+  setLastLeaveDate('');
   syncCategoryDropdown('ลากิจ', true);
+  fetchLastLeaveDate();
   updateDelegateRequirement();
   renderDelegateOptions(false);
 }
@@ -2233,7 +2248,8 @@ function loadRequestBackToForm(id) {
   clearOverlapState();
   $('startDate').value = req.start_date ? String(req.start_date).slice(0, 10) : '';
   $('endDate').value = req.end_date ? String(req.end_date).slice(0, 10) : '';
-  $('lastLeaveDate').value = req.last_leave_date ? String(req.last_leave_date).slice(0, 10) : '';
+  setLastLeaveDate(req.last_leave_date);
+  fetchLastLeaveDate();
   $('reason').value = req.reason || '';
   $('contactAddress').value = req.contact_address || '';
 
