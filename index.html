@@ -445,6 +445,16 @@
 
               <!-- Start Date & End Date (ปรับปรุงให้รองรับ DATE อย่างเดียว ไม่มีเวลา) -->
 			<div class="col-md-4">
+				<label class="form-label fw-bold" for="dayPart" data-th="ช่วงเวลาการลา *" data-en="Leave Period *">ช่วงเวลาการลา *</label>
+				<select class="form-select" id="dayPart" name="dayPart" onchange="calculateDateDuration()">
+					<option value="full">เต็มวัน</option>
+					<option value="morning">ครึ่งวัน — ช่วงเช้า</option>
+					<option value="afternoon">ครึ่งวัน — ช่วงบ่าย</option>
+				</select>
+				<div class="form-text" data-th="ลาครึ่งวันเลือกได้ 1 วัน นับเป็น 0.5 วัน" data-en="Half-day leave is for a single day and counts as 0.5 day">ลาครึ่งวันเลือกได้ 1 วัน นับเป็น 0.5 วัน</div>
+			</div>
+
+			<div class="col-md-4">
   			  	<label class="form-label fw-bold" data-th="ตั้งแต่วันที่ *" data-en="From Date *">ตั้งแต่วันที่ *</label>
    				<input type="date" class="form-control" id="startDate" name="startDate" required onchange="calculateDateDuration()">
 			</div>
@@ -1494,7 +1504,7 @@ const EDITABLE_STATUSES = ['SendBack', 'PendingHR', 'PendingDelegate', 'Rejected
 // คอลัมน์ที่ดึงตอนแสดงรายการ (ไม่ดึงไฟล์แนบ/ลายเซ็น เพราะขนาดใหญ่ ดึงเฉพาะตอนเปิดดู/พิมพ์)
 const LIST_COLS = [
   'id', 'timestamp', 'applicant_email', 'employee_id', 'prefix', 'name', 'position', 'phone',
-  'leave_category', 'leave_type', 'start_date', 'end_date', 'last_leave_date', 'leave_duration',
+  'leave_category', 'leave_type', 'start_date', 'end_date', 'last_leave_date', 'leave_duration', 'day_part',
   'total_cumulative_days', 'reason', 'contact_address',
   'delegate_name', 'delegate_position', 'delegate_employee_id', 'delegate_comment', 'delegate_decision_date',
   'status', 'has_attachment',
@@ -1633,6 +1643,30 @@ function formatThaiDateTime(v) {
 }
 
 function round1(n) { return Math.round((Number(n) || 0) * 10) / 10; }
+
+// ---------- ลาครึ่งวัน (เช้า / บ่าย) ----------
+function dayPartLabel(p) { return p === 'morning' ? 'ครึ่งวันเช้า' : (p === 'afternoon' ? 'ครึ่งวันบ่าย' : ''); }
+function dayPartShort(p) { return p === 'morning' ? 'เช้า' : (p === 'afternoon' ? 'บ่าย' : ''); }
+function getDayPart() {
+  const el = $('dayPart');
+  const v = el ? el.value : 'full';
+  return (v === 'morning' || v === 'afternoon') ? v : 'full';
+}
+// แสดงจำนวนวัน + ช่วงเวลา (ถ้าเป็นครึ่งวัน) เช่น "0.5 วัน (ครึ่งวันเช้า)"
+function fmtDays(r) {
+  const lbl = dayPartLabel(r && r.day_part);
+  return esc(r.leave_duration === null || r.leave_duration === undefined ? 0 : r.leave_duration) + ' วัน' +
+    (lbl ? ' <span class="small text-muted">(' + lbl + ')</span>' : '');
+}
+// ลาครึ่งวันเลือกได้เฉพาะ 1 วัน: ล็อกวันที่สิ้นสุดให้เท่ากับวันที่เริ่ม
+function applyDayPartUI() {
+  const half = getDayPart() !== 'full';
+  const end = $('endDate');
+  if (!end) return;
+  end.disabled = half;
+  if (half) { const st = $('startDate').value; if (st) end.value = st; }
+}
+
 
 function packFile(obj) { return obj ? JSON.stringify(obj) : null; }
 function unpackFile(v) {
@@ -1930,6 +1964,8 @@ function syncDelegatePosition() {
 
 // ---------- คำนวณวันลา ----------
 function calculateDateDuration() {
+  applyDayPartUI();
+  const half = getDayPart() !== 'full';
   const startInput = $('startDate').value;
   const endInput = $('endDate').value;
   const durationInput = $('leaveDuration');
@@ -1965,6 +2001,7 @@ function calculateDateDuration() {
     else count++;
     cursor.setDate(cursor.getDate() + 1);
   }
+  if (half) count = count > 0 ? 0.5 : 0;   // ลาครึ่งวัน = 0.5 วัน (ถ้าเป็นวันหยุดจะเป็น 0)
   durationInput.value = count;
   excludedNote.innerHTML = excluded.length
     ? '<i class="fa-solid fa-circle-info me-1"></i>ไม่นับวันหยุดต่อไปนี้: ' + excluded.join(', ')
@@ -1993,7 +2030,7 @@ async function checkDateOverlapNow() {
   const token = ++overlapCheckToken;
   try {
     const { data: requests, error } = await supabaseClient.from('leave_requests')
-      .select('id,start_date,end_date,status')
+      .select('id,start_date,end_date,status,day_part')
       .eq('applicant_email', email)
       .not('status', 'in', NON_COUNTING_IN);
 
@@ -2006,6 +2043,9 @@ async function checkDateOverlapNow() {
       const s = String(req.start_date).slice(0, 10);
       const e = String(req.end_date).slice(0, 10);
       if (startVal <= e && endVal >= s) {
+        // ลาครึ่งวันเช้า + ครึ่งวันบ่ายของวันเดียวกัน ซ้อนกันได้ (ช่วงเวลาไม่ชนกัน)
+        const newPart = getDayPart(), exPart = req.day_part || 'full';
+        if (newPart !== 'full' && exPart !== 'full' && newPart !== exPart && s === e && startVal === s) return;
         conflicts.push({ date: formatStringToDateTimeInput(s) + (s !== e ? ' ถึง ' + formatStringToDateTimeInput(e) : ''), requestId: req.id });
       }
     });
@@ -2140,6 +2180,7 @@ async function saveLeaveRequest(fileData, signatureData) {
     end_date: endDate,
     last_leave_date: $('lastLeaveDate').value || null,
     leave_duration: duration,
+    day_part: getDayPart(),
     total_cumulative_days: stats.totalWithCurrent,
     reason: reason,
     contact_address: $('contactAddress').value.trim(),
@@ -2220,6 +2261,7 @@ function resetRequestForm() {
   $('excludedDaysNote').innerHTML = '';
   $('annualLeaveBalanceBox').style.display = 'none';
   clearOverlapState();
+  applyDayPartUI();
   fillApplicantFields();
   setLastLeaveDate('');
   syncCategoryDropdown('ลากิจ', true);
@@ -2246,6 +2288,7 @@ function loadRequestBackToForm(id) {
   $('leaveType').value = req.leave_type;
 
   clearOverlapState();
+  $('dayPart').value = req.day_part || 'full';
   $('startDate').value = req.start_date ? String(req.start_date).slice(0, 10) : '';
   $('endDate').value = req.end_date ? String(req.end_date).slice(0, 10) : '';
   setLastLeaveDate(req.last_leave_date);
@@ -2520,7 +2563,7 @@ async function loadMyEntitlements() {
     const [bal, reqRes] = await Promise.all([
       getAnnualLeaveBalance(email, year),
       supabaseClient.from('leave_requests')
-        .select('id,leave_category,leave_type,start_date,end_date,leave_duration,status')
+        .select('id,leave_category,leave_type,start_date,end_date,leave_duration,day_part,status')
         .eq('applicant_email', email)
         .gte('start_date', year + '-01-01').lte('start_date', year + '-12-31')
         .order('start_date', { ascending: false })
@@ -2571,7 +2614,7 @@ async function loadMyEntitlements() {
       return `<tr${muted}><td>${rows.length - i}</td>
         <td><i class="fa-solid ${icons[r.leave_category] || 'fa-file'} me-2 text-primary"></i>${esc(r.leave_category)}</td>
         <td>${formatShortThaiRange(r.start_date, r.end_date)}</td>
-        <td class="text-center fw-bold">${esc(r.leave_duration)}</td>
+        <td class="text-center fw-bold">${esc(r.leave_duration)}${r.day_part && r.day_part !== 'full' ? '<div class="small text-muted fw-normal">' + dayPartLabel(r.day_part) + '</div>' : ''}</td>
         <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td></tr>`;
     }).join('') : '<tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีการลาในปีนี้</td></tr>';
 
@@ -2633,7 +2676,7 @@ function exportToCSV() {
   if (!myRequestsCache.length) return;
   let csv = '\uFEFF' + 'Request ID,Timestamp,Name,Position,Leave Type,Start Date,End Date,Duration Days,Cumulative YTD,Status\n';
   myRequestsCache.forEach(function (r) {
-    csv += [r.id, r.timestamp, fullName(r), r.position, r.leave_type, r.start_date, r.end_date, r.leave_duration,
+    csv += [r.id, r.timestamp, fullName(r), r.position, r.leave_type, r.start_date, r.end_date, r.leave_duration + (dayPartLabel(r.day_part) ? ' (' + dayPartLabel(r.day_part) + ')' : ''),
       r.total_cumulative_days, getStatusInfo(r.status).label].map(csvCell).join(',') + '\n';
   });
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -2684,7 +2727,7 @@ function renderRequestsTable(data, elementId, viewMode) {
         <td><b>${esc(req.id)}</b></td>
         <td>${esc(fullName(req))}<br><span class="small text-muted">${esc(req.position)}</span></td>
         <td>${esc(req.leave_type)}</td>
-        <td>${esc(req.leave_duration)} วัน</td>
+        <td>${fmtDays(req)}</td>
         <td>${cum}</td>
         <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
         <td class="text-center">${viewBtn}${decisionBtn}${printBtn}</td>
@@ -2701,7 +2744,7 @@ function renderRequestsTable(data, elementId, viewMode) {
       <td>${esc(req.leave_category)} / ${esc(req.leave_type)}</td>
       <td>${formatStringToDateTimeInput(req.start_date)}</td>
       <td>${formatStringToDateTimeInput(req.end_date)}</td>
-      <td>${esc(req.leave_duration)} วัน</td>
+      <td>${fmtDays(req)}</td>
       <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
       <td class="text-center">${viewBtn.replace('me-1', '')}${editBtn}${cancelBtn}${printBtn}</td>
     </tr>`;
@@ -2740,6 +2783,7 @@ function exportAreaToExcel(area) {
       'ตั้งแต่วันที่': formatStringToDateTimeInput(r.start_date),
       'ถึงวันที่': formatStringToDateTimeInput(r.end_date),
       'จำนวนวัน': r.leave_duration,
+      'ช่วงเวลา': dayPartLabel(r.day_part) || 'เต็มวัน',
       'สะสมปีนี้': isRejectedStatusClient(r.status) ? '- (ไม่นับ)' : (r.total_cumulative_days !== null && r.total_cumulative_days !== undefined ? r.total_cumulative_days : r.leave_duration),
       'สถานะปัจจุบัน': getStatusInfo(r.status).label,
       'ความเห็น HR': r.hr_comment || '-',
@@ -2780,7 +2824,7 @@ function openDetailsModal(id) {
       <tr><td><b>ประเภทลา:</b></td><td>${esc(req.leave_category)} (${esc(req.leave_type)})</td></tr>
       <tr><td><b>ตั้งแต่วันที่:</b></td><td>${formatStringToDateTimeInput(req.start_date)}</td></tr>
       <tr><td><b>ถึงวันที่:</b></td><td>${formatStringToDateTimeInput(req.end_date)}</td></tr>
-      <tr><td><b>เวลารวม:</b></td><td><span class="text-danger fw-bold">${esc(req.leave_duration)} วัน</span></td></tr>
+      <tr><td><b>เวลารวม:</b></td><td><span class="text-danger fw-bold">${fmtDays(req)}</span></td></tr>
       <tr><td><b>เหตุผลการลา:</b></td><td>${esc(req.reason)}</td></tr>
       <tr><td><b>ส่งเอกสารแนบ:</b></td><td>${attach}</td></tr>
       <tr><td><b>เบอร์โทร:</b></td><td>${esc(req.phone) || '-'}</td></tr>
@@ -3042,7 +3086,7 @@ async function buildLeaveFormHtml(id) {
         <tr><td class="k">ประเภทการลา</td><td>${esc(r.leave_type)}</td></tr>
         <tr><td class="k">เหตุผล</td><td>${esc(r.reason)}</td></tr>
         <tr><td class="k">ตั้งแต่วันที่ — ถึงวันที่</td><td>${formatStringToDateTimeInput(r.start_date)} — ${formatStringToDateTimeInput(r.end_date)}</td></tr>
-        <tr><td class="k">รวมครั้งนี้</td><td>${esc(r.leave_duration)} วัน (สะสมปีนี้ ${esc(r.total_cumulative_days !== null && r.total_cumulative_days !== undefined ? r.total_cumulative_days : r.leave_duration)} วัน)${isCancelled ? ' — <b style="color:#c00">ยกเลิกแล้ว ไม่นับเป็นวันลา</b>' : ''}</td></tr>
+        <tr><td class="k">รวมครั้งนี้</td><td>${fmtDays(r)} (สะสมปีนี้ ${esc(r.total_cumulative_days !== null && r.total_cumulative_days !== undefined ? r.total_cumulative_days : r.leave_duration)} วัน)${isCancelled ? ' — <b style="color:#c00">ยกเลิกแล้ว ไม่นับเป็นวันลา</b>' : ''}</td></tr>
         <tr><td class="k">ลาครั้งล่าสุด</td><td>${r.last_leave_date ? formatStringToDateTimeInput(r.last_leave_date) : '-'}</td></tr>
         <tr><td class="k">ผู้รับมอบหมายงานแทน</td><td>${r.delegate_name ? esc(r.delegate_name) + ' (' + (esc(delegatePos) || '-') + ')' : '-'}</td></tr>
         <tr><td class="k">ที่อยู่ที่ติดต่อได้</td><td>${esc(r.contact_address) || '-'} โทร. ${esc(r.phone) || '-'}</td></tr>
@@ -3207,7 +3251,7 @@ function renderDelegateTasks() {
       <td><b>${esc(t.id)}</b></td>
       <td>${esc(fullName(t))}<br><span class="small text-muted">${esc(t.position)}</span></td>
       <td>${esc(t.leave_type) || '-'}<br><span class="small text-muted">${formatStringToDateTimeInput(t.start_date)} ถึง ${formatStringToDateTimeInput(t.end_date)}</span></td>
-      <td>${esc(t.leave_duration || 0)} วัน</td>
+      <td>${fmtDays(t)}</td>
       <td><span class="badge badge-status ${info.badgeClass}">${info.label}</span></td>
       <td class="text-center">
         <div class="d-flex gap-1 justify-content-center align-items-center">
@@ -3227,7 +3271,7 @@ function openDelegateDecisionDialog(id) {
   $('delegateRequestSummary').innerHTML =
     `<b>รหัสคำขอ:</b> ${esc(task.id)}<br>` +
     `<b>ผู้ขอลา:</b> ${esc(fullName(task))} (${esc(task.position)})<br>` +
-    `<b>ประเภท:</b> ${esc(task.leave_type)} (${esc(task.leave_duration || 0)} วัน)<br>` +
+    `<b>ประเภท:</b> ${esc(task.leave_type)} (${fmtDays(task)})<br>` +
     `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(task.start_date)} ถึง ${formatStringToDateTimeInput(task.end_date)}<br>` +
     `<b>เหตุผลการลา:</b> ${esc(task.reason) || '-'}`;
   getModal('delegateDecisionModal').show();
@@ -3376,7 +3420,7 @@ function openCancelRequestDialog(id) {
   $('cancelReason').value = '';
   $('cancelRequestSummary').innerHTML =
     `<b>รหัสคำขอ:</b> ${esc(req.id)}<br>` +
-    `<b>ประเภท:</b> ${esc(req.leave_type)} (${esc(req.leave_duration)} วัน)<br>` +
+    `<b>ประเภท:</b> ${esc(req.leave_type)} (${fmtDays(req)})<br>` +
     `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(req.start_date)} ถึง ${formatStringToDateTimeInput(req.end_date)}`;
   getModal('cancelRequestModal').show();
 }
@@ -3427,7 +3471,7 @@ function openHRCancelDialog(id) {
   $('hrCancelSummary').innerHTML =
     `<b>รหัสคำขอ:</b> ${esc(req.id)}<br>` +
     `<b>ผู้ขอลา:</b> ${esc(fullName(req))} (${esc(req.position) || '-'})<br>` +
-    `<b>ประเภท:</b> ${esc(req.leave_type)} (${esc(req.leave_duration)} วัน)<br>` +
+    `<b>ประเภท:</b> ${esc(req.leave_type)} (${fmtDays(req)})<br>` +
     `<b>ช่วงเวลา:</b> ${formatStringToDateTimeInput(req.start_date)} ถึง ${formatStringToDateTimeInput(req.end_date)}<br>` +
     `<b>ขอยกเลิกเมื่อ:</b> ${formatThaiDateTime(req.cancel_requested_date)}<br>` +
     `<b class="text-danger">เหตุผลที่ขอยกเลิก:</b> ${esc(req.cancel_reason) || '-'}`;
@@ -3708,7 +3752,7 @@ async function exportBackupExcel() {
     const heads = {
       id: 'รหัสคำขอ', timestamp: 'วันที่ยื่น', applicant_email: 'อีเมลผู้ขอ', employee_id: 'รหัสผู้ใช้', prefix: 'คำนำหน้า', name: 'ชื่อ',
       position: 'ตำแหน่ง', phone: 'โทรศัพท์', leave_category: 'ประเภทลาหลัก', leave_type: 'ประเภทการลา', start_date: 'ตั้งแต่วันที่',
-      end_date: 'ถึงวันที่', last_leave_date: 'ลาครั้งล่าสุด', leave_duration: 'จำนวนวัน', total_cumulative_days: 'สะสมปีนี้', reason: 'เหตุผล',
+      end_date: 'ถึงวันที่', last_leave_date: 'ลาครั้งล่าสุด', leave_duration: 'จำนวนวัน', day_part: 'ช่วงเวลา', total_cumulative_days: 'สะสมปีนี้', reason: 'เหตุผล',
       contact_address: 'ที่อยู่ติดต่อ', delegate_name: 'ผู้รับมอบหมาย', delegate_position: 'ตำแหน่งผู้รับมอบหมาย', delegate_employee_id: 'รหัสผู้รับมอบหมาย',
       delegate_comment: 'ความเห็นผู้รับมอบหมาย', delegate_decision_date: 'วันที่ผู้รับมอบหมายตัดสินใจ', status: 'สถานะ', has_attachment: 'มีเอกสารแนบ',
       hr_comment: 'ความเห็น HR', hr_approver_name: 'ผู้ตรวจสอบ HR', hr_decision_date: 'วันที่ HR ตัดสินใจ', approver_comment: 'ความเห็นผู้จัดการ',
@@ -3724,6 +3768,7 @@ async function exportBackupExcel() {
         let v = r[k];
         if (k === 'status') v = getStatusInfo(v).label;
         if (k === 'has_attachment') v = v ? 'มี' : 'ไม่มี';
+        if (k === 'day_part') v = dayPartLabel(v) || 'เต็มวัน';
         o[heads[k] || k] = v;
       });
       return o;
@@ -3757,7 +3802,7 @@ async function exportBackupExcel() {
 // ======================================================================
 const LEAVE_REQUEST_COLUMNS = [
   'id', 'timestamp', 'created_at', 'applicant_email', 'employee_id', 'prefix', 'name', 'position', 'phone',
-  'leave_category', 'leave_type', 'start_date', 'end_date', 'last_leave_date', 'leave_duration', 'total_cumulative_days',
+  'leave_category', 'leave_type', 'start_date', 'end_date', 'last_leave_date', 'leave_duration', 'day_part', 'total_cumulative_days',
   'reason', 'contact_address', 'delegate_name', 'delegate_position', 'delegate_employee_id', 'delegate_comment',
   'delegate_decision_date', 'delegate_signature_data', 'status', 'has_attachment', 'file_data', 'signature_data',
   'hr_comment', 'hr_approver_name', 'hr_decision_date', 'hr_signature_data', 'approver_comment', 'manager_approver_name',
@@ -4326,7 +4371,7 @@ function renderLeaveCalendar(area) {
     for (let d = 1; d <= daysInMonth; d++) {
       const cur = new Date(year, month, d);
       if (cur >= s && cur <= e) {
-        (dayMap[d] = dayMap[d] || []).push({ name: fullName(req), status: req.status });
+        (dayMap[d] = dayMap[d] || []).push({ name: fullName(req), status: req.status, part: req.day_part });
       }
     }
   });
@@ -4346,7 +4391,8 @@ function renderLeaveCalendar(area) {
 
     const chips = (dayMap[d] || []).map(function (e) {
       const cls = e.status === 'Approved' ? 'bg-success' : (e.status === 'SendBack' ? 'bg-secondary' : 'bg-warning text-dark');
-      return `<span class="calendar-chip ${cls}" title="${esc(e.name)}">${esc(e.name)}</span>`;
+      const pt = dayPartShort(e.part) ? ' (' + dayPartShort(e.part) + ')' : '';
+      return `<span class="calendar-chip ${cls}" title="${esc(e.name)}${pt}">${esc(e.name)}${pt}</span>`;
     }).join('');
 
     let cls = 'calendar-cell';
