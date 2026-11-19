@@ -310,7 +310,8 @@
           </div>
         </div>
         <button class="btn btn-login-teal w-100 py-2" onclick="doEmployeeLogin()">เข้าสู่ระบบ</button>
-        <p class="text-muted small mt-3 mb-0">กรุณาระบุชื่อผู้ใช้และรหัสผ่าน</p>
+        <div class="text-center mt-3"><a href="#" class="small" onclick="openForgotPassword(); return false;"><i class="fa-solid fa-circle-question me-1"></i>ลืมรหัสผ่าน?</a></div>
+        <p class="text-muted small mt-2 mb-0">กรุณาระบุชื่อผู้ใช้และรหัสผ่าน</p>
       </div>
     </div>
 
@@ -1422,6 +1423,64 @@
             <button class="btn btn-danger fw-bold" onclick="submitDelegateDecision('Declined')"><i class="fa-solid fa-times me-1"></i>ไม่รับมอบหมาย</button>
             <button class="btn btn-success fw-bold" onclick="submitDelegateDecision('Accepted')"><i class="fa-solid fa-signature me-1"></i>รับทราบ + ลงลายเซ็น</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ลืมรหัสผ่าน (ขอลิงก์ตั้งรหัสผ่านใหม่ทางอีเมล) -->
+  <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header" style="background-color:#F5A623; color:#fff;">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-circle-question me-2"></i>ลืมรหัสผ่าน</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">กรอกรหัสผู้ใช้และอีเมลที่ลงทะเบียนไว้ในระบบ ระบบจะส่ง <b>ลิงก์ตั้งรหัสผ่านใหม่</b> ไปที่อีเมลนั้น (ลิงก์ใช้ได้ 30 นาที และใช้ได้ครั้งเดียว)</p>
+          <div class="mb-3">
+            <label class="form-label fw-bold" for="forgotEmployeeId">รหัสผู้ใช้</label>
+            <input type="text" class="form-control" id="forgotEmployeeId" autocomplete="username">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold" for="forgotEmail">อีเมลที่ลงทะเบียนไว้</label>
+            <input type="email" class="form-control" id="forgotEmail" placeholder="name@example.com" autocomplete="email" onkeydown="if(event.key==='Enter') submitForgotPassword();">
+          </div>
+          <div id="forgotResult"></div>
+          <div class="small text-muted">หากไม่ได้รับอีเมล หรืออีเมลไม่ตรงกับที่ลงทะเบียนไว้ ให้ติดต่อผู้ดูแลระบบเพื่อตั้งรหัสผ่านใหม่ให้</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+          <button type="button" class="btn btn-change-pass fw-bold" id="forgotSubmitBtn" onclick="submitForgotPassword()"><i class="fa-solid fa-paper-plane me-1"></i>ส่งลิงก์ตั้งรหัสผ่านใหม่</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ตั้งรหัสผ่านใหม่ (เปิดจากลิงก์ในอีเมล) -->
+  <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header" style="background-color:#F5A623; color:#fff;">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-key me-2"></i>ตั้งรหัสผ่านใหม่</h5>
+        </div>
+        <div class="modal-body">
+          <div id="resetLinkStatus" class="mb-2"></div>
+          <div id="resetFormArea">
+            <p class="small mb-3">ตั้งรหัสผ่านใหม่สำหรับรหัสผู้ใช้ <b id="resetEmployeeLabel">-</b></p>
+            <div class="mb-3">
+              <label class="form-label fw-bold" for="resetNewPassword">รหัสผ่านใหม่</label>
+              <input type="password" class="form-control" id="resetNewPassword" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold" for="resetConfirmPassword">ยืนยันรหัสผ่านใหม่</label>
+              <input type="password" class="form-control" id="resetConfirmPassword" autocomplete="new-password" onkeydown="if(event.key==='Enter') submitResetPassword();">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="resetCloseBtn" onclick="closeResetModal()">ปิด</button>
+          <button type="button" class="btn btn-change-pass fw-bold" id="resetSaveBtn" onclick="submitResetPassword()"><i class="fa-solid fa-check me-1"></i>บันทึกรหัสผ่านใหม่</button>
         </div>
       </div>
     </div>
@@ -2659,6 +2718,109 @@ async function loadMyEntitlements() {
     console.error(err);
     showAppAlert('ข้อผิดพลาดระบบ', esc(err.message || err.toString()), 'danger');
   }
+}
+
+// ======================================================================
+// ลืมรหัสผ่าน: ขอลิงก์ทางอีเมล → เปิดลิงก์ → ตั้งรหัสผ่านใหม่ (ผ่าน Edge Function password-reset)
+// ======================================================================
+let resetToken = null;
+
+function openForgotPassword() {
+  $('forgotEmployeeId').value = $('employeeIdInput').value.trim();
+  $('forgotEmail').value = '';
+  $('forgotResult').innerHTML = '';
+  $('forgotSubmitBtn').disabled = false;
+  getModal('forgotPasswordModal').show();
+}
+
+async function submitForgotPassword() {
+  const id = $('forgotEmployeeId').value.trim();
+  const email = $('forgotEmail').value.trim();
+  const box = $('forgotResult');
+  if (!id || !email) { box.innerHTML = '<div class="alert alert-danger small py-2">กรุณากรอกรหัสผู้ใช้และอีเมลที่ลงทะเบียนไว้</div>'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { box.innerHTML = '<div class="alert alert-danger small py-2">รูปแบบอีเมลไม่ถูกต้อง</div>'; return; }
+
+  $('forgotSubmitBtn').disabled = true;
+  box.innerHTML = '<div class="small text-muted">กำลังส่งคำขอ...</div>';
+  const res = await callEdge('password-reset', { action: 'request', employee_id: id, email: email });
+  if (!res.ok) {
+    $('forgotSubmitBtn').disabled = false;
+    box.innerHTML = '<div class="alert alert-danger small py-2">' + esc(res.error) + '</div>';
+    return;
+  }
+  // ตอบข้อความเดียวกันเสมอ (ไม่บอกว่ารหัสผู้ใช้/อีเมลนั้นมีอยู่จริงหรือไม่)
+  box.innerHTML = '<div class="alert alert-success small py-2">' + esc((res.data && res.data.message) || 'ส่งคำขอแล้ว') + '</div>';
+}
+
+// เรียกตอนเปิดหน้าเว็บ: ถ้า URL มี ?reset=โทเค็น (ลิงก์จากอีเมล) → เปิดหน้าตั้งรหัสผ่านใหม่
+async function handleResetLinkOnLoad() {
+  let token = null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    token = params.get('reset');
+    if (token) {
+      params.delete('reset');
+      const qs = params.toString();
+      // ลบโทเค็นออกจากแถบที่อยู่ทันที (ไม่ค้างในประวัติเบราว์เซอร์)
+      window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+    }
+  } catch (e) { /* ไม่เป็นไร */ }
+  if (!token) return;
+
+  resetToken = token;
+  $('resetNewPassword').value = '';
+  $('resetConfirmPassword').value = '';
+  $('resetFormArea').style.display = 'none';
+  $('resetSaveBtn').style.display = 'none';
+  $('resetLinkStatus').innerHTML = '<div class="small text-muted">กำลังตรวจสอบลิงก์...</div>';
+  getModal('resetPasswordModal').show();
+
+  const res = await callEdge('password-reset', { action: 'check', token: token });
+  if (!res.ok) {
+    resetToken = null;
+    $('resetLinkStatus').innerHTML = '<div class="alert alert-danger small mb-0">' + esc(res.error) + '</div>';
+    return;
+  }
+  $('resetLinkStatus').innerHTML = '';
+  $('resetEmployeeLabel').textContent = res.data.employee_id;
+  $('resetFormArea').style.display = 'block';
+  $('resetSaveBtn').style.display = '';
+  $('resetSaveBtn').disabled = false;
+}
+
+async function submitResetPassword() {
+  const p1 = $('resetNewPassword').value;
+  const p2 = $('resetConfirmPassword').value;
+  const status = $('resetLinkStatus');
+  if (!resetToken) return;
+  if (p1.length < MIN_PASSWORD_LENGTH) { status.innerHTML = '<div class="alert alert-danger small py-2">รหัสผ่านใหม่ต้องมีอย่างน้อย ' + MIN_PASSWORD_LENGTH + ' ตัวอักษร</div>'; return; }
+  if (p1 !== p2) { status.innerHTML = '<div class="alert alert-danger small py-2">รหัสผ่านใหม่และการยืนยันไม่ตรงกัน</div>'; return; }
+
+  $('resetSaveBtn').disabled = true;
+  status.innerHTML = '<div class="small text-muted">กำลังบันทึก...</div>';
+  const res = await callEdge('password-reset', { action: 'reset', token: resetToken, password: p1 });
+  if (!res.ok) {
+    $('resetSaveBtn').disabled = false;
+    status.innerHTML = '<div class="alert alert-danger small py-2">' + esc(res.error) + '</div>';
+    return;
+  }
+  const empId = res.data.employee_id;
+  resetToken = null;
+  $('resetNewPassword').value = '';
+  $('resetConfirmPassword').value = '';
+  $('resetFormArea').style.display = 'none';
+  $('resetSaveBtn').style.display = 'none';
+  status.innerHTML = '<div class="alert alert-success mb-0">ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่</div>';
+  $('resetCloseBtn').textContent = 'ไปหน้าเข้าสู่ระบบ';
+  $('employeeIdInput').value = empId;
+  $('employeePasswordInput').value = '';
+}
+
+function closeResetModal() {
+  resetToken = null;
+  getModal('resetPasswordModal').hide();
+  $('resetCloseBtn').textContent = 'ปิด';
+  if ($('employeePasswordInput')) $('employeePasswordInput').focus();
 }
 
 // ======================================================================
@@ -4158,10 +4320,12 @@ function renderEmployeeManagerTable() {
   }).join('');
 }
 
-// เรียก Edge Function admin-users (เฉพาะผู้ดูแลระบบ) — คืนค่า { ok, error }
-async function callAdminUsers(payload) {
+// เรียก Edge Function ทั่วไป — คืนค่า { ok, data, error } (อ่านข้อความผิดพลาดจากเซิร์ฟเวอร์ให้ด้วย)
+async function callAdminUsers(payload) { return callEdge('admin-users', payload); }
+
+async function callEdge(fnName, payload) {
   try {
-    const res = await supabaseClient.functions.invoke('admin-users', { body: payload });
+    const res = await supabaseClient.functions.invoke(fnName, { body: payload });
     if (res.error) {
       let msg = res.error.message || String(res.error);
       try {
@@ -4532,6 +4696,7 @@ async function submitDecision(status) {
 // ======================================================================
 document.addEventListener('DOMContentLoaded', function () {
   initDatePickers();
+  handleResetLinkOnLoad();
   syncCategoryDropdown('ลากิจ', true);
 
   // ลิงก์ตรงจากอีเมล/ไลน์: ?page=approve&requestId=LR-xxxx (ระบบจะเปิดหน้าพิจารณาหลังล็อกอิน)
