@@ -97,6 +97,7 @@
     .password-toggle-wrap {
       position: relative;
     }
+    .password-toggle-wrap .form-control { padding-right: 2.6rem; }
     .password-toggle-btn {
       position: absolute;
       right: 10px;
@@ -1470,11 +1471,11 @@
             <p class="small mb-3">ตั้งรหัสผ่านใหม่สำหรับรหัสผู้ใช้ <b id="resetEmployeeLabel">-</b></p>
             <div class="mb-3">
               <label class="form-label fw-bold" for="resetNewPassword">รหัสผ่านใหม่</label>
-              <input type="password" class="form-control" id="resetNewPassword" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password">
+              <div class="password-toggle-wrap"><input type="password" class="form-control" id="resetNewPassword" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password"><button type="button" class="password-toggle-btn" tabindex="-1" onclick="togglePasswordField('resetNewPassword', this)" title="แสดง/ซ่อนรหัสผ่าน" aria-label="แสดงหรือซ่อนรหัสผ่าน"><i class="fa-solid fa-eye"></i></button></div>
             </div>
             <div class="mb-3">
               <label class="form-label fw-bold" for="resetConfirmPassword">ยืนยันรหัสผ่านใหม่</label>
-              <input type="password" class="form-control" id="resetConfirmPassword" autocomplete="new-password" onkeydown="if(event.key==='Enter') submitResetPassword();">
+              <div class="password-toggle-wrap"><input type="password" class="form-control" id="resetConfirmPassword" autocomplete="new-password" onkeydown="if(event.key==='Enter') submitResetPassword();"><button type="button" class="password-toggle-btn" tabindex="-1" onclick="togglePasswordField('resetConfirmPassword', this)" title="แสดง/ซ่อนรหัสผ่าน" aria-label="แสดงหรือซ่อนรหัสผ่าน"><i class="fa-solid fa-eye"></i></button></div>
             </div>
           </div>
         </div>
@@ -1497,15 +1498,15 @@
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label fw-bold">รหัสผ่านเดิม</label>
-            <input type="password" class="form-control" id="oldPasswordInput">
+            <div class="password-toggle-wrap"><input type="password" class="form-control" id="oldPasswordInput"><button type="button" class="password-toggle-btn" tabindex="-1" onclick="togglePasswordField('oldPasswordInput', this)" title="แสดง/ซ่อนรหัสผ่าน" aria-label="แสดงหรือซ่อนรหัสผ่าน"><i class="fa-solid fa-eye"></i></button></div>
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">รหัสผ่านใหม่</label>
-            <input type="password" class="form-control" id="newPasswordInput" placeholder="อย่างน้อย 6 ตัวอักษร">
+            <div class="password-toggle-wrap"><input type="password" class="form-control" id="newPasswordInput" placeholder="อย่างน้อย 6 ตัวอักษร"><button type="button" class="password-toggle-btn" tabindex="-1" onclick="togglePasswordField('newPasswordInput', this)" title="แสดง/ซ่อนรหัสผ่าน" aria-label="แสดงหรือซ่อนรหัสผ่าน"><i class="fa-solid fa-eye"></i></button></div>
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">ยืนยันรหัสผ่านใหม่</label>
-            <input type="password" class="form-control" id="confirmPasswordInput">
+            <div class="password-toggle-wrap"><input type="password" class="form-control" id="confirmPasswordInput"><button type="button" class="password-toggle-btn" tabindex="-1" onclick="togglePasswordField('confirmPasswordInput', this)" title="แสดง/ซ่อนรหัสผ่าน" aria-label="แสดงหรือซ่อนรหัสผ่าน"><i class="fa-solid fa-eye"></i></button></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -2410,6 +2411,26 @@ function loadRequestBackToForm(id) {
 // ======================================================================
 // ล็อกอิน / ออกจากระบบ / เปลี่ยนรหัส
 // ======================================================================
+// ปุ่มลูกตา: แสดง/ซ่อนรหัสผ่านที่พิมพ์ (ใช้กับช่องเปลี่ยนรหัสผ่านและตั้งรหัสผ่านใหม่)
+function togglePasswordField(inputId, btn) {
+  const input = $(inputId);
+  if (!input) return;
+  const icon = btn ? btn.querySelector('i') : null;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  if (icon) { icon.classList.toggle('fa-eye', !show); icon.classList.toggle('fa-eye-slash', show); }
+}
+// ซ่อนรหัสผ่านกลับเป็นจุดๆ (เรียกตอนเปิดหน้าต่างใหม่ เพื่อไม่ให้ค้างสถานะ "แสดง" จากครั้งก่อน)
+function hidePasswordFields(ids) {
+  ids.forEach(function (id) {
+    const input = $(id);
+    if (!input) return;
+    input.type = 'password';
+    const icon = input.parentElement && input.parentElement.querySelector('.password-toggle-btn i');
+    if (icon) { icon.classList.add('fa-eye'); icon.classList.remove('fa-eye-slash'); }
+  });
+}
+
 function toggleLoginPasswordVisibility() {
   const input = $('employeePasswordInput');
   const icon = $('loginPasswordToggleIcon');
@@ -2571,6 +2592,7 @@ function doEmployeeLogout() {
 }
 
 function openChangePasswordModal() {
+  hidePasswordFields(['oldPasswordInput', 'newPasswordInput', 'confirmPasswordInput']);
   $('oldPasswordInput').value = '';
   $('newPasswordInput').value = '';
   $('confirmPasswordInput').value = '';
@@ -2768,6 +2790,7 @@ async function handleResetLinkOnLoad() {
   if (!token) return;
 
   resetToken = token;
+  hidePasswordFields(['resetNewPassword', 'resetConfirmPassword']);
   $('resetNewPassword').value = '';
   $('resetConfirmPassword').value = '';
   $('resetFormArea').style.display = 'none';
